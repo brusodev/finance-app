@@ -1,8 +1,23 @@
-from fastapi import APIRouter
+from pydantic import BaseModel
+from typing import Optional
+from datetime import datetime
+from uuid import UUID
 
-router = APIRouter(
-    prefix="/categories",
-    tags=["categories"],
-)
+class CategoryBase(BaseModel):
+    name: str
+    color: Optional[str] = "#000000"
 
-# Endpoints de categorias aqui
+class CategoryCreate(CategoryBase):
+    pass
+    
+class CategoryUpdate(BaseModel):
+    name: Optional[str] = None
+    color: Optional[str] = None
+    
+class CategoryResponse(CategoryBase):
+    id: UUID
+    user_id: UUID
+    created_at: datetime
+    
+    class Config:
+        orm_mode = True
