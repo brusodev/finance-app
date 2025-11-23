@@ -1,4 +1,4 @@
-const API_URL = "http://localhost:8001";
+const API_URL = "http://localhost:8000";
 
 const getHeaders = (includeAuth = true) => {
   const headers = {

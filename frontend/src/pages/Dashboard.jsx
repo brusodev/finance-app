@@ -1,14 +1,16 @@
 import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { transactionsAPI, categoriesAPI } from '../services/api'
+import { transactionsAPI, categoriesAPI, accountsAPI } from '../services/api'
 
 export default function Dashboard() {
   const [transactions, setTransactions] = useState([])
   const [categories, setCategories] = useState([])
+  const [accounts, setAccounts] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
   const [totalIncome, setTotalIncome] = useState(0)
   const [totalExpense, setTotalExpense] = useState(0)
+  const [accountsBalance, setAccountsBalance] = useState(0)
   const navigate = useNavigate()
 
   // Verificar autentica��o
@@ -29,17 +31,19 @@ export default function Dashboard() {
       setLoading(true)
       setError('')
 
-      // Buscar categorias e transa��es em paralelo
-      const [categoriesData, transactionsData] = await Promise.all([
+      // Buscar categorias, transações e contas em paralelo
+      const [categoriesData, transactionsData, accountsData] = await Promise.all([
         categoriesAPI.getAll(),
-        transactionsAPI.getAll()
+        transactionsAPI.getAll(),
+        accountsAPI.getAll()
       ])
 
       setCategories(categoriesData)
       setTransactions(transactionsData)
+      setAccounts(accountsData)
 
       // Calcular totais
-      calculateTotals(transactionsData)
+      calculateTotals(transactionsData, accountsData)
     } catch (err) {
       const errorMessage = err.detail || err.message || 'Erro ao carregar dados'
       setError(errorMessage)
@@ -49,10 +53,17 @@ export default function Dashboard() {
     }
   }
 
-  const calculateTotals = (txns) => {
+  const calculateTotals = (txns, accts = []) => {
     let income = 0
     let expense = 0
+    let accBalance = 0
 
+    // Calcular saldo total das contas
+    accts.forEach((acc) => {
+      accBalance += acc.balance
+    })
+
+    // Calcular receitas e despesas das transações
     txns.forEach((txn) => {
       if (txn.amount > 0) {
         income += txn.amount
@@ -61,6 +72,7 @@ export default function Dashboard() {
       }
     })
 
+    setAccountsBalance(accBalance)
     setTotalIncome(income)
     setTotalExpense(expense)
   }
@@ -76,7 +88,7 @@ export default function Dashboard() {
     )
   }
 
-  const balance = totalIncome - totalExpense
+  const balance = accountsBalance + totalIncome - totalExpense
 
   return (
     <div className="min-h-screen bg-gray-50">
