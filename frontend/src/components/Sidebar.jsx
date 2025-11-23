@@ -29,13 +29,13 @@ export default function Sidebar() {
   }
 
   const menuItems = [
-    { icon: LayoutDashboard, label: 'Dashboard', path: '/', onClick: () => setIsOpen(false) },
-    { icon: Wallet, label: 'Minhas Contas', path: '/accounts', onClick: () => setIsOpen(false) },
-    { icon: Tag, label: 'Categorias', path: '/categories', onClick: () => setIsOpen(false) },
-    { icon: Plus, label: 'Nova Transação', path: '/', onClick: () => setIsOpen(false) },
-    { icon: BarChart3, label: 'Relatórios', path: '/report', onClick: () => setIsOpen(false) },
-    { icon: User, label: 'Meu Perfil', path: '/profile', onClick: () => setIsOpen(false) },
-    { icon: Settings, label: 'Configurações', path: '/settings', onClick: () => setIsOpen(false) },
+    { id: 'dashboard', icon: LayoutDashboard, label: 'Dashboard', path: '/', onClick: () => setIsOpen(false) },
+    { id: 'accounts', icon: Wallet, label: 'Minhas Contas', path: '/accounts', onClick: () => setIsOpen(false) },
+    { id: 'categories', icon: Tag, label: 'Categorias', path: '/categories', onClick: () => setIsOpen(false) },
+    { id: 'transactions', icon: Plus, label: 'Nova Transação', path: '/', onClick: () => setIsOpen(false) },
+    { id: 'report', icon: BarChart3, label: 'Relatórios', path: '/report', onClick: () => setIsOpen(false) },
+    { id: 'profile', icon: User, label: 'Meu Perfil', path: '/profile', onClick: () => setIsOpen(false) },
+    { id: 'settings', icon: Settings, label: 'Configurações', path: '/settings', onClick: () => setIsOpen(false) },
   ]
 
   return (
@@ -63,7 +63,7 @@ export default function Sidebar() {
         <nav className="mt-6 px-3 space-y-2">
           {menuItems.map((item) => (
             <Link
-              key={item.path}
+              key={item.id}
               to={item.path}
               onClick={item.onClick}
               className={`flex items-center space-x-3 px-4 py-3 rounded-lg transition-colors ${isActive(

@@ -2,6 +2,7 @@ from sqlalchemy import Column, Integer, String, Float, Date, ForeignKey, Text
 from sqlalchemy.orm import relationship
 from .database import Base
 
+
 class User(Base):
     __tablename__ = 'users'
     id = Column(Integer, primary_key=True, index=True)
@@ -11,6 +12,7 @@ class User(Base):
     full_name = Column(String, nullable=True)
     avatar = Column(Text, nullable=True)  # Base64 encoded image
 
+
 class Category(Base):
     __tablename__ = 'categories'
     id = Column(Integer, primary_key=True, index=True)
@@ -18,6 +20,7 @@ class Category(Base):
     icon = Column(String, nullable=True)
     user_id = Column(Integer, ForeignKey('users.id'))
     user = relationship("User")
+
 
 class Account(Base):
     __tablename__ = 'accounts'
@@ -28,6 +31,7 @@ class Account(Base):
     currency = Column(String, default='BRL')
     user_id = Column(Integer, ForeignKey('users.id'))
     user = relationship("User")
+
 
 class Transaction(Base):
     __tablename__ = 'transactions'

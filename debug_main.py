@@ -159,4 +159,5 @@ print("✅ TODOS OS IMPORTS E SETUP OK!")
 print("=" * 70)
 print("\nApp routes:")
 for route in app.routes:
-    print(f"  - {route.path} {route.methods if hasattr(route, 'methods') else 'N/A'}")
+    print(
+        f"  - {route.path} {route.methods if hasattr(route, 'methods') else 'N/A'}")

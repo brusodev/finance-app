@@ -2,6 +2,10 @@
 """
 Servidor com lifespan events para debug
 """
+from backend.app.database import engine, Base
+from backend.app.routes import auth, users, categories, transactions
+from fastapi.middleware.cors import CORSMiddleware
+from fastapi import FastAPI
 import sys
 import os
 from contextlib import asynccontextmanager
@@ -9,10 +13,6 @@ from contextlib import asynccontextmanager
 sys.path.insert(0, os.path.abspath('.'))
 os.chdir('c:\\Users\\bruno\\Desktop\\Dev\\finance-app')
 
-from fastapi import FastAPI
-from fastapi.middleware.cors import CORSMiddleware
-from backend.app.routes import auth, users, categories, transactions
-from backend.app.database import engine, Base
 
 # Debug: Criar tabelas
 print("[STARTUP] Criando tabelas...", flush=True)
@@ -20,6 +20,8 @@ Base.metadata.create_all(bind=engine)
 print("[STARTUP] Tabelas criadas!", flush=True)
 
 # Debug: Lifespan events
+
+
 @asynccontextmanager
 async def lifespan(app_instance):
     print("[LIFESPAN] Iniciando...", flush=True)
@@ -53,6 +55,7 @@ app.include_router(auth.router)
 app.include_router(users.router)
 app.include_router(categories.router)
 app.include_router(transactions.router)
+
 
 @app.get('/')
 async def root():

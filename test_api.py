@@ -23,8 +23,10 @@ try:
         }
     )
     print(f"✓ Status: {response.status_code}")
-    print(f"✓ Access-Control-Allow-Origin: {response.headers.get('access-control-allow-origin', 'NOT SET')}")
-    print(f"✓ Access-Control-Allow-Methods: {response.headers.get('access-control-allow-methods', 'NOT SET')}")
+    print(
+        f"✓ Access-Control-Allow-Origin: {response.headers.get('access-control-allow-origin', 'NOT SET')}")
+    print(
+        f"✓ Access-Control-Allow-Methods: {response.headers.get('access-control-allow-methods', 'NOT SET')}")
 except Exception as e:
     print(f"❌ ERROR: {e}")
 
@@ -34,13 +36,13 @@ print("-" * 70)
 try:
     username = f"testuser_{str(uuid.uuid4())[:8]}"
     password = "Password123"
-    
+
     response = requests.post(
         f"{BASE_URL}/auth/register",
         json={"username": username, "password": password},
         headers={"Origin": "http://localhost:5173"}
     )
-    
+
     print(f"Status: {response.status_code}")
     if response.status_code == 200:
         data = response.json()
@@ -58,10 +60,11 @@ print("-" * 70)
 try:
     response = requests.post(
         f"{BASE_URL}/auth/login",
-        json={"username": registered_username, "password": registered_password},
+        json={"username": registered_username,
+              "password": registered_password},
         headers={"Origin": "http://localhost:5173"}
     )
-    
+
     print(f"Status: {response.status_code}")
     if response.status_code == 200:
         data = response.json()

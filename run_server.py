@@ -16,7 +16,7 @@ print(f"Comando: python -m uvicorn backend.app.main:app --reload --port 8000")
 print("=" * 70)
 
 subprocess.run([
-    sys.executable, "-m", "uvicorn", 
+    sys.executable, "-m", "uvicorn",
     "backend.app.main:app",
     "--port", "8000",
     "--host", "127.0.0.1"

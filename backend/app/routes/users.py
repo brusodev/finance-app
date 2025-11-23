@@ -77,4 +77,3 @@ def update_profile(user: schemas.UserUpdate, db: Session = Depends(get_db)):
             detail="Usuário não encontrado"
         )
     return crud.update_user_profile(db=db, user_id=user_id, user=user)
-

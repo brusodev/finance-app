@@ -17,8 +17,8 @@ process = subprocess.Popen([
     "backend.app.main:app",
     "--port", "8000",
     "--log-level", "info"
-], 
-    stdout=sys.stdout, 
+],
+    stdout=sys.stdout,
     stderr=sys.stderr,
     text=True
 )

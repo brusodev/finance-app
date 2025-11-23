@@ -29,4 +29,5 @@ response_data = resp2.json()
 if 'token' in response_data:
     print(f"\n✅ Token encontrado: {response_data['token'][:30]}...")
 else:
-    print(f"\n⚠️  Sem token na response. Chaves disponíveis: {list(response_data.keys())}")
+    print(
+        f"\n⚠️  Sem token na response. Chaves disponíveis: {list(response_data.keys())}")

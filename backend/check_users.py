@@ -1,12 +1,12 @@
 #!/usr/bin/env python
 """Script para verificar e criar usuários de teste"""
 
+from app.utils import hash_password
+from app import models, crud, schemas
+from app.database import SessionLocal
 import sys
 sys.path.insert(0, '.')
 
-from app.database import SessionLocal
-from app import models, crud, schemas
-from app.utils import hash_password
 
 db = SessionLocal()
 
@@ -21,7 +21,8 @@ else:
 
 # Criar usuário de teste se não existir
 print("\n=== CRIANDO USUÁRIO DE TESTE ===")
-test_user = db.query(models.User).filter(models.User.username == "bruno").first()
+test_user = db.query(models.User).filter(
+    models.User.username == "bruno").first()
 if test_user:
     print(f"Usuário 'bruno' já existe (ID: {test_user.id})")
 else:

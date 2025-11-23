@@ -1,24 +1,46 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>CORS Test</title>
     <style>
-        body { font-family: Arial; padding: 20px; }
-        button { padding: 10px 20px; margin: 10px 0; cursor: pointer; }
-        #result { border: 1px solid #ccc; padding: 15px; margin-top: 20px; background: #f5f5f5; }
-        .success { color: green; }
-        .error { color: red; }
+        body {
+            font-family: Arial;
+            padding: 20px;
+        }
+
+        button {
+            padding: 10px 20px;
+            margin: 10px 0;
+            cursor: pointer;
+        }
+
+        #result {
+            border: 1px solid #ccc;
+            padding: 15px;
+            margin-top: 20px;
+            background: #f5f5f5;
+        }
+
+        .success {
+            color: green;
+        }
+
+        .error {
+            color: red;
+        }
     </style>
 </head>
+
 <body>
     <h1>🧪 Teste de CORS</h1>
-    
+
     <button onclick="testRegister()">Testar Registro</button>
     <button onclick="testLogin()">Testar Login</button>
     <button onclick="testOptions()">Testar Preflight OPTIONS</button>
-    
+
     <div id="result"></div>
 
     <script>
@@ -40,16 +62,16 @@
                         'Access-Control-Request-Headers': 'Content-Type'
                     }
                 });
-                
+
                 log(`✓ Status: ${response.status}`, response.status === 200 ? 'success' : 'error');
-                
+
                 const corsHeaders = {
                     'access-control-allow-origin': response.headers.get('access-control-allow-origin'),
                     'access-control-allow-methods': response.headers.get('access-control-allow-methods'),
                     'access-control-allow-headers': response.headers.get('access-control-allow-headers'),
                     'access-control-allow-credentials': response.headers.get('access-control-allow-credentials')
                 };
-                
+
                 log('CORS Headers: ' + JSON.stringify(corsHeaders, null, 2), 'info');
             } catch (err) {
                 log(`✗ Erro: ${err.message}`, 'error');
@@ -69,9 +91,9 @@
                         password: 'Password123'
                     })
                 });
-                
+
                 const data = await response.json();
-                
+
                 if (response.ok) {
                     log(`✓ Sucesso! Usuário criado: ${data.username}`, 'success');
                 } else {
@@ -95,9 +117,9 @@
                         password: 'password123'
                     })
                 });
-                
+
                 const data = await response.json();
-                
+
                 if (response.ok) {
                     log(`✓ Login bem-sucedido! Token: ${data.token.substring(0, 20)}...`, 'success');
                 } else {
@@ -114,4 +136,5 @@
         });
     </script>
 </body>
+
 </html>

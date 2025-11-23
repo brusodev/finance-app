@@ -8,6 +8,8 @@ from .database import engine, Base
 Base.metadata.create_all(bind=engine)
 
 # Lifespan context manager
+
+
 @asynccontextmanager
 async def lifespan(app_instance):
     # Startup
@@ -33,7 +35,7 @@ app.add_middleware(
         'http://127.0.0.1:3001'
     ],
     allow_credentials=True,
-    allow_methods=['*'],
+    allow_methods=['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
     allow_headers=['*'],
 )
 

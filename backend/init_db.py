@@ -1,11 +1,11 @@
 # Script para inicializar o banco de dados SQLite
+from app.database import engine, Base
 import os
 import sys
 import traceback
 
 sys.path.insert(0, os.path.dirname(__file__))
 
-from app.database import engine, Base
 from app import models  # noqa: F401
 
 
