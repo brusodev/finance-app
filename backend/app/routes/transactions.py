@@ -5,6 +5,7 @@ from sqlalchemy.orm import Session
 from typing import List
 from .. import crud, schemas
 from ..database import get_db
+from .auth import get_current_user
 
 router = APIRouter(
     prefix="/transactions",
@@ -16,15 +17,18 @@ router = APIRouter(
 def list_transactions(
     skip: int = 0,
     limit: int = 100,
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    current_user: schemas.User = Depends(get_current_user)
 ):
     """
-    Listar todas as transações.
+    Listar todas as transações do usuário logado.
 
     - skip: número de registros a pular (padrão: 0)
     - limit: número máximo de registros (padrão: 100)
     """
-    transactions = crud.get_all_transactions(db, skip=skip, limit=limit)
+    transactions = crud.get_user_transactions(
+        db, user_id=current_user.id, skip=skip, limit=limit
+    )
     return transactions
 
 
@@ -34,39 +38,53 @@ def list_transactions(
 )
 def create_transaction(
     transaction: schemas.TransactionCreate,
-    user_id: int = 1,  # Em produção, extrair do JWT
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    current_user: schemas.User = Depends(get_current_user)
 ):
     """
     Criar uma nova transação.
 
-    - user_id: ID do usuário (padrão: 1 para testes)
     - amount: valor da transação
     - date: data da transação
     - description: descrição (opcional)
     - category_id: ID da categoria
+    - transaction_type: 'income' ou 'expense'
     """
-    # Validar categoria
+    # Validar categoria pertence ao usuário
     db_category = crud.get_category(db, transaction.category_id)
     if not db_category:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="Categoria não encontrada"
         )
+    if db_category.user_id != current_user.id:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Acesso negado"
+        )
 
     return crud.create_transaction(
-        db=db, transaction=transaction, user_id=user_id
+        db=db, transaction=transaction, user_id=current_user.id
     )
 
 
 @router.get("/{transaction_id}", response_model=schemas.Transaction)
-def get_transaction(transaction_id: int, db: Session = Depends(get_db)):
+def get_transaction(
+    transaction_id: int,
+    db: Session = Depends(get_db),
+    current_user: schemas.User = Depends(get_current_user)
+):
     """Obter dados de uma transação específica"""
     db_transaction = crud.get_transaction(db, transaction_id=transaction_id)
     if not db_transaction:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="Transação não encontrada"
+        )
+    if db_transaction.user_id != current_user.id:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Acesso negado"
         )
     return db_transaction
 
@@ -75,7 +93,8 @@ def get_transaction(transaction_id: int, db: Session = Depends(get_db)):
 def update_transaction(
     transaction_id: int,
     transaction: schemas.TransactionCreate,
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    current_user: schemas.User = Depends(get_current_user)
 ):
     """Atualizar uma transação"""
     db_transaction = crud.get_transaction(db, transaction_id=transaction_id)
@@ -84,6 +103,11 @@ def update_transaction(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="Transação não encontrada"
         )
+    if db_transaction.user_id != current_user.id:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Acesso negado"
+        )
 
     # Validar categoria
     db_category = crud.get_category(db, transaction.category_id)
@@ -91,6 +115,11 @@ def update_transaction(
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="Categoria não encontrada"
+        )
+    if db_category.user_id != current_user.id:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Acesso negado"
         )
 
     return crud.update_transaction(
@@ -101,7 +130,8 @@ def update_transaction(
 @router.delete("/{transaction_id}", response_model=schemas.Transaction)
 def delete_transaction(
     transaction_id: int,
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    current_user: schemas.User = Depends(get_current_user)
 ):
     """Deletar uma transação"""
     db_transaction = crud.get_transaction(db, transaction_id=transaction_id)
@@ -109,5 +139,10 @@ def delete_transaction(
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="Transação não encontrada"
+        )
+    if db_transaction.user_id != current_user.id:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Acesso negado"
         )
     return crud.delete_transaction(db=db, transaction_id=transaction_id)

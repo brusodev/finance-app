@@ -8,6 +8,7 @@ export default function NewTransaction() {
   const editingTransaction = location.state?.transaction
   
   const [categories, setCategories] = useState([])
+  const [accounts, setAccounts] = useState([])
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
   const [formData, setFormData] = useState({
@@ -15,6 +16,7 @@ export default function NewTransaction() {
     date: new Date().toISOString().split('T')[0],
     description: '',
     category_id: '',
+    account_id: '',
     transaction_type: 'expense'
   })
 
@@ -26,33 +28,47 @@ export default function NewTransaction() {
   }, [navigate])
 
   useEffect(() => {
-    loadCategories()
+    loadData()
     if (editingTransaction) {
       setFormData({
         amount: Math.abs(editingTransaction.amount).toString(),
         date: editingTransaction.date,
         description: editingTransaction.description,
         category_id: editingTransaction.category_id,
+        account_id: editingTransaction.account_id || '',
         transaction_type: editingTransaction.amount > 0 ? 'income' : 'expense'
       })
     }
   }, [editingTransaction])
 
-  const loadCategories = async () => {
+  const loadData = async () => {
     try {
       const token = localStorage.getItem('token')
-      const response = await fetch('http://localhost:8000/categories/', {
-        headers: { 'Authorization': `Bearer ${token}` }
-      })
-      if (response.ok) {
-        const data = await response.json()
+      
+      // Carregar categorias e contas em paralelo
+      const [categoriesResponse, accountsResponse] = await Promise.all([
+        fetch('http://localhost:8000/categories/', {
+          headers: { 'Authorization': `Bearer ${token}` }
+        }),
+        fetch('http://localhost:8000/accounts/', {
+          headers: { 'Authorization': `Bearer ${token}` }
+        })
+      ])
+
+      if (categoriesResponse.ok) {
+        const data = await categoriesResponse.json()
         setCategories(data)
         if (data.length > 0 && !editingTransaction && !formData.category_id) {
           setFormData(prev => ({ ...prev, category_id: data[0].id }))
         }
       }
+
+      if (accountsResponse.ok) {
+        const data = await accountsResponse.json()
+        setAccounts(data)
+      }
     } catch (err) {
-      setError('Erro ao carregar categorias')
+      setError('Erro ao carregar dados')
       console.error('Erro:', err)
     }
   }
@@ -83,8 +99,12 @@ export default function NewTransaction() {
         amount,
         date: formData.date,
         description: formData.description,
-        category_id: formData.category_id,
+        category_id: parseInt(formData.category_id),
         transaction_type: formData.transaction_type
+      }
+
+      if (formData.account_id) {
+        payload.account_id = parseInt(formData.account_id)
       }
 
       const method = editingTransaction ? 'PUT' : 'POST'
@@ -208,6 +228,23 @@ export default function NewTransaction() {
                 {categories.map((category) => (
                   <option key={category.id} value={category.id}>
                     {category.icon} {category.name}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            {/* Conta */}
+            <div>
+              <label className="block text-gray-300 font-semibold mb-3">Conta (Opcional)</label>
+              <select
+                value={formData.account_id}
+                onChange={(e) => setFormData({ ...formData, account_id: e.target.value })}
+                className="w-full bg-gray-700 text-white px-4 py-3 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+              >
+                <option value="">Nenhuma conta selecionada</option>
+                {accounts.map((account) => (
+                  <option key={account.id} value={account.id}>
+                    {account.name} ({account.account_type})
                   </option>
                 ))}
               </select>

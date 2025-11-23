@@ -86,13 +86,21 @@ def get_all_accounts(db: Session, skip: int = 0, limit: int = 100):
     return db.query(models.Account).offset(skip).limit(limit).all()
 
 
-def create_account(db: Session, account: schemas.AccountCreate):
+def get_user_accounts(db: Session, user_id: int, skip: int = 0, limit: int = 100):
+    """Get all accounts for a specific user"""
+    return db.query(models.Account).filter(
+        models.Account.user_id == user_id
+    ).offset(skip).limit(limit).all()
+
+
+def create_account(db: Session, account: schemas.AccountCreate, user_id: int):
     """Create a new account"""
     db_account = models.Account(
         name=account.name,
         account_type=account.account_type,
         balance=account.balance,
-        currency=account.currency
+        currency=account.currency,
+        user_id=user_id
     )
     db.add(db_account)
     db.commit()
