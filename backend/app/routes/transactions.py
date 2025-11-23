@@ -127,7 +127,7 @@ def update_transaction(
     )
 
 
-@router.delete("/{transaction_id}", response_model=schemas.Transaction)
+@router.delete("/{transaction_id}", status_code=status.HTTP_204_NO_CONTENT)
 def delete_transaction(
     transaction_id: int,
     db: Session = Depends(get_db),
@@ -145,4 +145,5 @@ def delete_transaction(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Acesso negado"
         )
-    return crud.delete_transaction(db=db, transaction_id=transaction_id)
+    crud.delete_transaction(db=db, transaction_id=transaction_id)
+    return None
