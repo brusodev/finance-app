@@ -1,6 +1,6 @@
 """Autenticação - Rotas de registro e login"""
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, status, Header
 from sqlalchemy.orm import Session
 from .. import crud, schemas
 from ..database import get_db
@@ -10,6 +10,50 @@ router = APIRouter(
     prefix="/auth",
     tags=["auth"],
 )
+
+
+def get_current_user(
+    authorization: str = Header(None),
+    db: Session = Depends(get_db)
+) -> schemas.User:
+    """
+    Extrair usuário atual do header Authorization.
+    
+    Esperado: Authorization: Bearer token_1_bruno
+    """
+    if not authorization:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Token não fornecido"
+        )
+    
+    try:
+        # Formato esperado: Bearer token_1_bruno
+        parts = authorization.split(' ')
+        if len(parts) != 2 or parts[0] != 'Bearer':
+            raise ValueError("Token inválido")
+        
+        token = parts[1]
+        token_parts = token.split('_')
+        
+        if len(token_parts) < 3 or token_parts[0] != 'token':
+            raise ValueError("Token inválido")
+        
+        user_id = int(token_parts[1])
+        user = crud.get_user(db, user_id=user_id)
+        
+        if not user:
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="Usuário não encontrado"
+            )
+        
+        return user
+    except (ValueError, IndexError):
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Token inválido"
+        )
 
 
 @router.post("/register", response_model=schemas.User)

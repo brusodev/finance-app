@@ -54,13 +54,22 @@ def create_category(
 
 
 @router.get("/{category_id}", response_model=schemas.Category)
-def get_category(category_id: int, db: Session = Depends(get_db)):
+def get_category(
+    category_id: int,
+    db: Session = Depends(get_db),
+    current_user: schemas.User = Depends(get_current_user)
+):
     """Obter dados de uma categoria específica"""
     db_category = crud.get_category(db, category_id=category_id)
     if not db_category:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="Categoria não encontrada"
+        )
+    if db_category.user_id != current_user.id:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Acesso negado"
         )
     return db_category
 
@@ -69,7 +78,8 @@ def get_category(category_id: int, db: Session = Depends(get_db)):
 def update_category(
     category_id: int,
     category: schemas.CategoryCreate,
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    current_user: schemas.User = Depends(get_current_user)
 ):
     """Atualizar uma categoria"""
     db_category = crud.get_category(db, category_id=category_id)
@@ -78,18 +88,32 @@ def update_category(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="Categoria não encontrada"
         )
+    if db_category.user_id != current_user.id:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Acesso negado"
+        )
     return crud.update_category(
         db=db, category_id=category_id, category=category
     )
 
 
 @router.delete("/{category_id}", response_model=schemas.Category)
-def delete_category(category_id: int, db: Session = Depends(get_db)):
+def delete_category(
+    category_id: int,
+    db: Session = Depends(get_db),
+    current_user: schemas.User = Depends(get_current_user)
+):
     """Deletar uma categoria"""
     db_category = crud.get_category(db, category_id=category_id)
     if not db_category:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="Categoria não encontrada"
+        )
+    if db_category.user_id != current_user.id:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Acesso negado"
         )
     return crud.delete_category(db=db, category_id=category_id)
