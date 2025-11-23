@@ -13,6 +13,11 @@ class User(BaseModel):
     class Config:
         orm_mode = True
 
+class Token(BaseModel):
+    token: str
+    token_type: str = "bearer"
+    user: User
+
 class Category(BaseModel):
     id: int
     name: str

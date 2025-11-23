@@ -1,16 +1,27 @@
+from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from .routes import auth, users, categories, transactions
 from .database import engine, Base
 
+# Criar tabelas automaticamente se não existirem
+Base.metadata.create_all(bind=engine)
+
+# Lifespan context manager
+@asynccontextmanager
+async def lifespan(app_instance):
+    # Startup
+    print("Iniciando Finance App...")
+    yield
+    # Shutdown
+    print("Encerrando Finance App...")
+
 app = FastAPI(
     title='Finance App API',
     description='API para gerenciamento de finanças pessoais',
-    version='0.1.0'
+    version='0.1.0',
+    lifespan=lifespan
 )
-
-# Criar tabelas automaticamente se não existirem
-Base.metadata.create_all(bind=engine)
 
 # Configurar CORS para permitir requisições do frontend
 app.add_middleware(
