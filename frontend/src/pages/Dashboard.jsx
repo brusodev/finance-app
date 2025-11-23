@@ -29,6 +29,10 @@ export default function Dashboard() {
     fetchData()
   }, [])
 
+  useEffect(() => {
+    console.log('🔵 showForm alterado:', showForm)
+  }, [showForm])
+
   const fetchData = async () => {
     try {
       setLoading(true)
