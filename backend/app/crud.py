@@ -142,20 +142,35 @@ def get_all_categories(db: Session, skip: int = 0, limit: int = 100):
     return db.query(models.Category).offset(skip).limit(limit).all()
 
 
-def create_category(db: Session, category: schemas.Category):
+def get_user_categories(db: Session, user_id: int, skip: int = 0,
+                        limit: int = 100):
+    """Get all categories for a specific user"""
+    return db.query(models.Category).filter(
+        models.Category.user_id == user_id
+    ).offset(skip).limit(limit).all()
+
+
+def create_category(db: Session, category: schemas.CategoryCreate, user_id: int):
     """Create a new category"""
-    db_category = models.Category(name=category.name)
+    db_category = models.Category(
+        name=category.name,
+        icon=category.icon,
+        user_id=user_id
+    )
     db.add(db_category)
     db.commit()
     db.refresh(db_category)
     return db_category
 
 
-def update_category(db: Session, category_id: int, category: schemas.Category):
+def update_category(db: Session, category_id: int,
+                    category: schemas.CategoryCreate):
     """Update category"""
     db_category = get_category(db, category_id)
     if db_category:
         db_category.name = category.name
+        if category.icon:
+            db_category.icon = category.icon
         db.commit()
         db.refresh(db_category)
     return db_category

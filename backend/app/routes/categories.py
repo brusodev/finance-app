@@ -5,6 +5,7 @@ from sqlalchemy.orm import Session
 from typing import List
 from .. import crud, schemas
 from ..database import get_db
+from .auth import get_current_user
 
 router = APIRouter(
     prefix="/categories",
@@ -16,15 +17,18 @@ router = APIRouter(
 def list_categories(
     skip: int = 0,
     limit: int = 100,
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    current_user: schemas.User = Depends(get_current_user)
 ):
     """
-    Listar todas as categorias.
+    Listar todas as categorias do usuário logado.
 
     - skip: número de registros a pular (padrão: 0)
     - limit: número máximo de registros (padrão: 100)
     """
-    categories = crud.get_all_categories(db, skip=skip, limit=limit)
+    categories = crud.get_user_categories(
+        db, user_id=current_user.id, skip=skip, limit=limit
+    )
     return categories
 
 
@@ -34,7 +38,8 @@ def list_categories(
 )
 def create_category(
     category: schemas.CategoryCreate,
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    current_user: schemas.User = Depends(get_current_user)
 ):
     """Criar uma nova categoria"""
     db_category = crud.get_category_by_name(db, name=category.name)
@@ -43,7 +48,9 @@ def create_category(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="Categoria com esse nome já existe"
         )
-    return crud.create_category(db=db, category=category)
+    return crud.create_category(
+        db=db, category=category, user_id=current_user.id
+    )
 
 
 @router.get("/{category_id}", response_model=schemas.Category)

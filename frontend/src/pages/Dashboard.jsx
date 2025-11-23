@@ -11,7 +11,7 @@ export default function Dashboard() {
   const [totalExpense, setTotalExpense] = useState(0)
   const navigate = useNavigate()
 
-  // Verificar autenticação
+  // Verificar autenticaï¿½ï¿½o
   useEffect(() => {
     const user = localStorage.getItem('user')
     if (!user) {
@@ -29,7 +29,7 @@ export default function Dashboard() {
       setLoading(true)
       setError('')
 
-      // Buscar categorias e transações em paralelo
+      // Buscar categorias e transaï¿½ï¿½es em paralelo
       const [categoriesData, transactionsData] = await Promise.all([
         categoriesAPI.getAll(),
         transactionsAPI.getAll()
@@ -102,7 +102,7 @@ export default function Dashboard() {
             {/* Card Saldo */}
             <div className="bg-gradient-to-br from-blue-500 to-blue-700 rounded-lg p-6 shadow-lg">
               <p className="text-blue-100 text-sm font-medium mb-2">Saldo Total</p>
-              <p className={	ext-3xl font-bold $ {balance >= 0 ? 'text-green-300' : 'text-red-300'}}>
+              <p className={`text-3xl font-bold ${balance >= 0 ? 'text-green-300' : 'text-red-300'}`}>
                 R$ {balance.toFixed(2).replace('.', ',')}
               </p>
             </div>
@@ -124,13 +124,13 @@ export default function Dashboard() {
             </div>
           </div>
 
-          {/* Lista de Transações Recentes */}
+          {/* Lista de TransaÃ§Ãµes Recentes */}
           <div>
-            <h2 className="text-2xl font-bold text-white mb-6">Transações Recentes</h2>
+            <h2 className="text-2xl font-bold text-white mb-6">TransaÃ§Ãµes Recentes</h2>
             {transactions.length === 0 ? (
               <div className="text-center py-12">
-                <p className="text-gray-500 text-lg">Nenhuma transação registrada.</p>
-                <p className="text-gray-400">Clique em "Nova Transação" no menu para começar.</p>
+                <p className="text-gray-500 text-lg">Nenhuma transaÃ§Ã£o registrada.</p>
+                <p className="text-gray-400">Clique em "Nova TransaÃ§Ã£o" no menu para comeÃ§ar.</p>
               </div>
             ) : (
               <div className="overflow-x-auto">
@@ -139,7 +139,7 @@ export default function Dashboard() {
                     <tr className="border-b border-gray-700">
                       <th className="text-left px-6 py-4 text-gray-300 font-semibold">Data</th>
                       <th className="text-left px-6 py-4 text-gray-300 font-semibold">Categoria</th>
-                      <th className="text-left px-6 py-4 text-gray-300 font-semibold">Descrição</th>
+                      <th className="text-left px-6 py-4 text-gray-300 font-semibold">DescriÃ§Ã£o</th>
                       <th className="text-right px-6 py-4 text-gray-300 font-semibold">Valor</th>
                     </tr>
                   </thead>
@@ -156,9 +156,9 @@ export default function Dashboard() {
                             <span className="text-gray-300">{category?.name || 'Sem categoria'}</span>
                           </td>
                           <td className="px-6 py-4 text-gray-300">{transaction.description}</td>
-                          <td className={px-6 py-4 text-right font-semibold $ {
+                          <td className={`px-6 py-4 text-right font-semibold ${
                             transaction.amount > 0 ? 'text-green-400' : 'text-red-400'
-                          }}>
+                          }`}>
                             R$ {Math.abs(transaction.amount).toFixed(2).replace('.', ',')}
                           </td>
                         </tr>
