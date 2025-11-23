@@ -49,7 +49,6 @@ function AppLayout({ children }) {
 
   return (
     <>
-      {isPublicRoute && !isAuthenticated && <Navbar />}
       {!isPublicRoute && isAuthenticated && <Sidebar />}
       {children}
     </>
