@@ -31,6 +31,10 @@ export default function Dashboard() {
 
   useEffect(() => {
     console.log('🔵 showForm alterado:', showForm)
+    if (showForm) {
+      // Rolar para o topo quando o formulário for aberto
+      window.scrollTo({ top: 0, behavior: 'smooth' })
+    }
   }, [showForm])
 
   const fetchData = async () => {
@@ -152,6 +156,21 @@ export default function Dashboard() {
         </div>
       )}
 
+      {/* Formulário - Mostrar no topo quando aberto */}
+      {showForm && (
+        <div className="lg:ml-64 bg-blue-50 border-b-2 border-blue-300">
+          <div className="max-w-6xl mx-auto px-4 py-8">
+            <h2 className="text-2xl font-bold mb-6 text-gray-900">📝 Nova Transação</h2>
+            <TransactionForm
+              categories={categories}
+              initialData={editingTransaction}
+              onSubmit={handleFormSubmit}
+              onCancel={handleCloseForm}
+            />
+          </div>
+        </div>
+      )}
+
       {/* Cards de Resumo */}
       <div className="lg:ml-64 bg-gradient-to-br from-gray-900 to-gray-800 min-h-screen">
         <div className="max-w-6xl mx-auto px-6 py-8">
@@ -182,50 +201,37 @@ export default function Dashboard() {
               </p>
             </div>
           </div>
-        </div>
-      </div>
 
-      {/* Botão Adicionar Transação */}
-      <div className="max-w-6xl mx-auto px-4 py-6">
-        <button
-          onClick={() => {
-            setEditingTransaction(null)
-            setShowForm(!showForm)
-          }}
-          className="bg-blue-600 text-white px-6 py-2 rounded-md hover:bg-blue-700 font-medium transition-colors"
-        >
-          {showForm ? 'Cancelar' : '+ Adicionar Transação'}
-        </button>
-      </div>
-
-      {/* Formulário */}
-      {showForm && (
-        <div className="max-w-6xl mx-auto px-4 pb-6 border border-blue-300 rounded bg-white">
-          <h2 className="text-2xl font-bold mb-4 text-gray-900">Nova Transação</h2>
-          <TransactionForm
-            categories={categories}
-            initialData={editingTransaction}
-            onSubmit={handleFormSubmit}
-            onCancel={handleCloseForm}
-          />
-        </div>
-      )}
-
-      {/* Lista de Transações */}
-      <div className="max-w-6xl mx-auto px-4 pb-12">
-        {transactions.length > 0 ? (
-          <TransactionList
-            transactions={transactions}
-            categories={categories}
-            onDelete={handleDeleteTransaction}
-            onEdit={handleEditTransaction}
-          />
-        ) : (
-          <div className="text-center py-12">
-            <p className="text-gray-500 text-lg">Nenhuma transação registrada.</p>
-            <p className="text-gray-400">Clique em "Adicionar Transação" para começar.</p>
+          {/* Botão Adicionar Transação */}
+          <div className="mt-8">
+            <button
+              onClick={() => {
+                setEditingTransaction(null)
+                setShowForm(!showForm)
+              }}
+              className="bg-blue-600 text-white px-6 py-2 rounded-md hover:bg-blue-700 font-medium transition-colors"
+            >
+              {showForm ? 'Cancelar' : '+ Adicionar Transação'}
+            </button>
           </div>
-        )}
+
+          {/* Lista de Transações */}
+          <div className="mt-8">
+            {transactions.length > 0 ? (
+              <TransactionList
+                transactions={transactions}
+                categories={categories}
+                onDelete={handleDeleteTransaction}
+                onEdit={handleEditTransaction}
+              />
+            ) : (
+              <div className="text-center py-12">
+                <p className="text-gray-500 text-lg">Nenhuma transação registrada.</p>
+                <p className="text-gray-400">Clique em "Adicionar Transação" para começar.</p>
+              </div>
+            )}
+          </div>
+        </div>
       </div>
     </div>
   )
