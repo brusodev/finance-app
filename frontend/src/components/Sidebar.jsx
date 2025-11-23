@@ -28,9 +28,12 @@ export default function Sidebar() {
 
   const handleNewTransaction = () => {
     console.log('🔵 Nova Transação clicado!')
-    navigate('/')
     setShowForm(true)
     setIsOpen(false)
+    // Navegar após um pequeno delay para garantir que o contexto atualize
+    setTimeout(() => {
+      navigate('/')
+    }, 50)
   }
 
   const isActive = (path) => {

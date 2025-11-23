@@ -200,7 +200,8 @@ export default function Dashboard() {
 
       {/* Formulário */}
       {showForm && (
-        <div className="max-w-6xl mx-auto px-4 pb-6">
+        <div className="max-w-6xl mx-auto px-4 pb-6 border border-blue-300 rounded bg-white">
+          <h2 className="text-2xl font-bold mb-4 text-gray-900">Nova Transação</h2>
           <TransactionForm
             categories={categories}
             initialData={editingTransaction}
