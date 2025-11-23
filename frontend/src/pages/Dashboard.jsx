@@ -89,8 +89,9 @@ export default function Dashboard() {
       setTransactions(transactions.filter((t) => t.id !== transactionId))
       calculateTotals(transactions.filter((t) => t.id !== transactionId))
     } catch (err) {
-      const errorMessage = err.response?.data?.detail || err.message || 'Erro ao deletar transação'
+      const errorMessage = err.detail || err.message || 'Erro ao deletar transação'
       setError(errorMessage)
+      console.error('Erro ao deletar transação:', err)
     }
   }
 
@@ -117,8 +118,9 @@ export default function Dashboard() {
       setShowForm(false)
       setEditingTransaction(null)
     } catch (err) {
-      const errorMessage = err.response?.data?.detail || err.message || 'Erro ao salvar transação'
+      const errorMessage = err.detail || err.message || 'Erro ao salvar transação'
       setError(errorMessage)
+      console.error('Erro ao salvar transação:', err)
     }
   }
 
