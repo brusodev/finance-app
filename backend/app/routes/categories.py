@@ -33,7 +33,7 @@ def list_categories(
     status_code=status.HTTP_201_CREATED
 )
 def create_category(
-    category: schemas.Category,
+    category: schemas.CategoryCreate,
     db: Session = Depends(get_db)
 ):
     """Criar uma nova categoria"""
@@ -61,7 +61,7 @@ def get_category(category_id: int, db: Session = Depends(get_db)):
 @router.put("/{category_id}", response_model=schemas.Category)
 def update_category(
     category_id: int,
-    category: schemas.Category,
+    category: schemas.CategoryCreate,
     db: Session = Depends(get_db)
 ):
     """Atualizar uma categoria"""

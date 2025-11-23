@@ -72,7 +72,11 @@ export default function Accounts() {
         setEditingId(null)
         setShowForm(false)
       } else {
-        setError('Erro ao salvar conta')
+        const errorData = await response.json()
+        const errorMessage = typeof errorData.detail === 'string' 
+          ? errorData.detail 
+          : 'Erro ao salvar conta'
+        setError(errorMessage)
       }
     } catch (err) {
       setError('Erro ao conectar com o servidor')
@@ -129,7 +133,7 @@ export default function Accounts() {
 
         {error && (
           <div className="bg-red-500 bg-opacity-20 text-red-300 p-4 rounded-lg mb-6">
-            {error}
+            {typeof error === 'string' ? error : 'Erro ao processar solicitação'}
           </div>
         )}
 

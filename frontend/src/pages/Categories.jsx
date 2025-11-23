@@ -66,8 +66,12 @@ export default function Categories() {
         setEditingId(null)
         setTimeout(() => setShowForm(false), 1500)
       } else {
-        const error = await response.json()
-        setError(error.detail || 'Erro ao salvar categoria')
+        const errorData = await response.json()
+        // Extrair mensagem de erro de forma segura
+        const errorMessage = typeof errorData.detail === 'string' 
+          ? errorData.detail 
+          : 'Erro ao salvar categoria'
+        setError(errorMessage)
       }
     } catch (err) {
       setError('Erro ao conectar com o servidor')
@@ -125,13 +129,13 @@ export default function Categories() {
 
         {error && (
           <div className="bg-red-500 bg-opacity-20 text-red-300 p-4 rounded-lg mb-6">
-            {error}
+            {typeof error === 'string' ? error : 'Erro ao processar solicitação'}
           </div>
         )}
 
         {success && (
           <div className="bg-green-500 bg-opacity-20 text-green-300 p-4 rounded-lg mb-6">
-            {success}
+            {typeof success === 'string' ? success : 'Operação realizada com sucesso'}
           </div>
         )}
 
