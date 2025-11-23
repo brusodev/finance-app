@@ -146,31 +146,31 @@ export default function Dashboard() {
       )}
 
       {/* Cards de Resumo */}
-      <div className="bg-white shadow">
-        <div className="max-w-6xl mx-auto px-4 py-8">
-          <h1 className="text-3xl font-bold text-gray-900 mb-8">Dashboard Financeiro</h1>
+      <div className="lg:ml-64 bg-gradient-to-br from-gray-900 to-gray-800 min-h-screen">
+        <div className="max-w-6xl mx-auto px-6 py-8">
+          <h1 className="text-3xl font-bold text-white mb-8">Dashboard Financeiro</h1>
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
             {/* Card Saldo */}
-            <div className="bg-gradient-to-br from-blue-50 to-blue-100 rounded-lg p-6 border border-blue-200">
-              <p className="text-blue-600 text-sm font-medium mb-2">Saldo Total</p>
-              <p className={`text-3xl font-bold ${balance >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+            <div className="bg-gradient-to-br from-blue-500 to-blue-700 rounded-lg p-6 shadow-lg">
+              <p className="text-blue-100 text-sm font-medium mb-2">Saldo Total</p>
+              <p className={`text-3xl font-bold ${balance >= 0 ? 'text-green-300' : 'text-red-300'}`}>
                 R$ {balance.toFixed(2).replace('.', ',')}
               </p>
             </div>
 
             {/* Card Receitas */}
-            <div className="bg-gradient-to-br from-green-50 to-green-100 rounded-lg p-6 border border-green-200">
-              <p className="text-green-600 text-sm font-medium mb-2">Receitas</p>
-              <p className="text-3xl font-bold text-green-600">
+            <div className="bg-gradient-to-br from-green-500 to-green-700 rounded-lg p-6 shadow-lg">
+              <p className="text-green-100 text-sm font-medium mb-2">Receitas</p>
+              <p className="text-3xl font-bold text-green-300">
                 R$ {totalIncome.toFixed(2).replace('.', ',')}
               </p>
             </div>
 
             {/* Card Despesas */}
-            <div className="bg-gradient-to-br from-red-50 to-red-100 rounded-lg p-6 border border-red-200">
-              <p className="text-red-600 text-sm font-medium mb-2">Despesas</p>
-              <p className="text-3xl font-bold text-red-600">
+            <div className="bg-gradient-to-br from-red-500 to-red-700 rounded-lg p-6 shadow-lg">
+              <p className="text-red-100 text-sm font-medium mb-2">Despesas</p>
+              <p className="text-3xl font-bold text-red-300">
                 R$ {totalExpense.toFixed(2).replace('.', ',')}
               </p>
             </div>

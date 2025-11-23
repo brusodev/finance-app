@@ -6,6 +6,7 @@ from .utils import hash_password
 # USER OPERATIONS
 # ========================
 
+
 def get_user(db: Session, user_id: int):
     """Get user by ID"""
     return db.query(models.User).filter(models.User.id == user_id).first()
@@ -54,6 +55,72 @@ def delete_user(db: Session, user_id: int):
         db.delete(db_user)
         db.commit()
     return db_user
+
+
+def update_user_profile(db: Session, user_id: int, user: schemas.UserUpdate):
+    """Update user profile"""
+    db_user = get_user(db, user_id)
+    if db_user:
+        if user.email:
+            db_user.email = user.email
+        if user.full_name:
+            db_user.full_name = user.full_name
+        if user.avatar:
+            db_user.avatar = user.avatar
+        db.commit()
+        db.refresh(db_user)
+    return db_user
+
+
+# ========================
+# ACCOUNT OPERATIONS
+# ========================
+
+def get_account(db: Session, account_id: int):
+    """Get account by ID"""
+    return db.query(models.Account).filter(models.Account.id == account_id).first()
+
+
+def get_all_accounts(db: Session, skip: int = 0, limit: int = 100):
+    """Get all accounts"""
+    return db.query(models.Account).offset(skip).limit(limit).all()
+
+
+def create_account(db: Session, account: schemas.AccountCreate):
+    """Create a new account"""
+    db_account = models.Account(
+        name=account.name,
+        account_type=account.account_type,
+        balance=account.balance,
+        currency=account.currency
+    )
+    db.add(db_account)
+    db.commit()
+    db.refresh(db_account)
+    return db_account
+
+
+def update_account(db: Session, account_id: int, account: schemas.AccountCreate):
+    """Update account"""
+    db_account = get_account(db, account_id)
+    if db_account:
+        db_account.name = account.name
+        db_account.account_type = account.account_type
+        db_account.balance = account.balance
+        db_account.currency = account.currency
+        db.commit()
+        db.refresh(db_account)
+    return db_account
+
+
+def delete_account(db: Session, account_id: int):
+    """Delete account by ID"""
+    db_account = get_account(db, account_id)
+    if db_account:
+        db.delete(db_account)
+        db.commit()
+        return True
+    return False
 
 
 # ========================

@@ -1,7 +1,7 @@
 from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from .routes import auth, users, categories, transactions
+from .routes import auth, users, categories, transactions, accounts
 from .database import engine, Base
 
 # Criar tabelas automaticamente se não existirem
@@ -41,6 +41,7 @@ app.add_middleware(
 app.include_router(auth.router)
 app.include_router(users.router)
 app.include_router(categories.router)
+app.include_router(accounts.router)
 app.include_router(transactions.router)
 
 
@@ -54,6 +55,7 @@ async def root():
             'auth': '/auth',
             'users': '/users',
             'categories': '/categories',
+            'accounts': '/accounts',
             'transactions': '/transactions'
         }
     }

@@ -57,3 +57,40 @@ def login(user: schemas.UserCreate, db: Session = Depends(get_db)):
         "token_type": "bearer",
         "user": db_user
     }
+
+
+@router.post("/change-password")
+def change_password(
+    password_data: dict,
+    db: Session = Depends(get_db)
+):
+    """
+    Alterar senha do usuário.
+    
+    Requer: current_password, new_password
+    """
+    # Em um caso real, você pegaria o user_id do token JWT
+    user_id = 1
+    
+    db_user = crud.get_user(db, user_id=user_id)
+    if not db_user:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Usuário não encontrado"
+        )
+    
+    if not verify_password(
+        password_data.get('current_password'),
+        db_user.hashed_password
+    ):
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Senha atual incorreta"
+        )
+    
+    # Atualizar com nova senha
+    from ..utils import hash_password
+    db_user.hashed_password = hash_password(password_data.get('new_password'))
+    db.commit()
+    
+    return {"message": "Senha alterada com sucesso"}
