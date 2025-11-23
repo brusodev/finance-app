@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, useSearchParams } from 'react-router-dom'
 import { transactionsAPI, categoriesAPI } from '../services/api'
 import TransactionForm from '../components/TransactionForm'
 import TransactionList from '../components/TransactionList'
@@ -14,6 +14,7 @@ export default function Dashboard() {
   const [totalExpense, setTotalExpense] = useState(0)
   const [editingTransaction, setEditingTransaction] = useState(null)
   const navigate = useNavigate()
+  const [searchParams] = useSearchParams()
 
   // Verificar autenticação
   useEffect(() => {
@@ -22,6 +23,15 @@ export default function Dashboard() {
       navigate('/login', { replace: true })
     }
   }, [navigate])
+
+  // Verificar se deve abrir formulário (parâmetro de query)
+  useEffect(() => {
+    if (searchParams.get('newTransaction') === 'true') {
+      setShowForm(true)
+      // Limpar a URL para evitar manter o parâmetro
+      window.history.replaceState({}, document.title, window.location.pathname)
+    }
+  }, [searchParams])
 
   // Buscar dados ao montar componente
   useEffect(() => {
