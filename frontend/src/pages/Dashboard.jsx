@@ -145,15 +145,14 @@ export default function Dashboard() {
                   </thead>
                   <tbody>
                     {transactions.slice(0, 10).map((transaction) => {
-                      const category = categories.find((c) => c.id === transaction.category_id)
                       return (
                         <tr key={transaction.id} className="border-b border-gray-700 hover:bg-gray-800 transition">
                           <td className="px-6 py-4 text-gray-300">
                             {new Date(transaction.date).toLocaleDateString('pt-BR')}
                           </td>
                           <td className="px-6 py-4">
-                            <span className="text-2xl">{category?.icon || '??'}</span>{' '}
-                            <span className="text-gray-300">{category?.name || 'Sem categoria'}</span>
+                            <span className="text-2xl">{transaction.category?.icon || '📁'}</span>{' '}
+                            <span className="text-gray-300">{transaction.category?.name || 'Sem categoria'}</span>
                           </td>
                           <td className="px-6 py-4 text-gray-300">{transaction.description}</td>
                           <td className={`px-6 py-4 text-right font-semibold ${

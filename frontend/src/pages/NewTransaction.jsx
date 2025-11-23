@@ -35,8 +35,8 @@ export default function NewTransaction() {
         amount: Math.abs(editingTransaction.amount).toString(),
         date: editingTransaction.date,
         description: editingTransaction.description,
-        category_id: editingTransaction.category_id,
-        account_id: editingTransaction.account_id || '',
+        category_id: editingTransaction.category?.id || editingTransaction.category_id || '',
+        account_id: editingTransaction.account?.id || editingTransaction.account_id || '',
         transaction_type: editingTransaction.amount > 0 ? 'income' : 'expense'
       })
     }

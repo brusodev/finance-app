@@ -81,14 +81,12 @@ export default function Transactions() {
     navigate('/nova-transacao', { state: { transaction } })
   }
 
-  const getCategoryName = (categoryId) => {
-    const category = categories.find((c) => c.id === categoryId)
-    return category ? category.name : 'Sem categoria'
+  const getCategoryName = (transaction) => {
+    return transaction.category ? transaction.category.name : 'Sem categoria'
   }
 
-  const getCategoryIcon = (categoryId) => {
-    const category = categories.find((c) => c.id === categoryId)
-    return category ? category.icon : '📁'
+  const getCategoryIcon = (transaction) => {
+    return transaction.category ? transaction.category.icon : '📁'
   }
 
   const formatDate = (dateString) => {
@@ -151,8 +149,8 @@ export default function Transactions() {
                   <tr key={transaction.id} className="border-b border-gray-700 hover:bg-gray-800 transition">
                     <td className="px-6 py-4 text-gray-300">{formatDate(transaction.date)}</td>
                     <td className="px-6 py-4">
-                      <span className="text-2xl">{getCategoryIcon(transaction.category_id)}</span>{' '}
-                      <span className="text-gray-300">{getCategoryName(transaction.category_id)}</span>
+                      <span className="text-2xl">{getCategoryIcon(transaction)}</span>{' '}
+                      <span className="text-gray-300">{getCategoryName(transaction)}</span>
                     </td>
                     <td className="px-6 py-4 text-gray-300">{transaction.description}</td>
                     <td className="px-6 py-4">
