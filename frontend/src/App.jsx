@@ -23,12 +23,25 @@ function AppLayout({ children }) {
   const location = useLocation();
 
   useEffect(() => {
-    // Update token state quando muda
-    const handleStorageChange = () => {
-      setToken(localStorage.getItem('token'));
+    // Listener para mudanças no localStorage
+    const handleStorageChange = (e) => {
+      if (e.key === 'token' || !e.key) {
+        setToken(localStorage.getItem('token'));
+      }
     };
+    
+    // Listener para quando o token é definido no mesmo tab
     window.addEventListener('storage', handleStorageChange);
-    return () => window.removeEventListener('storage', handleStorageChange);
+    
+    // Também verificar periodicamente
+    const interval = setInterval(() => {
+      setToken(localStorage.getItem('token'));
+    }, 100);
+    
+    return () => {
+      window.removeEventListener('storage', handleStorageChange);
+      clearInterval(interval);
+    };
   }, []);
 
   const isPublicRoute = location.pathname === '/login' || location.pathname === '/register';
