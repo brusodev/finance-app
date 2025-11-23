@@ -221,10 +221,18 @@ def create_transaction(db: Session, transaction: schemas.TransactionCreate, user
         date=transaction.date,
         description=transaction.description,
         category_id=transaction.category_id,
+        account_id=transaction.account_id,
         transaction_type=transaction.transaction_type,
         user_id=user_id
     )
     db.add(db_transaction)
+    
+    # Atualizar saldo da conta se account_id foi fornecido
+    if transaction.account_id:
+        account = get_account(db, transaction.account_id)
+        if account:
+            account.balance += transaction.amount
+    
     db.commit()
     db.refresh(db_transaction)
     return db_transaction
@@ -234,11 +242,33 @@ def update_transaction(db: Session, transaction_id: int, transaction: schemas.Tr
     """Update transaction"""
     db_transaction = get_transaction(db, transaction_id)
     if db_transaction:
+        # Se a conta mudou, reverter o valor da conta antiga
+        if db_transaction.account_id and db_transaction.account_id != transaction.account_id:
+            old_account = get_account(db, db_transaction.account_id)
+            if old_account:
+                old_account.balance -= db_transaction.amount
+        
+        # Se tinha conta e o valor mudou, ajustar
+        elif db_transaction.account_id and db_transaction.amount != transaction.amount:
+            account = get_account(db, db_transaction.account_id)
+            if account:
+                account.balance -= db_transaction.amount
+                account.balance += transaction.amount
+        
+        # Atualizar campos da transação
         db_transaction.amount = transaction.amount
         db_transaction.date = transaction.date
         db_transaction.description = transaction.description
         db_transaction.category_id = transaction.category_id
+        db_transaction.account_id = transaction.account_id
         db_transaction.transaction_type = transaction.transaction_type
+        
+        # Adicionar valor na nova conta
+        if transaction.account_id and transaction.account_id != db_transaction.account_id:
+            new_account = get_account(db, transaction.account_id)
+            if new_account:
+                new_account.balance += transaction.amount
+        
         db.commit()
         db.refresh(db_transaction)
     return db_transaction
@@ -248,6 +278,12 @@ def delete_transaction(db: Session, transaction_id: int):
     """Delete transaction by ID"""
     db_transaction = get_transaction(db, transaction_id)
     if db_transaction:
+        # Reverter saldo da conta se houver
+        if db_transaction.account_id:
+            account = get_account(db, db_transaction.account_id)
+            if account:
+                account.balance -= db_transaction.amount
+        
         db.delete(db_transaction)
         db.commit()
     return db_transaction
