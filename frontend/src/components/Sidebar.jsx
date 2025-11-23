@@ -32,7 +32,7 @@ export default function Sidebar() {
     { icon: LayoutDashboard, label: 'Dashboard', path: '/', onClick: () => setIsOpen(false) },
     { icon: Wallet, label: 'Minhas Contas', path: '/accounts', onClick: () => setIsOpen(false) },
     { icon: Tag, label: 'Categorias', path: '/categories', onClick: () => setIsOpen(false) },
-    { icon: Plus, label: 'Nova Transação', path: '/transactions/new', onClick: () => setIsOpen(false) },
+    { icon: Plus, label: 'Nova Transação', path: '/', onClick: () => setIsOpen(false) },
     { icon: BarChart3, label: 'Relatórios', path: '/report', onClick: () => setIsOpen(false) },
     { icon: User, label: 'Meu Perfil', path: '/profile', onClick: () => setIsOpen(false) },
     { icon: Settings, label: 'Configurações', path: '/settings', onClick: () => setIsOpen(false) },

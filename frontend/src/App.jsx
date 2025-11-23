@@ -32,12 +32,12 @@ function AppLayout({ children }) {
   }, []);
 
   const isPublicRoute = location.pathname === '/login' || location.pathname === '/register';
-  const isAuthenticated = !!token && !isPublicRoute;
+  const isAuthenticated = !!token;
 
   return (
     <>
-      {!isAuthenticated && <Navbar />}
-      {isAuthenticated && <Sidebar />}
+      {isPublicRoute && !isAuthenticated && <Navbar />}
+      {!isPublicRoute && isAuthenticated && <Sidebar />}
       {children}
     </>
   );
