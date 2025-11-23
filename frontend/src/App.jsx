@@ -9,6 +9,8 @@ import Report from "./pages/Report";
 import Profile from "./pages/Profile";
 import Accounts from "./pages/Accounts";
 import Categories from "./pages/Categories";
+import Transactions from "./pages/Transactions";
+import NewTransaction from "./pages/NewTransaction";
 import Settings from "./pages/Settings";
 import { TransactionProvider } from "./context/TransactionContext";
 
@@ -66,6 +68,8 @@ function App() {
             <Route path="/register" element={<Register />} />
             <Route path="/" element={<ProtectedRoute element={<Dashboard />} />} />
             <Route path="/dashboard" element={<Navigate to="/" replace />} />
+            <Route path="/transacoes" element={<ProtectedRoute element={<Transactions />} />} />
+            <Route path="/nova-transacao" element={<ProtectedRoute element={<NewTransaction />} />} />
             <Route path="/report" element={<ProtectedRoute element={<Report />} />} />
             <Route path="/profile" element={<ProtectedRoute element={<Profile />} />} />
             <Route path="/accounts" element={<ProtectedRoute element={<Accounts />} />} />
