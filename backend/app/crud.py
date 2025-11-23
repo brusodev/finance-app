@@ -198,6 +198,7 @@ def create_transaction(db: Session, transaction: schemas.TransactionCreate, user
         date=transaction.date,
         description=transaction.description,
         category_id=transaction.category_id,
+        transaction_type=transaction.transaction_type,
         user_id=user_id
     )
     db.add(db_transaction)
@@ -214,6 +215,7 @@ def update_transaction(db: Session, transaction_id: int, transaction: schemas.Tr
         db_transaction.date = transaction.date
         db_transaction.description = transaction.description
         db_transaction.category_id = transaction.category_id
+        db_transaction.transaction_type = transaction.transaction_type
         db.commit()
         db.refresh(db_transaction)
     return db_transaction

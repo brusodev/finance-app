@@ -5,20 +5,23 @@ export default function TransactionForm({ categories, initialData, onSubmit, onC
   const [description, setDescription] = useState('')
   const [categoryId, setCategoryId] = useState('')
   const [date, setDate] = useState('')
+  const [transactionType, setTransactionType] = useState('income')
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
 
   // Preencher formulário se estiver editando
   useEffect(() => {
     if (initialData) {
-      setAmount(initialData.amount.toString())
+      setAmount(Math.abs(initialData.amount).toString())
       setDescription(initialData.description)
       setCategoryId(initialData.category_id.toString())
       setDate(initialData.date)
+      setTransactionType(initialData.transaction_type || 'income')
     } else {
       // Definir data de hoje como padrão
       const today = new Date().toISOString().split('T')[0]
       setDate(today)
+      setTransactionType('income')
     }
   }, [initialData])
 
@@ -35,11 +38,18 @@ export default function TransactionForm({ categories, initialData, onSubmit, onC
         return
       }
 
-      const parsedAmount = parseFloat(amount)
+      let parsedAmount = parseFloat(amount)
       if (isNaN(parsedAmount)) {
         setError('Valor deve ser um número válido')
         setLoading(false)
         return
+      }
+
+      // Se for despesa, fazer o valor negativo
+      if (transactionType === 'expense') {
+        parsedAmount = Math.abs(parsedAmount) * -1
+      } else {
+        parsedAmount = Math.abs(parsedAmount)
       }
 
       // Enviar dados
@@ -47,7 +57,8 @@ export default function TransactionForm({ categories, initialData, onSubmit, onC
         amount: parsedAmount,
         description: description.trim(),
         category_id: parseInt(categoryId),
-        date
+        date,
+        transaction_type: transactionType
       }
 
       await onSubmit(formData)
@@ -59,6 +70,7 @@ export default function TransactionForm({ categories, initialData, onSubmit, onC
         setCategoryId('')
         const today = new Date().toISOString().split('T')[0]
         setDate(today)
+        setTransactionType('income')
       }
     } catch (err) {
       setError(err.message || 'Erro ao salvar transação')
@@ -87,6 +99,24 @@ export default function TransactionForm({ categories, initialData, onSubmit, onC
 
       <form onSubmit={handleSubmit} className="space-y-6">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          {/* Tipo de Transação */}
+          <div>
+            <label htmlFor="type" className="block text-sm font-medium text-gray-700 mb-2">
+              Tipo
+            </label>
+            <select
+              id="type"
+              required
+              value={transactionType}
+              onChange={(e) => setTransactionType(e.target.value)}
+              className="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
+              disabled={loading}
+            >
+              <option value="income">Receita (Entrada)</option>
+              <option value="expense">Despesa (Saída)</option>
+            </select>
+          </div>
+
           {/* Valor */}
           <div>
             <label htmlFor="amount" className="block text-sm font-medium text-gray-700 mb-2">
@@ -103,7 +133,7 @@ export default function TransactionForm({ categories, initialData, onSubmit, onC
               placeholder="0.00"
               disabled={loading}
             />
-            <p className="text-gray-500 text-xs mt-1">Use número negativo para despesa</p>
+            <p className="text-gray-500 text-xs mt-1">Digite o valor sem sinal</p>
           </div>
 
           {/* Data */}
