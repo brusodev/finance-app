@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react'
 import { useNavigate, useLocation } from 'react-router-dom'
 import { ArrowLeft } from 'lucide-react'
+import { accountsAPI, categoriesAPI, transactionsAPI } from '../services/api'
 
 export default function NewTransaction() {
   const navigate = useNavigate()
@@ -43,29 +44,17 @@ export default function NewTransaction() {
 
   const loadData = async () => {
     try {
-      const token = localStorage.getItem('token')
-      
       // Carregar categorias e contas em paralelo
-      const [categoriesResponse, accountsResponse] = await Promise.all([
-        fetch('http://localhost:8000/categories/', {
-          headers: { 'Authorization': `Bearer ${token}` }
-        }),
-        fetch('http://localhost:8000/accounts/', {
-          headers: { 'Authorization': `Bearer ${token}` }
-        })
+      const [categoriesData, accountsData] = await Promise.all([
+        categoriesAPI.getAll(),
+        accountsAPI.getAll()
       ])
 
-      if (categoriesResponse.ok) {
-        const data = await categoriesResponse.json()
-        setCategories(data)
-        if (data.length > 0 && !editingTransaction && !formData.category_id) {
-          setFormData(prev => ({ ...prev, category_id: data[0].id }))
-        }
-      }
+      setCategories(categoriesData)
+      setAccounts(accountsData)
 
-      if (accountsResponse.ok) {
-        const data = await accountsResponse.json()
-        setAccounts(data)
+      if (categoriesData.length > 0 && !editingTransaction && !formData.category_id) {
+        setFormData(prev => ({ ...prev, category_id: categoriesData[0].id }))
       }
     } catch (err) {
       setError('Erro ao carregar dados')
@@ -90,7 +79,6 @@ export default function NewTransaction() {
     setError('')
 
     try {
-      const token = localStorage.getItem('token')
       const amount = formData.transaction_type === 'income' 
         ? parseFloat(formData.amount) 
         : -parseFloat(formData.amount)
@@ -107,31 +95,16 @@ export default function NewTransaction() {
         payload.account_id = parseInt(formData.account_id)
       }
 
-      const method = editingTransaction ? 'PUT' : 'POST'
-      const url = editingTransaction
-        ? `http://localhost:8000/transactions/${editingTransaction.id}`
-        : 'http://localhost:8000/transactions/'
-
-      const response = await fetch(url, {
-        method,
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
-        },
-        body: JSON.stringify(payload)
-      })
-
-      if (response.ok) {
-        navigate('/transacoes')
+      if (editingTransaction) {
+        await transactionsAPI.update(editingTransaction.id, payload)
       } else {
-        const errorData = await response.json()
-        const errorMessage = typeof errorData.detail === 'string'
-          ? errorData.detail
-          : 'Erro ao salvar transação'
-        setError(errorMessage)
+        await transactionsAPI.create(payload)
       }
+
+      navigate('/transacoes')
     } catch (err) {
-      setError('Erro ao conectar com o servidor')
+      const errorMessage = err?.detail || err?.message || 'Erro ao salvar transação'
+      setError(errorMessage)
       console.error('Erro:', err)
     } finally {
       setLoading(false)
