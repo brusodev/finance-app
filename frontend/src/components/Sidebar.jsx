@@ -1,5 +1,6 @@
 import React, { useState } from 'react'
 import { Link, useNavigate, useLocation } from 'react-router-dom'
+import { useTransaction } from '../context/TransactionContext'
 import {
   LayoutDashboard,
   Plus,
@@ -17,11 +18,18 @@ export default function Sidebar() {
   const [isOpen, setIsOpen] = useState(false)
   const navigate = useNavigate()
   const location = useLocation()
+  const { setShowForm } = useTransaction()
 
   const handleLogout = () => {
     localStorage.removeItem('token')
     localStorage.removeItem('user')
     navigate('/login')
+  }
+
+  const handleNewTransaction = () => {
+    navigate('/')
+    setShowForm(true)
+    setIsOpen(false)
   }
 
   const isActive = (path) => {
@@ -32,7 +40,7 @@ export default function Sidebar() {
     { id: 'dashboard', icon: LayoutDashboard, label: 'Dashboard', path: '/', onClick: () => setIsOpen(false) },
     { id: 'accounts', icon: Wallet, label: 'Minhas Contas', path: '/accounts', onClick: () => setIsOpen(false) },
     { id: 'categories', icon: Tag, label: 'Categorias', path: '/categories', onClick: () => setIsOpen(false) },
-    { id: 'transactions', icon: Plus, label: 'Nova Transação', path: '/?newTransaction=true', onClick: () => setIsOpen(false) },
+    { id: 'transactions', icon: Plus, label: 'Nova Transação', isButton: true, onClick: handleNewTransaction },
     { id: 'report', icon: BarChart3, label: 'Relatórios', path: '/report', onClick: () => setIsOpen(false) },
     { id: 'profile', icon: User, label: 'Meu Perfil', path: '/profile', onClick: () => setIsOpen(false) },
     { id: 'settings', icon: Settings, label: 'Configurações', path: '/settings', onClick: () => setIsOpen(false) },
@@ -61,19 +69,28 @@ export default function Sidebar() {
 
         {/* Navigation */}
         <nav className="mt-6 px-3 space-y-2">
-          {menuItems.map((item) => (
-            <Link
-              key={item.id}
-              to={item.path}
-              onClick={item.onClick}
-              className={`flex items-center space-x-3 px-4 py-3 rounded-lg transition-colors ${isActive(
-                item.path
-              )}`}
-            >
-              <item.icon size={20} />
-              <span className="font-medium">{item.label}</span>
-            </Link>
-          ))}
+          {menuItems.map((item) => 
+            item.isButton ? (
+              <button
+                key={item.id}
+                onClick={item.onClick}
+                className={`w-full flex items-center space-x-3 px-4 py-3 rounded-lg transition-colors text-left ${isActive(item.path || '')}`}
+              >
+                <item.icon size={20} />
+                <span className="font-medium">{item.label}</span>
+              </button>
+            ) : (
+              <Link
+                key={item.id}
+                to={item.path}
+                onClick={item.onClick}
+                className={`flex items-center space-x-3 px-4 py-3 rounded-lg transition-colors ${isActive(item.path)}`}
+              >
+                <item.icon size={20} />
+                <span className="font-medium">{item.label}</span>
+              </Link>
+            )
+          )}
         </nav>
 
         {/* Bottom Section */}
