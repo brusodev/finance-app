@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { api } from '../services/api'
+import { usersAPI } from '../services/api'
 import { Camera, Save } from 'lucide-react'
 
 export default function Profile() {
@@ -58,30 +58,16 @@ export default function Profile() {
     setSuccess('')
 
     try {
-      const token = localStorage.getItem('token')
-      const response = await fetch('http://localhost:8000/users/profile', {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
-        },
-        body: JSON.stringify({
-          full_name: formData.fullName,
-          email: formData.email,
-          avatar: formData.avatar
-        })
+      const updatedUser = await usersAPI.updateProfile({
+        full_name: formData.fullName,
+        email: formData.email,
+        avatar: formData.avatar
       })
-
-      if (response.ok) {
-        const updatedUser = await response.json()
-        localStorage.setItem('user', JSON.stringify(updatedUser))
-        setUser(updatedUser)
-        setSuccess('✅ Perfil atualizado com sucesso!')
-      } else {
-        setError('❌ Erro ao atualizar perfil')
-      }
+      localStorage.setItem('user', JSON.stringify(updatedUser))
+      setUser(updatedUser)
+      setSuccess('✅ Perfil atualizado com sucesso!')
     } catch (err) {
-      setError('❌ Erro ao conectar com o servidor')
+      setError('❌ Erro ao atualizar perfil: ' + err.message)
     } finally {
       setLoading(false)
     }

@@ -42,7 +42,7 @@ export default function Register() {
       }
 
       // Registrar usuário
-      const user = await authAPI.register(username, password)
+      const user = await authAPI.register(username, password, '', '')
       console.log('Registro bem-sucedido:', user)
       
       setUsername('')
@@ -52,7 +52,7 @@ export default function Register() {
       // Redirecionar para login
       navigate('/login', { replace: true })
     } catch (err) {
-      const errorMessage = err.response?.data?.detail || err.message || 'Erro ao registrar'
+      const errorMessage = err.detail || err.message || 'Erro ao registrar'
       setError(errorMessage)
     } finally {
       setLoading(false)

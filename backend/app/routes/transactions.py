@@ -20,7 +20,7 @@ def list_transactions(
 ):
     """
     Listar todas as transações.
-    
+
     - skip: número de registros a pular (padrão: 0)
     - limit: número máximo de registros (padrão: 100)
     """
@@ -39,7 +39,7 @@ def create_transaction(
 ):
     """
     Criar uma nova transação.
-    
+
     - user_id: ID do usuário (padrão: 1 para testes)
     - amount: valor da transação
     - date: data da transação
@@ -53,7 +53,7 @@ def create_transaction(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="Categoria não encontrada"
         )
-    
+
     return crud.create_transaction(
         db=db, transaction=transaction, user_id=user_id
     )
@@ -84,7 +84,7 @@ def update_transaction(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="Transação não encontrada"
         )
-    
+
     # Validar categoria
     db_category = crud.get_category(db, transaction.category_id)
     if not db_category:
@@ -92,7 +92,7 @@ def update_transaction(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="Categoria não encontrada"
         )
-    
+
     return crud.update_transaction(
         db=db, transaction_id=transaction_id, transaction=transaction
     )

@@ -20,7 +20,7 @@ def list_categories(
 ):
     """
     Listar todas as categorias.
-    
+
     - skip: número de registros a pular (padrão: 0)
     - limit: número máximo de registros (padrão: 100)
     """

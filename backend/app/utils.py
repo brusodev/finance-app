@@ -7,7 +7,7 @@ import os
 def hash_password(password: str) -> str:
     """
     Hash uma senha usando SHA-256.
-    
+
     NOTA: Em produção, usar bcrypt ou argon2!
     Esta é apenas para desenvolvimento.
     """
@@ -21,7 +21,7 @@ def hash_password(password: str) -> str:
 def verify_password(password: str, hashed: str) -> bool:
     """
     Verificar se uma senha corresponde ao hash.
-    
+
     NOTA: Em produção, usar bcrypt ou argon2!
     """
     salt = bytes.fromhex(hashed[:64])

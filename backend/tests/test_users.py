@@ -9,7 +9,7 @@ class TestUsers:
     def test_list_users(self, client: TestClient, test_user):
         """Teste: listar usuários"""
         response = client.get("/users/")
-        
+
         assert response.status_code == 200
         data = response.json()
         assert isinstance(data, list)
@@ -20,7 +20,7 @@ class TestUsers:
         """Teste: obter dados de um usuário"""
         user_id = test_user["id"]
         response = client.get(f"/users/{user_id}")
-        
+
         assert response.status_code == 200
         data = response.json()
         assert data["username"] == test_user["username"]
@@ -29,7 +29,7 @@ class TestUsers:
     def test_get_nonexistent_user(self, client: TestClient):
         """Teste: erro ao obter usuário inexistente"""
         response = client.get("/users/99999")
-        
+
         assert response.status_code == 404
         assert "não encontrado" in response.json()["detail"]
 
@@ -41,7 +41,7 @@ class TestUsers:
             "password": "newpass456"
         }
         response = client.put(f"/users/{user_id}", json=update_data)
-        
+
         assert response.status_code == 200
         data = response.json()
         assert data["username"] == "updateduser"
@@ -53,7 +53,7 @@ class TestUsers:
             "password": "pass123"
         }
         response = client.put("/users/99999", json=update_data)
-        
+
         assert response.status_code == 404
         assert "não encontrado" in response.json()["detail"]
 
@@ -61,9 +61,9 @@ class TestUsers:
         """Teste: deletar usuário"""
         user_id = test_user["id"]
         response = client.delete(f"/users/{user_id}")
-        
+
         assert response.status_code == 200
-        
+
         # Verificar que foi deletado
         response = client.get(f"/users/{user_id}")
         assert response.status_code == 404
@@ -71,6 +71,6 @@ class TestUsers:
     def test_delete_nonexistent_user(self, client: TestClient):
         """Teste: erro ao deletar usuário inexistente"""
         response = client.delete("/users/99999")
-        
+
         assert response.status_code == 404
         assert "não encontrado" in response.json()["detail"]

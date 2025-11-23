@@ -13,7 +13,7 @@ class TestAuth:
             "password": "secure123"
         }
         response = client.post("/auth/register", json=user_data)
-        
+
         assert response.status_code == 200
         data = response.json()
         assert data["username"] == "newuser"
@@ -26,7 +26,7 @@ class TestAuth:
             "password": "newpass123"
         }
         response = client.post("/auth/register", json=user_data)
-        
+
         assert response.status_code == 400
         assert "já está em uso" in response.json()["detail"]
 
@@ -37,7 +37,7 @@ class TestAuth:
             "password": "testpass123"
         }
         response = client.post("/auth/login", json=login_data)
-        
+
         assert response.status_code == 200
         data = response.json()
         assert data["username"] == test_user["username"]
@@ -49,7 +49,7 @@ class TestAuth:
             "password": "wrongpassword"
         }
         response = client.post("/auth/login", json=login_data)
-        
+
         assert response.status_code == 401
         assert "inválidos" in response.json()["detail"]
 
@@ -60,6 +60,6 @@ class TestAuth:
             "password": "anypass"
         }
         response = client.post("/auth/login", json=login_data)
-        
+
         assert response.status_code == 401
         assert "inválidos" in response.json()["detail"]

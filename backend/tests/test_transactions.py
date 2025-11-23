@@ -11,7 +11,7 @@ class TestTransactions:
     ):
         """Teste: listar transações"""
         response = client.get("/transactions/")
-        
+
         assert response.status_code == 200
         data = response.json()
         assert isinstance(data, list)
@@ -29,7 +29,7 @@ class TestTransactions:
         response = client.post(
             "/transactions/", json=transaction_data
         )
-        
+
         assert response.status_code == 201
         data = response.json()
         assert data["amount"] == 100.50
@@ -49,7 +49,7 @@ class TestTransactions:
         response = client.post(
             "/transactions/", json=transaction_data
         )
-        
+
         assert response.status_code == 404
         assert "não encontrada" in response.json()["detail"]
 
@@ -66,7 +66,7 @@ class TestTransactions:
         response = client.post(
             "/transactions/", json=transaction_data
         )
-        
+
         assert response.status_code == 422
 
     def test_get_transaction(
@@ -84,10 +84,10 @@ class TestTransactions:
             "/transactions/", json=transaction_data
         )
         transaction = create_response.json()
-        
+
         # Get transação
         response = client.get(f"/transactions/{transaction['id']}")
-        
+
         assert response.status_code == 200
         data = response.json()
         assert data["amount"] == 75.00
@@ -96,7 +96,7 @@ class TestTransactions:
     def test_get_nonexistent_transaction(self, client: TestClient):
         """Teste: erro ao obter transação inexistente"""
         response = client.get("/transactions/99999")
-        
+
         assert response.status_code == 404
         assert "não encontrada" in response.json()["detail"]
 
@@ -115,7 +115,7 @@ class TestTransactions:
             "/transactions/", json=transaction_data
         )
         transaction = create_response.json()
-        
+
         # Atualizar
         update_data = {
             "amount": 150.00,
@@ -126,7 +126,7 @@ class TestTransactions:
         response = client.put(
             f"/transactions/{transaction['id']}", json=update_data
         )
-        
+
         assert response.status_code == 200
         data = response.json()
         assert data["amount"] == 150.00
@@ -145,7 +145,7 @@ class TestTransactions:
         response = client.put(
             "/transactions/99999", json=update_data
         )
-        
+
         assert response.status_code == 404
         assert "não encontrada" in response.json()["detail"]
 
@@ -164,12 +164,12 @@ class TestTransactions:
             "/transactions/", json=transaction_data
         )
         transaction = create_response.json()
-        
+
         # Deletar
         response = client.delete(f"/transactions/{transaction['id']}")
-        
+
         assert response.status_code == 200
-        
+
         # Verificar que foi deletada
         response = client.get(f"/transactions/{transaction['id']}")
         assert response.status_code == 404
@@ -179,6 +179,6 @@ class TestTransactions:
     ):
         """Teste: erro ao deletar transação inexistente"""
         response = client.delete("/transactions/99999")
-        
+
         assert response.status_code == 404
         assert "não encontrada" in response.json()["detail"]

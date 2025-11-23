@@ -24,11 +24,15 @@ export default function Login() {
       const user = await authAPI.login(username, password)
       console.log('Login bem-sucedido:', user)
       
+      // Armazenar token e usuario
+      localStorage.setItem('token', user.token)
+      localStorage.setItem('user', JSON.stringify(user.user))
+      
       setUsername('')
       setPassword('')
-      navigate('/dashboard')
+      navigate('/', { replace: true })
     } catch (err) {
-      const errorMessage = err.response?.data?.detail || err.message || 'Erro ao fazer login'
+      const errorMessage = err.detail || err.message || 'Erro ao fazer login'
       setError(errorMessage)
     } finally {
       setLoading(false)

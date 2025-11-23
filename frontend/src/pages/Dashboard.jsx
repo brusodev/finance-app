@@ -45,7 +45,7 @@ export default function Dashboard() {
       // Calcular totais
       calculateTotals(transactionsData)
     } catch (err) {
-      const errorMessage = err.response?.data?.detail || err.message || 'Erro ao carregar dados'
+      const errorMessage = err.detail || err.message || 'Erro ao carregar dados'
       setError(errorMessage)
       console.error('Erro:', err)
     } finally {
