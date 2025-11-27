@@ -1,5 +1,5 @@
-*venv
-*.venv
+*venv/
+*.venv/
 __pycache__/
 *.pyc
 *.pyo
@@ -8,3 +8,4 @@ __pycache__/
 *.sqlite3
 *.log
 *.env
+*/node_modules/
