@@ -1,36 +1,79 @@
-from fastapi import APIRouter, HTTPException, status
+"""Gerenciamento de Usuários"""
+
+from fastapi import APIRouter, Depends, HTTPException, status
+from sqlalchemy.orm import Session
 from typing import List
-from uuid import uuid4
-from datetime import datetime
+from .. import crud, schemas
+from ..database import get_db
 
-from ..models.user import UserCreate, UserResponse, UserUpdate
+router = APIRouter(
+    prefix="/users",
+    tags=["users"],
+)
 
-router = APIRouter(prefix='/users', tags=['Users'])
 
-# Mock database - substituir posteriormente por conexão real
-users_db = []
+@router.get("/", response_model=List[schemas.User])
+def list_users(skip: int = 0, limit: int = 100, db: Session = Depends(get_db)):
+    """
+    Listar todos os usuários.
 
-@router.post('/', response_model=UserResponse, status_code=status.HTTP_201_CREATED)
-async def create_user(user: UserCreate):
-    # Verificar se o usuário já existe
-    if any(u.get('email') == user.email for u in users_db):
+    - skip: número de registros a pular (padrão: 0)
+    - limit: número máximo de registros (padrão: 100)
+    """
+    users = crud.get_all_users(db, skip=skip, limit=limit)
+    return users
+
+
+@router.get("/{user_id}", response_model=schemas.User)
+def get_user(user_id: int, db: Session = Depends(get_db)):
+    """Obter dados de um usuário específico"""
+    db_user = crud.get_user(db, user_id=user_id)
+    if not db_user:
         raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail='Email já está em uso'
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Usuário não encontrado"
         )
-    
-    # Em produção, hash a senha aqui
-    
-    new_user = {
-        'id': str(uuid4()),
-        'email': user.email,
-        'name': user.name,
-        'password': user.password,  # Isso seria o hash da senha
-        'created_at': datetime.now()
-    }
-    users_db.append(new_user)
-    return new_user
+    return db_user
 
-@router.get('/', response_model=List[UserResponse])
-async def get_users():
-    return users_db
+
+@router.put("/{user_id}", response_model=schemas.User)
+def update_user(
+    user_id: int,
+    user: schemas.UserCreate,
+    db: Session = Depends(get_db)
+):
+    """Atualizar dados de um usuário"""
+    db_user = crud.get_user(db, user_id=user_id)
+    if not db_user:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Usuário não encontrado"
+        )
+    return crud.update_user(db=db, user_id=user_id, user=user)
+
+
+@router.delete("/{user_id}", response_model=schemas.User)
+def delete_user(user_id: int, db: Session = Depends(get_db)):
+    """Deletar um usuário"""
+    db_user = crud.get_user(db, user_id=user_id)
+    if not db_user:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Usuário não encontrado"
+        )
+    return crud.delete_user(db=db, user_id=user_id)
+
+
+@router.put("/profile", response_model=schemas.User)
+def update_profile(user: schemas.UserUpdate, db: Session = Depends(get_db)):
+    """Atualizar perfil do usuário autenticado"""
+    # Em um caso real, você pegaria o user_id do token JWT
+    # Por enquanto, vamos usar user_id = 1 como exemplo
+    user_id = 1
+    db_user = crud.get_user(db, user_id=user_id)
+    if not db_user:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Usuário não encontrado"
+        )
+    return crud.update_user_profile(db=db, user_id=user_id, user=user)
