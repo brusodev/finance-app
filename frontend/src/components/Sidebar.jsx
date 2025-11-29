@@ -46,12 +46,14 @@ export default function Sidebar() {
   return (
     <>
       {/* Mobile Toggle */}
-      <button
-        onClick={() => setIsOpen(!isOpen)}
-        className="fixed top-4 left-4 z-50 lg:hidden bg-blue-600 text-white p-2 rounded-lg shadow-lg"
-      >
-        {isOpen ? <X size={24} /> : <Menu size={24} />}
-      </button>
+      {!isOpen && (
+        <button
+          onClick={() => setIsOpen(true)}
+          className="fixed top-4 left-4 z-50 lg:hidden bg-blue-600 text-white p-2 rounded-lg shadow-lg"
+        >
+          <Menu size={24} />
+        </button>
+      )}
 
       {/* Sidebar */}
       <aside
@@ -60,8 +62,14 @@ export default function Sidebar() {
         }`}
       >
         {/* Logo */}
-        <div className="p-6 border-b border-gray-200 dark:border-gray-800">
+        <div className="p-6 border-b border-gray-200 dark:border-gray-800 flex justify-between items-center">
           <h1 className="text-2xl font-bold text-blue-600 dark:text-blue-400">💰 FinApp</h1>
+          <button 
+            onClick={() => setIsOpen(false)} 
+            className="lg:hidden p-2 text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
+          >
+            <X size={24} />
+          </button>
         </div>
 
         {/* User Profile Section */}
