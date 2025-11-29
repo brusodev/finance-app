@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react'
 import { Plus, Edit2, Trash2, X } from 'lucide-react'
+import { accountsAPI } from '../services/api'
 
 export default function Accounts() {
   const [accounts, setAccounts] = useState([])
@@ -28,14 +29,8 @@ export default function Accounts() {
   const loadAccounts = async () => {
     setLoading(true)
     try {
-      const token = localStorage.getItem('token')
-      const response = await fetch('http://localhost:8000/accounts/', {
-        headers: { 'Authorization': `Bearer ${token}` }
-      })
-      if (response.ok) {
-        const data = await response.json()
-        setAccounts(data)
-      }
+      const data = await accountsAPI.getAll()
+      setAccounts(data)
     } catch (err) {
       setError('Erro ao carregar contas')
     } finally {
@@ -48,38 +43,24 @@ export default function Accounts() {
     setLoading(true)
 
     try {
-      const token = localStorage.getItem('token')
-      const method = editingId ? 'PUT' : 'POST'
-      const url = editingId
-        ? `http://localhost:8000/accounts/${editingId}`
-        : 'http://localhost:8000/accounts/'
-
-      const response = await fetch(url, {
-        method,
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
-        },
-        body: JSON.stringify({
-          ...formData,
-          balance: parseFloat(formData.balance)
-        })
-      })
-
-      if (response.ok) {
-        await loadAccounts()
-        setFormData({ name: '', account_type: 'checking', balance: '', currency: 'BRL' })
-        setEditingId(null)
-        setShowForm(false)
-      } else {
-        const errorData = await response.json()
-        const errorMessage = typeof errorData.detail === 'string' 
-          ? errorData.detail 
-          : 'Erro ao salvar conta'
-        setError(errorMessage)
+      const accountData = {
+        ...formData,
+        balance: parseFloat(formData.balance)
       }
+
+      if (editingId) {
+        await accountsAPI.update(editingId, accountData)
+      } else {
+        await accountsAPI.create(accountData)
+      }
+
+      await loadAccounts()
+      setFormData({ name: '', account_type: 'checking', balance: '', currency: 'BRL' })
+      setEditingId(null)
+      setShowForm(false)
     } catch (err) {
-      setError('Erro ao conectar com o servidor')
+      const errorMessage = err.detail || 'Erro ao salvar conta'
+      setError(errorMessage)
     } finally {
       setLoading(false)
     }
@@ -88,14 +69,8 @@ export default function Accounts() {
   const handleDelete = async (id) => {
     if (window.confirm('Tem certeza que deseja deletar esta conta?')) {
       try {
-        const token = localStorage.getItem('token')
-        const response = await fetch(`http://localhost:8000/accounts/${id}`, {
-          method: 'DELETE',
-          headers: { 'Authorization': `Bearer ${token}` }
-        })
-        if (response.ok) {
-          await loadAccounts()
-        }
+        await accountsAPI.delete(id)
+        await loadAccounts()
       } catch (err) {
         setError('Erro ao deletar conta')
       }

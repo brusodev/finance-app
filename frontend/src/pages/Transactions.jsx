@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { Plus, Edit2, Trash2 } from 'lucide-react'
+import { transactionsAPI, categoriesAPI } from '../services/api'
 
 export default function Transactions() {
   const [transactions, setTransactions] = useState([])
@@ -25,25 +26,15 @@ export default function Transactions() {
     try {
       setLoading(true)
       setError('')
-      const token = localStorage.getItem('token')
 
-      // Buscar categorias
-      const categoriesResponse = await fetch('http://localhost:8000/categories/', {
-        headers: { 'Authorization': `Bearer ${token}` }
-      })
-      if (categoriesResponse.ok) {
-        const categoriesData = await categoriesResponse.json()
-        setCategories(categoriesData)
-      }
+      // Buscar categorias e transações
+      const [categoriesData, transactionsData] = await Promise.all([
+        categoriesAPI.getAll(),
+        transactionsAPI.getAll()
+      ])
 
-      // Buscar transações
-      const transactionsResponse = await fetch('http://localhost:8000/transactions/', {
-        headers: { 'Authorization': `Bearer ${token}` }
-      })
-      if (transactionsResponse.ok) {
-        const transactionsData = await transactionsResponse.json()
-        setTransactions(transactionsData)
-      }
+      setCategories(categoriesData)
+      setTransactions(transactionsData)
     } catch (err) {
       setError('Erro ao carregar dados')
       console.error('Erro:', err)
@@ -58,19 +49,10 @@ export default function Transactions() {
     }
 
     try {
-      const token = localStorage.getItem('token')
-      const response = await fetch(`http://localhost:8000/transactions/${transactionId}`, {
-        method: 'DELETE',
-        headers: { 'Authorization': `Bearer ${token}` }
-      })
-
-      if (response.ok) {
-        setSuccess('✅ Transação deletada!')
-        setTransactions(transactions.filter((t) => t.id !== transactionId))
-        setTimeout(() => setSuccess(''), 3000)
-      } else {
-        setError('Erro ao deletar transação')
-      }
+      await transactionsAPI.delete(transactionId)
+      setSuccess('✅ Transação deletada!')
+      setTransactions(transactions.filter((t) => t.id !== transactionId))
+      setTimeout(() => setSuccess(''), 3000)
     } catch (err) {
       setError('Erro ao conectar com o servidor')
       console.error('Erro:', err)
