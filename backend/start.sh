@@ -18,6 +18,10 @@ else
 fi
 
 echo ""
+echo "🔄 Executando migrações do banco de dados..."
+python migrate_user_fields.py || echo "⚠️  Migrações podem já ter sido executadas"
+echo ""
+
 echo "🌐 Iniciando servidor na rede (0.0.0.0:8000)..."
 echo "   Acessível em:"
 echo "   - http://localhost:8000"
