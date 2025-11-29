@@ -61,11 +61,11 @@ def update_user_profile(db: Session, user_id: int, user: schemas.UserUpdate):
     """Update user profile"""
     db_user = get_user(db, user_id)
     if db_user:
-        if user.email:
+        if user.email is not None:
             db_user.email = user.email
-        if user.full_name:
+        if user.full_name is not None:
             db_user.full_name = user.full_name
-        if user.avatar:
+        if user.avatar is not None:
             db_user.avatar = user.avatar
         db.commit()
         db.refresh(db_user)
