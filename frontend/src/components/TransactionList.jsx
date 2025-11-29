@@ -6,13 +6,13 @@ export default function TransactionList({ transactions, categories, onDelete, on
 
   const getCategoryColor = (categoryId) => {
     const colors = {
-      1: 'bg-blue-100 text-blue-800',
-      2: 'bg-green-100 text-green-800',
-      3: 'bg-red-100 text-red-800',
-      4: 'bg-yellow-100 text-yellow-800',
-      5: 'bg-purple-100 text-purple-800'
+      1: 'bg-blue-100 dark:bg-blue-900/50 text-blue-800 dark:text-blue-200',
+      2: 'bg-green-100 dark:bg-green-900/50 text-green-800 dark:text-green-200',
+      3: 'bg-red-100 dark:bg-red-900/50 text-red-800 dark:text-red-200',
+      4: 'bg-yellow-100 dark:bg-yellow-900/50 text-yellow-800 dark:text-yellow-200',
+      5: 'bg-purple-100 dark:bg-purple-900/50 text-purple-800 dark:text-purple-200'
     }
-    return colors[categoryId] || 'bg-gray-100 text-gray-800'
+    return colors[categoryId] || 'bg-gray-100 dark:bg-gray-700 text-gray-800 dark:text-gray-200'
   }
 
   const formatDate = (dateString) => {
@@ -29,28 +29,28 @@ export default function TransactionList({ transactions, categories, onDelete, on
   })
 
   return (
-    <div className="bg-white rounded-lg shadow-md border border-gray-200 overflow-hidden">
+    <div className="bg-white dark:bg-gray-800 rounded-lg shadow-md border border-gray-200 dark:border-gray-700 overflow-hidden">
       <div className="overflow-x-auto">
         <table className="w-full">
           <thead>
-            <tr className="bg-gray-50 border-b border-gray-200">
-              <th className="px-6 py-3 text-left text-sm font-semibold text-gray-900">Data</th>
-              <th className="px-6 py-3 text-left text-sm font-semibold text-gray-900">Descrição</th>
-              <th className="px-6 py-3 text-left text-sm font-semibold text-gray-900">Categoria</th>
-              <th className="px-6 py-3 text-right text-sm font-semibold text-gray-900">Valor</th>
-              <th className="px-6 py-3 text-center text-sm font-semibold text-gray-900">Ações</th>
+            <tr className="bg-gray-50 dark:bg-gray-700 border-b border-gray-200 dark:border-gray-700">
+              <th className="px-6 py-3 text-left text-sm font-semibold text-gray-900 dark:text-white">Data</th>
+              <th className="px-6 py-3 text-left text-sm font-semibold text-gray-900 dark:text-white">Descrição</th>
+              <th className="px-6 py-3 text-left text-sm font-semibold text-gray-900 dark:text-white">Categoria</th>
+              <th className="px-6 py-3 text-right text-sm font-semibold text-gray-900 dark:text-white">Valor</th>
+              <th className="px-6 py-3 text-center text-sm font-semibold text-gray-900 dark:text-white">Ações</th>
             </tr>
           </thead>
-          <tbody className="divide-y divide-gray-200">
+          <tbody className="divide-y divide-gray-200 dark:divide-gray-700">
             {sortedTransactions.map((transaction) => (
-              <tr key={transaction.id} className="hover:bg-gray-50 transition-colors">
+              <tr key={transaction.id} className="hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors">
                 {/* Data */}
-                <td className="px-6 py-4 text-sm text-gray-700 font-medium">
+                <td className="px-6 py-4 text-sm text-gray-700 dark:text-gray-300 font-medium">
                   {formatDate(transaction.date)}
                 </td>
 
                 {/* Descrição */}
-                <td className="px-6 py-4 text-sm text-gray-700">
+                <td className="px-6 py-4 text-sm text-gray-700 dark:text-gray-300">
                   {transaction.description}
                 </td>
 
@@ -68,7 +68,7 @@ export default function TransactionList({ transactions, categories, onDelete, on
                 {/* Valor */}
                 <td
                   className={`px-6 py-4 text-sm font-semibold text-right ${
-                    transaction.amount > 0 ? 'text-green-600' : 'text-red-600'
+                    transaction.amount > 0 ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'
                   }`}
                 >
                   {transaction.amount > 0 ? '+' : ''}R${' '}
@@ -80,13 +80,13 @@ export default function TransactionList({ transactions, categories, onDelete, on
                   <div className="flex gap-2 justify-center">
                     <button
                       onClick={() => onEdit(transaction)}
-                      className="text-blue-600 hover:text-blue-700 hover:bg-blue-50 px-3 py-1 rounded text-sm font-medium transition-colors"
+                      className="text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 hover:bg-blue-50 dark:hover:bg-blue-900/30 px-3 py-1 rounded text-sm font-medium transition-colors"
                     >
                       Editar
                     </button>
                     <button
                       onClick={() => onDelete(transaction.id)}
-                      className="text-red-600 hover:text-red-700 hover:bg-red-50 px-3 py-1 rounded text-sm font-medium transition-colors"
+                      className="text-red-600 dark:text-red-400 hover:text-red-700 dark:hover:text-red-300 hover:bg-red-50 dark:hover:bg-red-900/30 px-3 py-1 rounded text-sm font-medium transition-colors"
                     >
                       Deletar
                     </button>
@@ -99,8 +99,8 @@ export default function TransactionList({ transactions, categories, onDelete, on
       </div>
 
       {/* Rodapé com contagem */}
-      <div className="bg-gray-50 px-6 py-3 border-t border-gray-200">
-        <p className="text-sm text-gray-600">
+      <div className="bg-gray-50 dark:bg-gray-700 px-6 py-3 border-t border-gray-200 dark:border-gray-700">
+        <p className="text-sm text-gray-600 dark:text-gray-400">
           Total de transações: <span className="font-semibold">{transactions.length}</span>
         </p>
       </div>

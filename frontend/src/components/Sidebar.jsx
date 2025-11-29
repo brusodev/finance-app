@@ -27,7 +27,9 @@ export default function Sidebar() {
   }
 
   const isActive = (path) => {
-    return location.pathname === path ? 'bg-blue-700 text-white' : 'text-gray-200 hover:bg-gray-700'
+    return location.pathname === path 
+      ? 'bg-blue-600 dark:bg-blue-700 text-white' 
+      : 'text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800'
   }
 
   const menuItems = [
@@ -53,13 +55,13 @@ export default function Sidebar() {
 
       {/* Sidebar */}
       <aside
-        className={`fixed left-0 top-0 h-screen w-64 bg-gray-900 text-white shadow-lg transform transition-transform duration-300 ease-in-out z-40 lg:transform-none ${
+        className={`fixed left-0 top-0 h-screen w-64 bg-white dark:bg-gray-900 text-gray-800 dark:text-white shadow-lg transform transition-transform duration-300 ease-in-out z-40 lg:transform-none border-r border-gray-200 dark:border-gray-800 ${
           isOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'
         }`}
       >
         {/* Logo */}
-        <div className="p-6 border-b border-gray-700">
-          <h1 className="text-2xl font-bold text-blue-400">💰 FinApp</h1>
+        <div className="p-6 border-b border-gray-200 dark:border-gray-800">
+          <h1 className="text-2xl font-bold text-blue-600 dark:text-blue-400">💰 FinApp</h1>
         </div>
 
         {/* User Profile Section */}
@@ -67,7 +69,7 @@ export default function Sidebar() {
           <Link
             to="/profile"
             onClick={() => setIsOpen(false)}
-            className="block p-4 border-b border-gray-700 hover:bg-gray-800 transition-colors"
+            className="block p-4 border-b border-gray-200 dark:border-gray-800 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
           >
             <div className="flex items-center space-x-3">
               {/* Avatar */}
@@ -84,10 +86,10 @@ export default function Sidebar() {
               )}
               {/* User Info */}
               <div className="flex-1 min-w-0">
-                <p className="text-sm font-semibold text-white truncate">
+                <p className="text-sm font-semibold text-gray-800 dark:text-white truncate">
                   {user.full_name || user.username}
                 </p>
-                <p className="text-xs text-gray-400 truncate">
+                <p className="text-xs text-gray-500 dark:text-gray-400 truncate">
                   {user.email || 'Ver perfil'}
                 </p>
               </div>
@@ -111,10 +113,10 @@ export default function Sidebar() {
         </nav>
 
         {/* Bottom Section */}
-        <div className="absolute bottom-0 left-0 right-0 p-4 border-t border-gray-700 space-y-2">
+        <div className="absolute bottom-0 left-0 right-0 p-4 border-t border-gray-200 dark:border-gray-800 space-y-2 bg-white dark:bg-gray-900">
           <button
             onClick={handleLogout}
-            className="w-full flex items-center space-x-3 px-4 py-3 rounded-lg bg-red-600 hover:bg-red-700 transition-colors text-white"
+            className="w-full flex items-center space-x-3 px-4 py-3 rounded-lg bg-red-50 dark:bg-red-900/20 hover:bg-red-100 dark:hover:bg-red-900/40 text-red-600 dark:text-red-400 transition-colors"
           >
             <LogOut size={20} />
             <span className="font-medium">Logout</span>
