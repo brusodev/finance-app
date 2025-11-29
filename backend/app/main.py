@@ -12,6 +12,31 @@ import os
 Base.metadata.create_all(bind=engine)
 
 
+def run_migrations():
+    """Executar migrações do banco de dados"""
+    print("Verificando migrações do banco de dados...")
+
+    migrations = [
+        "ALTER TABLE users ADD COLUMN cpf VARCHAR",
+        "ALTER TABLE users ADD COLUMN phone VARCHAR",
+        "ALTER TABLE users ADD COLUMN birth_date DATE",
+        "ALTER TABLE users ADD COLUMN address VARCHAR",
+    ]
+
+    try:
+        with engine.begin() as conn:
+            for migration in migrations:
+                try:
+                    conn.execute(text(migration))
+                    print(f"Migracao executada: {migration}")
+                except Exception as e:
+                    # Coluna pode já existir
+                    pass
+        print("Migrações verificadas com sucesso!")
+    except Exception as e:
+        print(f"Aviso ao verificar migrações: {str(e)}")
+
+
 def init_default_users():
     """Criar usuário padrão se nenhum usuário existir no banco"""
     db = SessionLocal()
@@ -46,6 +71,7 @@ def init_default_users():
 async def lifespan(app_instance):
     # Startup
     print("Iniciando Finance App...")
+    run_migrations()
     init_default_users()
     yield
     # Shutdown
