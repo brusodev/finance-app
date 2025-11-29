@@ -1,11 +1,8 @@
 # Configuração do Nixpacks para Railway
 
-[phases.setup]
-nixPkgs = ["python311"]
-
 [phases.install]
 cmds = [
-    "pip install --upgrade pip setuptools wheel",
+    "pip install --upgrade pip",
     "pip install -r requirements.txt"
 ]
 
