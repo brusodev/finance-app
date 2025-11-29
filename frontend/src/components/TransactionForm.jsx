@@ -85,15 +85,15 @@ export default function TransactionForm({ categories, initialData, onSubmit, onC
   }
 
   return (
-    <div className="bg-white rounded-lg shadow-md p-6 border border-gray-200">
-      <h2 className="text-xl font-bold text-gray-900 mb-6">
+    <div className="bg-white dark:bg-gray-800 rounded-lg shadow-md p-6 border border-gray-200 dark:border-gray-700">
+      <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-6">
         {initialData ? 'Editar Transação' : 'Adicionar Nova Transação'}
       </h2>
 
       {/* Erro */}
       {error && (
-        <div className="mb-6 rounded-md bg-red-50 border border-red-200 p-4">
-          <p className="text-red-700 text-sm font-medium">{error}</p>
+        <div className="mb-6 rounded-md bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-900/30 p-4">
+          <p className="text-red-700 dark:text-red-400 text-sm font-medium">{error}</p>
         </div>
       )}
 
@@ -101,7 +101,7 @@ export default function TransactionForm({ categories, initialData, onSubmit, onC
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           {/* Tipo de Transação */}
           <div>
-            <label htmlFor="type" className="block text-sm font-medium text-gray-700 mb-2">
+            <label htmlFor="type" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
               Tipo
             </label>
             <select
@@ -109,7 +109,7 @@ export default function TransactionForm({ categories, initialData, onSubmit, onC
               required
               value={transactionType}
               onChange={(e) => setTransactionType(e.target.value)}
-              className="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
+              className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
               disabled={loading}
             >
               <option value="income">Receita (Entrada)</option>
@@ -119,7 +119,7 @@ export default function TransactionForm({ categories, initialData, onSubmit, onC
 
           {/* Valor */}
           <div>
-            <label htmlFor="amount" className="block text-sm font-medium text-gray-700 mb-2">
+            <label htmlFor="amount" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
               Valor (R$)
             </label>
             <input
@@ -129,16 +129,16 @@ export default function TransactionForm({ categories, initialData, onSubmit, onC
               required
               value={amount}
               onChange={(e) => setAmount(e.target.value)}
-              className="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
+              className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
               placeholder="0.00"
               disabled={loading}
             />
-            <p className="text-gray-500 text-xs mt-1">Digite o valor sem sinal</p>
+            <p className="text-gray-500 dark:text-gray-400 text-xs mt-1">Digite o valor sem sinal</p>
           </div>
 
           {/* Data */}
           <div>
-            <label htmlFor="date" className="block text-sm font-medium text-gray-700 mb-2">
+            <label htmlFor="date" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
               Data
             </label>
             <input
@@ -147,14 +147,14 @@ export default function TransactionForm({ categories, initialData, onSubmit, onC
               required
               value={date}
               onChange={(e) => setDate(e.target.value)}
-              className="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
+              className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
               disabled={loading}
             />
           </div>
 
           {/* Categoria */}
           <div>
-            <label htmlFor="category" className="block text-sm font-medium text-gray-700 mb-2">
+            <label htmlFor="category" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
               Categoria
             </label>
             <select
@@ -162,7 +162,7 @@ export default function TransactionForm({ categories, initialData, onSubmit, onC
               required
               value={categoryId}
               onChange={(e) => setCategoryId(e.target.value)}
-              className="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
+              className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
               disabled={loading}
             >
               <option value="">Selecione uma categoria</option>
@@ -176,7 +176,7 @@ export default function TransactionForm({ categories, initialData, onSubmit, onC
 
           {/* Descrição (ocupará 2 colunas em grid 2 cols) */}
           <div className="md:col-span-2">
-            <label htmlFor="description" className="block text-sm font-medium text-gray-700 mb-2">
+            <label htmlFor="description" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
               Descrição
             </label>
             <textarea
@@ -184,7 +184,7 @@ export default function TransactionForm({ categories, initialData, onSubmit, onC
               required
               value={description}
               onChange={(e) => setDescription(e.target.value)}
-              className="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none resize-none"
+              className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none resize-none bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
               placeholder="Descreva a transação..."
               rows={3}
               disabled={loading}
@@ -205,7 +205,7 @@ export default function TransactionForm({ categories, initialData, onSubmit, onC
             type="button"
             onClick={onCancel}
             disabled={loading}
-            className="flex-1 bg-gray-200 text-gray-700 font-medium py-2 rounded-md hover:bg-gray-300 disabled:cursor-not-allowed transition-colors"
+            className="flex-1 bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 font-medium py-2 rounded-md hover:bg-gray-300 dark:hover:bg-gray-600 disabled:cursor-not-allowed transition-colors"
           >
             Cancelar
           </button>
