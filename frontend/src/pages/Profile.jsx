@@ -66,19 +66,24 @@ export default function Profile() {
     setSuccess('')
 
     try {
-      const updatedUser = await usersAPI.updateProfile({
-        full_name: formData.fullName,
-        email: formData.email,
-        avatar: formData.avatar,
-        cpf: formData.cpf,
-        phone: formData.phone,
-        birth_date: formData.birthDate,
-        address: formData.address
-      })
+      // Preparar dados, enviando null para campos vazios
+      const profileData = {
+        full_name: formData.fullName || null,
+        email: formData.email || null,
+        avatar: formData.avatar || null,
+        cpf: formData.cpf || null,
+        phone: formData.phone || null,
+        birth_date: formData.birthDate || null,
+        address: formData.address || null
+      }
+
+      console.log('Enviando dados:', profileData)
+      const updatedUser = await usersAPI.updateProfile(profileData)
       localStorage.setItem('user', JSON.stringify(updatedUser))
       setUser(updatedUser)
       setSuccess('✅ Perfil atualizado com sucesso!')
     } catch (err) {
+      console.error('Erro completo:', err)
       setError('❌ Erro ao atualizar perfil: ' + (err.detail || err.message || 'Erro desconhecido'))
     } finally {
       setLoading(false)
