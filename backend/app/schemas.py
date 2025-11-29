@@ -34,6 +34,10 @@ class UserUpdate(BaseModel):
     birth_date: Optional[date] = None
     address: Optional[str] = None
 
+    class Config:
+        # Permitir valores None explícitos
+        validate_assignment = True
+
 
 class Token(BaseModel):
     token: str
