@@ -1,11 +1,12 @@
 """Gerenciamento de Usuários"""
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, status, Body
 from sqlalchemy.orm import Session
-from typing import List
+from typing import List, Dict, Any
 from .. import crud, schemas
 from ..database import get_db
 from .auth import get_current_user
+import json
 
 router = APIRouter(
     prefix="/users",
@@ -65,6 +66,19 @@ def delete_user(user_id: int, db: Session = Depends(get_db)):
     return crud.delete_user(db=db, user_id=user_id)
 
 
+@router.post("/profile/debug")
+def debug_profile_update(
+    data: Dict[Any, Any] = Body(...),
+    current_user: schemas.User = Depends(get_current_user)
+):
+    """Endpoint de debug para ver dados brutos recebidos"""
+    return {
+        "received_data": data,
+        "current_user_id": current_user.id,
+        "data_types": {k: str(type(v).__name__) for k, v in data.items()}
+    }
+
+
 @router.put("/profile", response_model=schemas.User)
 def update_profile(
     user: schemas.UserUpdate,
@@ -81,7 +95,16 @@ def update_profile(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="Usuário não encontrado"
         )
-    return crud.update_user_profile(db=db, user_id=current_user.id, user=user)
+
+    try:
+        updated_user = crud.update_user_profile(db=db, user_id=current_user.id, user=user)
+        return updated_user
+    except Exception as e:
+        print(f"Erro ao atualizar perfil: {str(e)}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Erro ao atualizar perfil: {str(e)}"
+        )
 
 
 @router.get("/profile", response_model=schemas.User)
