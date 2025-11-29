@@ -59,18 +59,25 @@ app = FastAPI(
 )
 
 # Configurar CORS dinamicamente baseado no ambiente
-# Pega origens permitidas das variáveis de ambiente ou usa padrões
-ALLOWED_ORIGINS = os.getenv('ALLOWED_ORIGINS', '').split(',') if os.getenv('ALLOWED_ORIGINS') else [
+ALLOWED_ORIGINS = [
+    # Desenvolvimento local
     'http://localhost:3000',
     'http://localhost:3001',
     'http://localhost:5173',
     'http://127.0.0.1:3000',
     'http://127.0.0.1:3001',
+    # Railway
+    'https://finance-app-bruno.up.railway.app',
 ]
 
-# Se estiver em produção (Railway), adicionar domínio do Railway
+# Adicionar origens personalizadas da variável de ambiente
+custom_origins = os.getenv('ALLOWED_ORIGINS', '')
+if custom_origins:
+    ALLOWED_ORIGINS.extend(custom_origins.split(','))
+
+# Adicionar FRONTEND_URL se definido
 FRONTEND_URL = os.getenv('FRONTEND_URL')
-if FRONTEND_URL:
+if FRONTEND_URL and FRONTEND_URL not in ALLOWED_ORIGINS:
     ALLOWED_ORIGINS.append(FRONTEND_URL)
 
 # Modo de desenvolvimento - permite IPs locais
