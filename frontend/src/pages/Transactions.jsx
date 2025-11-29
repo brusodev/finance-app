@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { Plus, Edit2, Trash2 } from 'lucide-react'
+import { Plus, Edit2, Trash2, Search } from 'lucide-react'
 import { transactionsAPI, categoriesAPI } from '../services/api'
+import { useAuth } from '../context/AuthContext'
 
 export default function Transactions() {
   const [transactions, setTransactions] = useState([])
@@ -9,14 +10,9 @@ export default function Transactions() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
   const [success, setSuccess] = useState('')
+  const [searchTerm, setSearchTerm] = useState('')
   const navigate = useNavigate()
-
-  useEffect(() => {
-    const user = localStorage.getItem('user')
-    if (!user) {
-      navigate('/login', { replace: true })
-    }
-  }, [navigate])
+  const { user } = useAuth()
 
   useEffect(() => {
     loadData()
@@ -26,13 +22,10 @@ export default function Transactions() {
     try {
       setLoading(true)
       setError('')
-
-      // Buscar categorias e transações
       const [categoriesData, transactionsData] = await Promise.all([
         categoriesAPI.getAll(),
         transactionsAPI.getAll()
       ])
-
       setCategories(categoriesData)
       setTransactions(transactionsData)
     } catch (err) {
@@ -44,18 +37,14 @@ export default function Transactions() {
   }
 
   const handleDelete = async (transactionId) => {
-    if (!window.confirm('Tem certeza que deseja deletar esta transação?')) {
-      return
-    }
-
+    if (!window.confirm('Tem certeza que deseja deletar esta transação?')) return
     try {
       await transactionsAPI.delete(transactionId)
-      setSuccess('✅ Transação deletada!')
+      setSuccess('Transação deletada!')
       setTransactions(transactions.filter((t) => t.id !== transactionId))
       setTimeout(() => setSuccess(''), 3000)
     } catch (err) {
       setError('Erro ao conectar com o servidor')
-      console.error('Erro:', err)
     }
   }
 
@@ -63,117 +52,116 @@ export default function Transactions() {
     navigate('/nova-transacao', { state: { transaction } })
   }
 
-  const getCategoryName = (transaction) => {
-    return transaction.category ? transaction.category.name : 'Sem categoria'
-  }
+  const filteredTransactions = transactions
+    .filter(t => t.description.toLowerCase().includes(searchTerm.toLowerCase()) || 
+                 (t.category?.name || '').toLowerCase().includes(searchTerm.toLowerCase()))
+    .sort((a, b) => new Date(b.date) - new Date(a.date))
 
-  const getCategoryIcon = (transaction) => {
-    return transaction.category ? transaction.category.icon : '📁'
-  }
-
-  const formatDate = (dateString) => {
-    const date = new Date(dateString)
-    return date.toLocaleDateString('pt-BR')
-  }
-
-  const sortedTransactions = [...transactions].sort(
-    (a, b) => new Date(b.date) - new Date(a.date)
-  )
+  if (loading) return <div className='flex justify-center p-8'><div className='animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600'></div></div>
 
   return (
-    <div className="lg:ml-64 p-6 min-h-screen bg-gradient-to-br from-gray-900 to-gray-800">
-      <div className="max-w-6xl mx-auto">
-        <div className="flex justify-between items-center mb-8">
-          <h1 className="text-3xl font-bold text-white">Transações</h1>
-          <button
-            onClick={() => navigate('/nova-transacao')}
-            className="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-lg flex items-center space-x-2"
-          >
-            <Plus size={20} />
-            <span>Nova Transação</span>
-          </button>
+    <div className='space-y-6'>
+      <div className='flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4'>
+        <h1 className='text-2xl font-bold text-gray-800'>Transações</h1>
+        <button
+          onClick={() => navigate('/nova-transacao')}
+          className='bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 px-4 rounded-lg flex items-center gap-2 w-full sm:w-auto justify-center'
+        >
+          <Plus size={20} />
+          <span>Nova Transação</span>
+        </button>
+      </div>
+
+      {/* Search and Filter */}
+      <div className='bg-white p-4 rounded-xl shadow-sm border border-gray-100 flex gap-4'>
+        <div className='relative flex-1'>
+          <Search className='absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400' size={20} />
+          <input 
+            type='text' 
+            placeholder='Buscar transações...' 
+            className='w-full pl-10 pr-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500'
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+          />
         </div>
+      </div>
 
-        {error && (
-          <div className="bg-red-500 bg-opacity-20 text-red-300 p-4 rounded-lg mb-6">
-            {error}
-          </div>
-        )}
+      {error && <div className='bg-red-50 text-red-700 p-4 rounded-lg'>{error}</div>}
+      {success && <div className='bg-green-50 text-green-700 p-4 rounded-lg'>{success}</div>}
 
-        {success && (
-          <div className="bg-green-500 bg-opacity-20 text-green-300 p-4 rounded-lg mb-6">
-            {success}
-          </div>
-        )}
-
-        {loading ? (
-          <div className="text-center text-gray-400">Carregando transações...</div>
-        ) : sortedTransactions.length === 0 ? (
-          <div className="text-center text-gray-400 py-12">
-            <p>Nenhuma transação registrada.</p>
-            <p className="text-sm mt-2">Clique em "Nova Transação" para criar uma.</p>
-          </div>
+      <div className='bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden'>
+        {filteredTransactions.length === 0 ? (
+          <div className='p-8 text-center text-gray-500'>Nenhuma transação encontrada.</div>
         ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full">
-              <thead>
-                <tr className="border-b border-gray-700">
-                  <th className="text-left px-6 py-4 text-gray-300 font-semibold">Data</th>
-                  <th className="text-left px-6 py-4 text-gray-300 font-semibold">Categoria</th>
-                  <th className="text-left px-6 py-4 text-gray-300 font-semibold">Descrição</th>
-                  <th className="text-left px-6 py-4 text-gray-300 font-semibold">Tipo</th>
-                  <th className="text-right px-6 py-4 text-gray-300 font-semibold">Valor</th>
-                  <th className="text-center px-6 py-4 text-gray-300 font-semibold">Ações</th>
-                </tr>
-              </thead>
-              <tbody>
-                {sortedTransactions.map((transaction) => (
-                  <tr key={transaction.id} className="border-b border-gray-700 hover:bg-gray-800 transition">
-                    <td className="px-6 py-4 text-gray-300">{formatDate(transaction.date)}</td>
-                    <td className="px-6 py-4">
-                      <span className="text-2xl">{getCategoryIcon(transaction)}</span>{' '}
-                      <span className="text-gray-300">{getCategoryName(transaction)}</span>
-                    </td>
-                    <td className="px-6 py-4 text-gray-300">{transaction.description}</td>
-                    <td className="px-6 py-4">
-                      <span
-                        className={`px-3 py-1 rounded-full text-sm font-semibold ${
-                          transaction.amount > 0
-                            ? 'bg-green-500 bg-opacity-20 text-green-300'
-                            : 'bg-red-500 bg-opacity-20 text-red-300'
-                        }`}
-                      >
-                        {transaction.amount > 0 ? 'Receita' : 'Despesa'}
-                      </span>
-                    </td>
-                    <td className={`px-6 py-4 text-right font-semibold ${
-                      transaction.amount > 0 ? 'text-green-400' : 'text-red-400'
-                    }`}>
-                      R$ {Math.abs(transaction.amount).toFixed(2).replace('.', ',')}
-                    </td>
-                    <td className="px-6 py-4 text-center">
-                      <div className="flex justify-center space-x-2">
-                        <button
-                          onClick={() => handleEdit(transaction)}
-                          className="bg-yellow-600 hover:bg-yellow-700 text-white p-2 rounded-lg transition"
-                          title="Editar"
-                        >
-                          <Edit2 size={18} />
-                        </button>
-                        <button
-                          onClick={() => handleDelete(transaction.id)}
-                          className="bg-red-600 hover:bg-red-700 text-white p-2 rounded-lg transition"
-                          title="Deletar"
-                        >
-                          <Trash2 size={18} />
-                        </button>
-                      </div>
-                    </td>
+          <>
+            {/* Desktop Table */}
+            <div className='hidden md:block overflow-x-auto'>
+              <table className='w-full text-left'>
+                <thead className='bg-gray-50 text-gray-600 text-sm'>
+                  <tr>
+                    <th className='px-6 py-3 font-medium'>Data</th>
+                    <th className='px-6 py-3 font-medium'>Categoria</th>
+                    <th className='px-6 py-3 font-medium'>Descrição</th>
+                    <th className='px-6 py-3 font-medium'>Tipo</th>
+                    <th className='px-6 py-3 font-medium text-right'>Valor</th>
+                    <th className='px-6 py-3 font-medium text-center'>Ações</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+                </thead>
+                <tbody className='divide-y divide-gray-100'>
+                  {filteredTransactions.map((t) => (
+                    <tr key={t.id} className='hover:bg-gray-50 transition-colors'>
+                      <td className='px-6 py-4 text-sm text-gray-600'>{new Date(t.date).toLocaleDateString('pt-BR')}</td>
+                      <td className='px-6 py-4 text-sm text-gray-900 flex items-center gap-2'>
+                        <span>{t.category?.icon || '📁'}</span>
+                        <span>{t.category?.name || 'Sem categoria'}</span>
+                      </td>
+                      <td className='px-6 py-4 text-sm text-gray-600'>{t.description}</td>
+                      <td className='px-6 py-4'>
+                        <span className={px-2 py-1 rounded-full text-xs font-medium }>
+                          {t.amount > 0 ? 'Receita' : 'Despesa'}
+                        </span>
+                      </td>
+                      <td className={px-6 py-4 text-sm font-medium text-right }>
+                        R$ {Math.abs(t.amount).toFixed(2).replace('.', ',')}
+                      </td>
+                      <td className='px-6 py-4 text-center'>
+                        <div className='flex justify-center gap-2'>
+                          <button onClick={() => handleEdit(t)} className='text-gray-400 hover:text-blue-600 transition-colors'><Edit2 size={18} /></button>
+                          <button onClick={() => handleDelete(t.id)} className='text-gray-400 hover:text-red-600 transition-colors'><Trash2 size={18} /></button>
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+
+            {/* Mobile List */}
+            <div className='md:hidden divide-y divide-gray-100'>
+              {filteredTransactions.map((t) => (
+                <div key={t.id} className='p-4 flex flex-col gap-3'>
+                  <div className='flex justify-between items-start'>
+                    <div className='flex items-center gap-3'>
+                      <div className='w-10 h-10 rounded-full bg-gray-100 flex items-center justify-center text-xl'>
+                        {t.category?.icon || '📁'}
+                      </div>
+                      <div>
+                        <p className='text-sm font-medium text-gray-900'>{t.description}</p>
+                        <p className='text-xs text-gray-500'>{t.category?.name} • {new Date(t.date).toLocaleDateString('pt-BR')}</p>
+                      </div>
+                    </div>
+                    <span className={	ext-sm font-medium }>
+                      {t.amount > 0 ? '+' : '-'} R$ {Math.abs(t.amount).toFixed(2).replace('.', ',')}
+                    </span>
+                  </div>
+                  <div className='flex justify-end gap-3 pt-2 border-t border-gray-50'>
+                    <button onClick={() => handleEdit(t)} className='text-sm text-blue-600 flex items-center gap-1'><Edit2 size={14} /> Editar</button>
+                    <button onClick={() => handleDelete(t.id)} className='text-sm text-red-600 flex items-center gap-1'><Trash2 size={14} /> Excluir</button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </>
         )}
       </div>
     </div>

@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react'
-import { useNavigate } from 'react-router-dom'
 import { transactionsAPI, categoriesAPI, accountsAPI } from '../services/api'
+import { useAuth } from '../context/AuthContext'
+import { ArrowUpCircle, ArrowDownCircle, Wallet } from 'lucide-react'
 
 export default function Dashboard() {
   const [transactions, setTransactions] = useState([])
@@ -11,17 +12,9 @@ export default function Dashboard() {
   const [totalIncome, setTotalIncome] = useState(0)
   const [totalExpense, setTotalExpense] = useState(0)
   const [accountsBalance, setAccountsBalance] = useState(0)
-  const navigate = useNavigate()
+  
+  const { user } = useAuth()
 
-  // Verificar autentica��o
-  useEffect(() => {
-    const user = localStorage.getItem('user')
-    if (!user) {
-      navigate('/login', { replace: true })
-    }
-  }, [navigate])
-
-  // Buscar dados ao montar componente
   useEffect(() => {
     fetchData()
   }, [])
@@ -30,19 +23,14 @@ export default function Dashboard() {
     try {
       setLoading(true)
       setError('')
-
-      // Buscar categorias, transações e contas em paralelo
       const [categoriesData, transactionsData, accountsData] = await Promise.all([
         categoriesAPI.getAll(),
         transactionsAPI.getAll(),
         accountsAPI.getAll()
       ])
-
       setCategories(categoriesData)
       setTransactions(transactionsData)
       setAccounts(accountsData)
-
-      // Calcular totais
       calculateTotals(transactionsData, accountsData)
     } catch (err) {
       const errorMessage = err.detail || err.message || 'Erro ao carregar dados'
@@ -57,21 +45,11 @@ export default function Dashboard() {
     let income = 0
     let expense = 0
     let accBalance = 0
-
-    // Calcular saldo total das contas
-    accts.forEach((acc) => {
-      accBalance += acc.balance
-    })
-
-    // Calcular receitas e despesas das transações
+    accts.forEach((acc) => { accBalance += acc.balance })
     txns.forEach((txn) => {
-      if (txn.amount > 0) {
-        income += txn.amount
-      } else {
-        expense += Math.abs(txn.amount)
-      }
+      if (txn.amount > 0) income += txn.amount
+      else expense += Math.abs(txn.amount)
     })
-
     setAccountsBalance(accBalance)
     setTotalIncome(income)
     setTotalExpense(expense)
@@ -79,11 +57,8 @@ export default function Dashboard() {
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
-          <p className="text-gray-600">Carregando dados...</p>
-        </div>
+      <div className='flex items-center justify-center h-64'>
+        <div className='animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600'></div>
       </div>
     )
   }
@@ -91,96 +66,115 @@ export default function Dashboard() {
   const balance = accountsBalance + totalIncome - totalExpense
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      {/* Erro */}
+    <div className='space-y-6'>
+      <div className='flex justify-between items-center'>
+        <h1 className='text-2xl font-bold text-gray-800'>Dashboard</h1>
+        <span className='text-sm text-gray-500'>Bem-vindo, {user?.full_name || user?.username}</span>
+      </div>
+
       {error && (
-        <div className="bg-red-50 border border-red-200 p-4 m-4 rounded-md">
-          <p className="text-red-700">{error}</p>
-          <button
-            onClick={() => setError('')}
-            className="mt-2 text-red-600 hover:text-red-700 text-sm font-medium"
-          >
-            Descartar
-          </button>
+        <div className='bg-red-50 border border-red-200 p-4 rounded-md text-red-700'>
+          {error}
         </div>
       )}
 
-      {/* Cards de Resumo */}
-      <div className="lg:ml-64 bg-gradient-to-br from-gray-900 to-gray-800 min-h-screen">
-        <div className="max-w-6xl mx-auto px-6 py-8">
-          <h1 className="text-3xl font-bold text-white mb-8">Dashboard Financeiro</h1>
-
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-            {/* Card Saldo */}
-            <div className="bg-gradient-to-br from-blue-500 to-blue-700 rounded-lg p-6 shadow-lg">
-              <p className="text-blue-100 text-sm font-medium mb-2">Saldo Total</p>
-              <p className={`text-3xl font-bold ${balance >= 0 ? 'text-green-300' : 'text-red-300'}`}>
-                R$ {balance.toFixed(2).replace('.', ',')}
-              </p>
-            </div>
-
-            {/* Card Receitas */}
-            <div className="bg-gradient-to-br from-green-500 to-green-700 rounded-lg p-6 shadow-lg">
-              <p className="text-green-100 text-sm font-medium mb-2">Receitas</p>
-              <p className="text-3xl font-bold text-green-300">
-                R$ {totalIncome.toFixed(2).replace('.', ',')}
-              </p>
-            </div>
-
-            {/* Card Despesas */}
-            <div className="bg-gradient-to-br from-red-500 to-red-700 rounded-lg p-6 shadow-lg">
-              <p className="text-red-100 text-sm font-medium mb-2">Despesas</p>
-              <p className="text-3xl font-bold text-red-300">
-                R$ {totalExpense.toFixed(2).replace('.', ',')}
-              </p>
-            </div>
+      {/* Cards */}
+      <div className='grid grid-cols-1 md:grid-cols-3 gap-6'>
+        <div className='bg-white p-6 rounded-xl shadow-sm border border-gray-100'>
+          <div className='flex items-center justify-between mb-4'>
+            <p className='text-gray-500 text-sm font-medium'>Saldo Total</p>
+            <Wallet className='text-blue-500' size={20} />
           </div>
-
-          {/* Lista de Transações Recentes */}
-          <div>
-            <h2 className="text-2xl font-bold text-white mb-6">Transações Recentes</h2>
-            {transactions.length === 0 ? (
-              <div className="text-center py-12">
-                <p className="text-gray-500 text-lg">Nenhuma transação registrada.</p>
-                <p className="text-gray-400">Clique em "Nova Transação" no menu para começar.</p>
-              </div>
-            ) : (
-              <div className="overflow-x-auto">
-                <table className="w-full">
-                  <thead>
-                    <tr className="border-b border-gray-700">
-                      <th className="text-left px-6 py-4 text-gray-300 font-semibold">Data</th>
-                      <th className="text-left px-6 py-4 text-gray-300 font-semibold">Categoria</th>
-                      <th className="text-left px-6 py-4 text-gray-300 font-semibold">Descrição</th>
-                      <th className="text-right px-6 py-4 text-gray-300 font-semibold">Valor</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {transactions.slice(0, 10).map((transaction) => {
-                      return (
-                        <tr key={transaction.id} className="border-b border-gray-700 hover:bg-gray-800 transition">
-                          <td className="px-6 py-4 text-gray-300">
-                            {new Date(transaction.date).toLocaleDateString('pt-BR')}
-                          </td>
-                          <td className="px-6 py-4">
-                            <span className="text-2xl">{transaction.category?.icon || '📁'}</span>{' '}
-                            <span className="text-gray-300">{transaction.category?.name || 'Sem categoria'}</span>
-                          </td>
-                          <td className="px-6 py-4 text-gray-300">{transaction.description}</td>
-                          <td className={`px-6 py-4 text-right font-semibold ${
-                            transaction.amount > 0 ? 'text-green-400' : 'text-red-400'
-                          }`}>
-                            R$ {Math.abs(transaction.amount).toFixed(2).replace('.', ',')}
-                          </td>
-                        </tr>
-                      )
-                    })}
-                  </tbody>
-                </table>
-              </div>
-            )}
-          </div>
+          <p className={	ext-2xl font-bold }>
+            R$ {balance.toFixed(2).replace('.', ',')}
+          </p>
         </div>
+
+        <div className='bg-white p-6 rounded-xl shadow-sm border border-gray-100'>
+          <div className='flex items-center justify-between mb-4'>
+            <p className='text-gray-500 text-sm font-medium'>Receitas</p>
+            <ArrowUpCircle className='text-green-500' size={20} />
+          </div>
+          <p className='text-2xl font-bold text-green-600'>
+            R$ {totalIncome.toFixed(2).replace('.', ',')}
+          </p>
+        </div>
+
+        <div className='bg-white p-6 rounded-xl shadow-sm border border-gray-100'>
+          <div className='flex items-center justify-between mb-4'>
+            <p className='text-gray-500 text-sm font-medium'>Despesas</p>
+            <ArrowDownCircle className='text-red-500' size={20} />
+          </div>
+          <p className='text-2xl font-bold text-red-600'>
+            R$ {totalExpense.toFixed(2).replace('.', ',')}
+          </p>
+        </div>
+      </div>
+
+      {/* Recent Transactions */}
+      <div className='bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden'>
+        <div className='p-6 border-b border-gray-100'>
+          <h2 className='text-lg font-semibold text-gray-800'>Transações Recentes</h2>
+        </div>
+
+        {transactions.length === 0 ? (
+          <div className='p-8 text-center text-gray-500'>
+            Nenhuma transação registrada.
+          </div>
+        ) : (
+          <>
+            {/* Desktop Table */}
+            <div className='hidden md:block overflow-x-auto'>
+              <table className='w-full text-left'>
+                <thead className='bg-gray-50 text-gray-600 text-sm'>
+                  <tr>
+                    <th className='px-6 py-3 font-medium'>Data</th>
+                    <th className='px-6 py-3 font-medium'>Categoria</th>
+                    <th className='px-6 py-3 font-medium'>Descrição</th>
+                    <th className='px-6 py-3 font-medium text-right'>Valor</th>
+                  </tr>
+                </thead>
+                <tbody className='divide-y divide-gray-100'>
+                  {transactions.slice(0, 10).map((t) => (
+                    <tr key={t.id} className='hover:bg-gray-50 transition-colors'>
+                      <td className='px-6 py-4 text-sm text-gray-600'>
+                        {new Date(t.date).toLocaleDateString('pt-BR')}
+                      </td>
+                      <td className='px-6 py-4 text-sm text-gray-900 flex items-center gap-2'>
+                        <span>{t.category?.icon || '📁'}</span>
+                        <span>{t.category?.name || 'Sem categoria'}</span>
+                      </td>
+                      <td className='px-6 py-4 text-sm text-gray-600'>{t.description}</td>
+                      <td className={px-6 py-4 text-sm font-medium text-right }>
+                        R$ {Math.abs(t.amount).toFixed(2).replace('.', ',')}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+
+            {/* Mobile List */}
+            <div className='md:hidden divide-y divide-gray-100'>
+              {transactions.slice(0, 10).map((t) => (
+                <div key={t.id} className='p-4 flex items-center justify-between'>
+                  <div className='flex items-center gap-3'>
+                    <div className='w-10 h-10 rounded-full bg-gray-100 flex items-center justify-center text-xl'>
+                      {t.category?.icon || '📁'}
+                    </div>
+                    <div>
+                      <p className='text-sm font-medium text-gray-900'>{t.description}</p>
+                      <p className='text-xs text-gray-500'>{t.category?.name} • {new Date(t.date).toLocaleDateString('pt-BR')}</p>
+                    </div>
+                  </div>
+                  <span className={	ext-sm font-medium }>
+                    {t.amount > 0 ? '+' : '-'} R$ {Math.abs(t.amount).toFixed(2).replace('.', ',')}
+                  </span>
+                </div>
+              ))}
+            </div>
+          </>
+        )}
       </div>
     </div>
   )
