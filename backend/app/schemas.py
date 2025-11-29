@@ -16,6 +16,10 @@ class User(BaseModel):
     email: Optional[str] = None
     full_name: Optional[str] = None
     avatar: Optional[str] = None
+    cpf: Optional[str] = None
+    phone: Optional[str] = None
+    birth_date: Optional[date] = None
+    address: Optional[str] = None
 
     class Config:
         orm_mode = True
@@ -25,6 +29,10 @@ class UserUpdate(BaseModel):
     email: Optional[str] = None
     full_name: Optional[str] = None
     avatar: Optional[str] = None
+    cpf: Optional[str] = None
+    phone: Optional[str] = None
+    birth_date: Optional[date] = None
+    address: Optional[str] = None
 
 
 class Token(BaseModel):

@@ -9,7 +9,11 @@ export default function Profile() {
   const [formData, setFormData] = useState({
     fullName: '',
     email: '',
-    avatar: null
+    avatar: null,
+    cpf: '',
+    phone: '',
+    birthDate: '',
+    address: ''
   })
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
@@ -22,7 +26,11 @@ export default function Profile() {
       setFormData({
         fullName: userData.full_name || '',
         email: userData.email || '',
-        avatar: userData.avatar || null
+        avatar: userData.avatar || null,
+        cpf: userData.cpf || '',
+        phone: userData.phone || '',
+        birthDate: userData.birth_date || '',
+        address: userData.address || ''
       })
     } else {
       navigate('/login')
@@ -61,13 +69,17 @@ export default function Profile() {
       const updatedUser = await usersAPI.updateProfile({
         full_name: formData.fullName,
         email: formData.email,
-        avatar: formData.avatar
+        avatar: formData.avatar,
+        cpf: formData.cpf,
+        phone: formData.phone,
+        birth_date: formData.birthDate,
+        address: formData.address
       })
       localStorage.setItem('user', JSON.stringify(updatedUser))
       setUser(updatedUser)
       setSuccess('✅ Perfil atualizado com sucesso!')
     } catch (err) {
-      setError('❌ Erro ao atualizar perfil: ' + err.message)
+      setError('❌ Erro ao atualizar perfil: ' + (err.detail || err.message || 'Erro desconhecido'))
     } finally {
       setLoading(false)
     }
@@ -119,26 +131,76 @@ export default function Profile() {
               </div>
             )}
 
-            <div>
-              <label className="block text-gray-300 mb-2">Nome Completo</label>
-              <input
-                type="text"
-                name="fullName"
-                value={formData.fullName}
-                onChange={handleInputChange}
-                placeholder="Seu nome completo"
-                className="w-full bg-gray-700 text-white px-4 py-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-              />
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <label className="block text-gray-300 mb-2">Nome Completo</label>
+                <input
+                  type="text"
+                  name="fullName"
+                  value={formData.fullName}
+                  onChange={handleInputChange}
+                  placeholder="Seu nome completo"
+                  className="w-full bg-gray-700 text-white px-4 py-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                />
+              </div>
+
+              <div>
+                <label className="block text-gray-300 mb-2">Email</label>
+                <input
+                  type="email"
+                  name="email"
+                  value={formData.email}
+                  onChange={handleInputChange}
+                  placeholder="seu@email.com"
+                  className="w-full bg-gray-700 text-white px-4 py-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                />
+              </div>
+
+              <div>
+                <label className="block text-gray-300 mb-2">CPF</label>
+                <input
+                  type="text"
+                  name="cpf"
+                  value={formData.cpf}
+                  onChange={handleInputChange}
+                  placeholder="000.000.000-00"
+                  maxLength="14"
+                  className="w-full bg-gray-700 text-white px-4 py-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                />
+              </div>
+
+              <div>
+                <label className="block text-gray-300 mb-2">Telefone</label>
+                <input
+                  type="tel"
+                  name="phone"
+                  value={formData.phone}
+                  onChange={handleInputChange}
+                  placeholder="(00) 00000-0000"
+                  className="w-full bg-gray-700 text-white px-4 py-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                />
+              </div>
+
+              <div>
+                <label className="block text-gray-300 mb-2">Data de Nascimento</label>
+                <input
+                  type="date"
+                  name="birthDate"
+                  value={formData.birthDate}
+                  onChange={handleInputChange}
+                  className="w-full bg-gray-700 text-white px-4 py-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                />
+              </div>
             </div>
 
             <div>
-              <label className="block text-gray-300 mb-2">Email</label>
-              <input
-                type="email"
-                name="email"
-                value={formData.email}
+              <label className="block text-gray-300 mb-2">Endereço</label>
+              <textarea
+                name="address"
+                value={formData.address}
                 onChange={handleInputChange}
-                placeholder="seu@email.com"
+                placeholder="Rua, número, bairro, cidade - estado"
+                rows="3"
                 className="w-full bg-gray-700 text-white px-4 py-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
               />
             </div>
