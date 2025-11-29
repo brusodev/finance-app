@@ -58,45 +58,39 @@ app = FastAPI(
     lifespan=lifespan
 )
 
-# Configurar CORS dinamicamente baseado no ambiente
-ALLOWED_ORIGINS = [
+# Configurar CORS - permitir todas as origens em produção
+# Detectar se está no Railway
+IS_RAILWAY = os.getenv('RAILWAY_ENVIRONMENT') is not None or os.getenv('PORT') is not None
+
+if IS_RAILWAY:
+    # No Railway, permitir qualquer origem .up.railway.app
+    print("Modo Railway - CORS configurado com regex para Railway")
+    app.add_middleware(
+        CORSMiddleware,
+        allow_origin_regex=r"https://.*\.up\.railway\.app",
+        allow_credentials=True,
+        allow_methods=['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+        allow_headers=['*'],
+    )
+else:
     # Desenvolvimento local
-    'http://localhost:3000',
-    'http://localhost:3001',
-    'http://localhost:5173',
-    'http://127.0.0.1:3000',
-    'http://127.0.0.1:3001',
-    # Railway
-    'https://finance-app-bruno.up.railway.app',
-]
-
-# Adicionar origens personalizadas da variável de ambiente
-custom_origins = os.getenv('ALLOWED_ORIGINS', '')
-if custom_origins:
-    ALLOWED_ORIGINS.extend(custom_origins.split(','))
-
-# Adicionar FRONTEND_URL se definido
-FRONTEND_URL = os.getenv('FRONTEND_URL')
-if FRONTEND_URL and FRONTEND_URL not in ALLOWED_ORIGINS:
-    ALLOWED_ORIGINS.append(FRONTEND_URL)
-
-# Modo de desenvolvimento - permite IPs locais
-if os.getenv('ENVIRONMENT') == 'development':
-    ALLOWED_ORIGINS.extend([
+    ALLOWED_ORIGINS = [
+        'http://localhost:3000',
+        'http://localhost:3001',
+        'http://localhost:5173',
+        'http://127.0.0.1:3000',
+        'http://127.0.0.1:3001',
         'http://100.87.89.96:3000',
         'http://192.168.0.250:3000',
-        'http://192.168.56.1:3000',
-    ])
-
-print(f"CORS configurado para: {ALLOWED_ORIGINS}")
-
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=ALLOWED_ORIGINS,
-    allow_credentials=True,
-    allow_methods=['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-    allow_headers=['*'],
-)
+    ]
+    print(f"Modo desenvolvimento - CORS: {ALLOWED_ORIGINS}")
+    app.add_middleware(
+        CORSMiddleware,
+        allow_origins=ALLOWED_ORIGINS,
+        allow_credentials=True,
+        allow_methods=['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+        allow_headers=['*'],
+    )
 
 # Incluir rotas
 app.include_router(auth.router)
