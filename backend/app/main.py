@@ -58,39 +58,16 @@ app = FastAPI(
     lifespan=lifespan
 )
 
-# Configurar CORS - permitir todas as origens em produção
-# Detectar se está no Railway
-IS_RAILWAY = os.getenv('RAILWAY_ENVIRONMENT') is not None or os.getenv('PORT') is not None
-
-if IS_RAILWAY:
-    # No Railway, permitir qualquer origem .up.railway.app
-    print("Modo Railway - CORS configurado com regex para Railway")
-    app.add_middleware(
-        CORSMiddleware,
-        allow_origin_regex=r"https://.*\.up\.railway\.app",
-        allow_credentials=True,
-        allow_methods=['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-        allow_headers=['*'],
-    )
-else:
-    # Desenvolvimento local
-    ALLOWED_ORIGINS = [
-        'http://localhost:3000',
-        'http://localhost:3001',
-        'http://localhost:5173',
-        'http://127.0.0.1:3000',
-        'http://127.0.0.1:3001',
-        'http://100.87.89.96:3000',
-        'http://192.168.0.250:3000',
-    ]
-    print(f"Modo desenvolvimento - CORS: {ALLOWED_ORIGINS}")
-    app.add_middleware(
-        CORSMiddleware,
-        allow_origins=ALLOWED_ORIGINS,
-        allow_credentials=True,
-        allow_methods=['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-        allow_headers=['*'],
-    )
+# Configurar CORS - TEMPORARIAMENTE PERMITINDO TODAS AS ORIGENS
+# TODO: Restringir após testes
+print("CORS: Permitindo todas as origens (modo debug)")
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],  # Permitir TODAS as origens temporariamente
+    allow_credentials=False,  # Deve ser False quando allow_origins=["*"]
+    allow_methods=['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+    allow_headers=['*'],
+)
 
 # Incluir rotas
 app.include_router(auth.router)
