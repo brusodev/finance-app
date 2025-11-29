@@ -1,11 +1,13 @@
 import React, { useState, useEffect } from 'react'
 import { useNavigate, useLocation } from 'react-router-dom'
-import { ArrowLeft } from 'lucide-react'
+import { ArrowLeft, Save } from 'lucide-react'
 import { accountsAPI, categoriesAPI, transactionsAPI } from '../services/api'
+import { useAuth } from '../context/AuthContext'
 
 export default function NewTransaction() {
   const navigate = useNavigate()
   const location = useLocation()
+  const { user } = useAuth()
   const editingTransaction = location.state?.transaction
   
   const [categories, setCategories] = useState([])
@@ -20,13 +22,6 @@ export default function NewTransaction() {
     account_id: '',
     transaction_type: 'expense'
   })
-
-  useEffect(() => {
-    const user = localStorage.getItem('user')
-    if (!user) {
-      navigate('/login', { replace: true })
-    }
-  }, [navigate])
 
   useEffect(() => {
     loadData()
@@ -44,7 +39,6 @@ export default function NewTransaction() {
 
   const loadData = async () => {
     try {
-      // Carregar categorias e contas em paralelo
       const [categoriesData, accountsData] = await Promise.all([
         categoriesAPI.getAll(),
         accountsAPI.getAll()
@@ -55,6 +49,10 @@ export default function NewTransaction() {
 
       if (categoriesData.length > 0 && !editingTransaction && !formData.category_id) {
         setFormData(prev => ({ ...prev, category_id: categoriesData[0].id }))
+      }
+      
+      if (accountsData.length > 0 && !editingTransaction && !formData.account_id) {
+        setFormData(prev => ({ ...prev, account_id: accountsData[0].id }))
       }
     } catch (err) {
       setError('Erro ao carregar dados')
@@ -103,157 +101,149 @@ export default function NewTransaction() {
 
       navigate('/transacoes')
     } catch (err) {
-      const errorMessage = err?.detail || err?.message || 'Erro ao salvar transação'
-      setError(errorMessage)
-      console.error('Erro:', err)
+      console.error('Erro ao salvar:', err)
+      setError('Erro ao salvar transação. Verifique os dados.')
     } finally {
       setLoading(false)
     }
   }
 
   return (
-    <div className="lg:ml-64 p-6 min-h-screen bg-gradient-to-br from-gray-900 to-gray-800">
-      <div className="max-w-2xl mx-auto">
-        <button
+    <div className="max-w-2xl mx-auto space-y-6">
+      <div className="flex items-center gap-4">
+        <button 
           onClick={() => navigate('/transacoes')}
-          className="flex items-center space-x-2 text-blue-400 hover:text-blue-300 mb-6"
+          className="p-2 hover:bg-gray-100 rounded-lg text-gray-600 transition-colors"
         >
-          <ArrowLeft size={20} />
-          <span>Voltar para Transações</span>
+          <ArrowLeft size={24} />
         </button>
+        <h1 className="text-2xl font-bold text-gray-800">
+          {editingTransaction ? 'Editar Transação' : 'Nova Transação'}
+        </h1>
+      </div>
 
-        <div className="bg-gray-800 rounded-lg shadow-xl p-8">
-          <h1 className="text-3xl font-bold text-white mb-8">
-            {editingTransaction ? 'Editar Transação' : 'Nova Transação'}
-          </h1>
+      {error && <div className="bg-red-50 text-red-700 p-4 rounded-lg border border-red-100">{error}</div>}
 
-          {error && (
-            <div className="bg-red-500 bg-opacity-20 text-red-300 p-4 rounded-lg mb-6">
-              {error}
-            </div>
-          )}
+      <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6 md:p-8">
+        <form onSubmit={handleSubmit} className="space-y-6">
+          {/* Transaction Type Toggle */}
+          <div className="flex p-1 bg-gray-100 rounded-lg">
+            <button
+              type="button"
+              onClick={() => setFormData({ ...formData, transaction_type: 'expense' })}
+              className={`flex-1 py-2 px-4 rounded-md text-sm font-medium transition-all ${
+                formData.transaction_type === 'expense'
+                  ? 'bg-white text-red-600 shadow-sm'
+                  : 'text-gray-500 hover:text-gray-700'
+              }`}
+            >
+              Despesa
+            </button>
+            <button
+              type="button"
+              onClick={() => setFormData({ ...formData, transaction_type: 'income' })}
+              className={`flex-1 py-2 px-4 rounded-md text-sm font-medium transition-all ${
+                formData.transaction_type === 'income'
+                  ? 'bg-white text-green-600 shadow-sm'
+                  : 'text-gray-500 hover:text-gray-700'
+              }`}
+            >
+              Receita
+            </button>
+          </div>
 
-          <form onSubmit={handleSubmit} className="space-y-6">
-            {/* Tipo de Transação */}
-            <div>
-              <label className="block text-gray-300 font-semibold mb-3">Tipo</label>
-              <div className="flex space-x-4">
-                {[
-                  { value: 'income', label: 'Receita (Entrada)' },
-                  { value: 'expense', label: 'Despesa (Saída)' }
-                ].map(option => (
-                  <button
-                    key={option.value}
-                    type="button"
-                    onClick={() => setFormData({ ...formData, transaction_type: option.value })}
-                    className={`flex-1 py-3 px-4 rounded-lg font-semibold transition ${
-                      formData.transaction_type === option.value
-                        ? option.value === 'income'
-                          ? 'bg-green-600 text-white'
-                          : 'bg-red-600 text-white'
-                        : 'bg-gray-700 text-gray-300 hover:bg-gray-600'
-                    }`}
-                  >
-                    {option.label}
-                  </button>
-                ))}
-              </div>
-            </div>
-
-            {/* Valor */}
-            <div>
-              <label className="block text-gray-300 font-semibold mb-3">Valor (R$)</label>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Valor</label>
+            <div className="relative">
+              <span className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-500 font-medium">R$</span>
               <input
                 type="number"
                 step="0.01"
-                min="0"
+                required
+                className="w-full pl-12 pr-4 py-3 text-xl font-semibold border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-gray-50 focus:bg-white transition-colors"
+                placeholder="0,00"
                 value={formData.amount}
                 onChange={(e) => setFormData({ ...formData, amount: e.target.value })}
-                placeholder="0,00"
-                required
-                className="w-full bg-gray-700 text-white px-4 py-3 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-lg"
               />
-              <p className="text-gray-400 text-sm mt-2">Digite o valor sem sinal</p>
             </div>
+          </div>
 
-            {/* Data */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div>
-              <label className="block text-gray-300 font-semibold mb-3">Data</label>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Data</label>
               <input
                 type="date"
+                required
+                className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-gray-50 focus:bg-white transition-colors"
                 value={formData.date}
                 onChange={(e) => setFormData({ ...formData, date: e.target.value })}
-                required
-                className="w-full bg-gray-700 text-white px-4 py-3 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
               />
             </div>
 
-            {/* Categoria */}
             <div>
-              <label className="block text-gray-300 font-semibold mb-3">Categoria</label>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Categoria</label>
               <select
+                required
+                className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-gray-50 focus:bg-white transition-colors"
                 value={formData.category_id}
                 onChange={(e) => setFormData({ ...formData, category_id: e.target.value })}
-                required
-                className="w-full bg-gray-700 text-white px-4 py-3 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
               >
                 <option value="">Selecione uma categoria</option>
-                {categories.map((category) => (
+                {categories.map(category => (
                   <option key={category.id} value={category.id}>
                     {category.icon} {category.name}
                   </option>
                 ))}
               </select>
             </div>
+          </div>
 
-            {/* Conta */}
-            <div>
-              <label className="block text-gray-300 font-semibold mb-3">Conta (Opcional)</label>
-              <select
-                value={formData.account_id}
-                onChange={(e) => setFormData({ ...formData, account_id: e.target.value })}
-                className="w-full bg-gray-700 text-white px-4 py-3 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-              >
-                <option value="">Nenhuma conta selecionada</option>
-                {accounts.map((account) => (
-                  <option key={account.id} value={account.id}>
-                    {account.name} ({account.account_type})
-                  </option>
-                ))}
-              </select>
-            </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Conta (Opcional)</label>
+            <select
+              className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-gray-50 focus:bg-white transition-colors"
+              value={formData.account_id}
+              onChange={(e) => setFormData({ ...formData, account_id: e.target.value })}
+            >
+              <option value="">Selecione uma conta</option>
+              {accounts.map(account => (
+                <option key={account.id} value={account.id}>
+                  {account.name}
+                </option>
+              ))}
+            </select>
+          </div>
 
-            {/* Descrição */}
-            <div>
-              <label className="block text-gray-300 font-semibold mb-3">Descrição</label>
-              <textarea
-                value={formData.description}
-                onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                placeholder="Descreva a transação..."
-                rows="4"
-                className="w-full bg-gray-700 text-white px-4 py-3 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"
-              />
-            </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Descrição</label>
+            <input
+              type="text"
+              required
+              className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-gray-50 focus:bg-white transition-colors"
+              placeholder="Ex: Compras do mês"
+              value={formData.description}
+              onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+            />
+          </div>
 
-            {/* Botões */}
-            <div className="flex space-x-4 pt-4">
-              <button
-                type="submit"
-                disabled={loading}
-                className="flex-1 bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white font-bold py-3 rounded-lg transition"
-              >
-                {loading ? 'Salvando...' : editingTransaction ? 'Atualizar' : 'Criar Transação'}
-              </button>
-              <button
-                type="button"
-                onClick={() => navigate('/transacoes')}
-                className="flex-1 bg-gray-700 hover:bg-gray-600 text-white font-bold py-3 rounded-lg transition"
-              >
-                Cancelar
-              </button>
-            </div>
-          </form>
-        </div>
+          <div className="pt-4 border-t border-gray-100 flex justify-end gap-3">
+            <button
+              type="button"
+              onClick={() => navigate('/transacoes')}
+              className="px-6 py-2 text-gray-700 font-medium hover:bg-gray-100 rounded-lg transition-colors"
+            >
+              Cancelar
+            </button>
+            <button
+              type="submit"
+              disabled={loading}
+              className="bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 px-6 rounded-lg flex items-center gap-2 transition-colors disabled:opacity-50 shadow-sm hover:shadow"
+            >
+              <Save size={20} />
+              <span>{loading ? 'Salvando...' : 'Salvar Transação'}</span>
+            </button>
+          </div>
+        </form>
       </div>
     </div>
   )

@@ -2,10 +2,11 @@ import React, { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { usersAPI } from '../services/api'
 import { Camera, Save } from 'lucide-react'
+import { useAuth } from '../context/AuthContext'
 
 export default function Profile() {
   const navigate = useNavigate()
-  const [user, setUser] = useState(null)
+  const { user, updateUser } = useAuth()
   const [formData, setFormData] = useState({
     fullName: '',
     email: '',
@@ -20,22 +21,18 @@ export default function Profile() {
   const [success, setSuccess] = useState('')
 
   useEffect(() => {
-    const userData = JSON.parse(localStorage.getItem('user') || '{}')
-    if (userData.id) {
-      setUser(userData)
+    if (user) {
       setFormData({
-        fullName: userData.full_name || '',
-        email: userData.email || '',
-        avatar: userData.avatar || null,
-        cpf: userData.cpf || '',
-        phone: userData.phone || '',
-        birthDate: userData.birth_date || '',
-        address: userData.address || ''
+        fullName: user.full_name || '',
+        email: user.email || '',
+        avatar: user.avatar || null,
+        cpf: user.cpf || '',
+        phone: user.phone || '',
+        birthDate: user.birth_date || '',
+        address: user.address || ''
       })
-    } else {
-      navigate('/login')
     }
-  }, [navigate])
+  }, [user])
 
   const handleInputChange = (e) => {
     const { name, value } = e.target
@@ -77,149 +74,142 @@ export default function Profile() {
         address: formData.address || null
       }
 
-      console.log('Enviando dados:', profileData)
       const updatedUser = await usersAPI.updateProfile(profileData)
-      localStorage.setItem('user', JSON.stringify(updatedUser))
-      setUser(updatedUser)
-      setSuccess('✅ Perfil atualizado com sucesso!')
+      updateUser(updatedUser)
+      setSuccess('Perfil atualizado com sucesso!')
     } catch (err) {
       console.error('Erro completo:', err)
-      setError('❌ Erro ao atualizar perfil: ' + (err.detail || err.message || 'Erro desconhecido'))
+      setError('Erro ao atualizar perfil: ' + (err.detail || err.message || 'Erro desconhecido'))
     } finally {
       setLoading(false)
     }
   }
 
   return (
-    <div className="lg:ml-64 p-6 min-h-screen bg-gradient-to-br from-gray-900 to-gray-800">
-      <div className="max-w-2xl mx-auto">
-        <h1 className="text-3xl font-bold text-white mb-8">Meu Perfil</h1>
+    <div className="max-w-2xl mx-auto space-y-6">
+      <h1 className="text-2xl font-bold text-gray-800">Meu Perfil</h1>
 
-        <div className="bg-gray-800 rounded-lg shadow-xl p-8">
-          {/* Avatar Section */}
-          <div className="flex flex-col items-center mb-8">
-            <div className="relative mb-4">
+      <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-8">
+        {/* Avatar Section */}
+        <div className="flex flex-col items-center mb-8">
+          <div className="relative">
+            <div className="w-32 h-32 rounded-full overflow-hidden border-4 border-gray-100 bg-gray-50">
               {formData.avatar ? (
-                <img
-                  src={formData.avatar}
-                  alt="Avatar"
-                  className="w-32 h-32 rounded-full object-cover border-4 border-blue-500"
+                <img 
+                  src={formData.avatar} 
+                  alt="Profile" 
+                  className="w-full h-full object-cover"
                 />
               ) : (
-                <div className="w-32 h-32 rounded-full bg-gradient-to-br from-blue-400 to-blue-600 flex items-center justify-center text-white text-4xl font-bold">
-                  {user?.username?.charAt(0).toUpperCase()}
+                <div className="w-full h-full flex items-center justify-center text-gray-400 text-4xl font-bold">
+                  {formData.fullName ? formData.fullName.charAt(0).toUpperCase() : 'U'}
                 </div>
               )}
-              <label className="absolute bottom-0 right-0 bg-blue-500 p-2 rounded-full cursor-pointer hover:bg-blue-600 transition">
-                <Camera size={20} className="text-white" />
-                <input
-                  type="file"
-                  accept="image/*"
-                  onChange={handleAvatarChange}
-                  className="hidden"
-                />
-              </label>
             </div>
-            <h2 className="text-2xl font-bold text-white mt-4">{user?.username}</h2>
+            <label 
+              htmlFor="avatar-upload" 
+              className="absolute bottom-0 right-0 bg-blue-600 hover:bg-blue-700 text-white p-2 rounded-full cursor-pointer shadow-lg transition-colors"
+            >
+              <Camera size={20} />
+              <input 
+                id="avatar-upload" 
+                type="file" 
+                accept="image/*" 
+                className="hidden" 
+                onChange={handleAvatarChange}
+              />
+            </label>
           </div>
+          <p className="mt-4 text-gray-500 text-sm">Clique na câmera para alterar a foto</p>
+        </div>
 
-          {/* Form */}
-          <form onSubmit={handleSubmit} className="space-y-6">
-            {error && (
-              <div className="bg-red-500 bg-opacity-20 text-red-300 p-4 rounded-lg">
-                {error}
-              </div>
-            )}
-            {success && (
-              <div className="bg-green-500 bg-opacity-20 text-green-300 p-4 rounded-lg">
-                {success}
-              </div>
-            )}
+        {error && <div className="mb-6 bg-red-50 text-red-700 p-4 rounded-lg border border-red-100">{error}</div>}
+        {success && <div className="mb-6 bg-green-50 text-green-700 p-4 rounded-lg border border-green-100">{success}</div>}
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
-                <label className="block text-gray-300 mb-2">Nome Completo</label>
-                <input
-                  type="text"
-                  name="fullName"
-                  value={formData.fullName}
-                  onChange={handleInputChange}
-                  placeholder="Seu nome completo"
-                  className="w-full bg-gray-700 text-white px-4 py-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                />
-              </div>
-
-              <div>
-                <label className="block text-gray-300 mb-2">Email</label>
-                <input
-                  type="email"
-                  name="email"
-                  value={formData.email}
-                  onChange={handleInputChange}
-                  placeholder="seu@email.com"
-                  className="w-full bg-gray-700 text-white px-4 py-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                />
-              </div>
-
-              <div>
-                <label className="block text-gray-300 mb-2">CPF</label>
-                <input
-                  type="text"
-                  name="cpf"
-                  value={formData.cpf}
-                  onChange={handleInputChange}
-                  placeholder="000.000.000-00"
-                  maxLength="14"
-                  className="w-full bg-gray-700 text-white px-4 py-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                />
-              </div>
-
-              <div>
-                <label className="block text-gray-300 mb-2">Telefone</label>
-                <input
-                  type="tel"
-                  name="phone"
-                  value={formData.phone}
-                  onChange={handleInputChange}
-                  placeholder="(00) 00000-0000"
-                  className="w-full bg-gray-700 text-white px-4 py-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                />
-              </div>
-
-              <div>
-                <label className="block text-gray-300 mb-2">Data de Nascimento</label>
-                <input
-                  type="date"
-                  name="birthDate"
-                  value={formData.birthDate}
-                  onChange={handleInputChange}
-                  className="w-full bg-gray-700 text-white px-4 py-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                />
-              </div>
-            </div>
-
+        <form onSubmit={handleSubmit} className="space-y-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div>
-              <label className="block text-gray-300 mb-2">Endereço</label>
-              <textarea
-                name="address"
-                value={formData.address}
+              <label className="block text-sm font-medium text-gray-700 mb-1">Nome Completo</label>
+              <input
+                type="text"
+                name="fullName"
+                value={formData.fullName}
                 onChange={handleInputChange}
-                placeholder="Rua, número, bairro, cidade - estado"
-                rows="3"
-                className="w-full bg-gray-700 text-white px-4 py-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-gray-50 focus:bg-white transition-colors"
+                placeholder="Seu nome completo"
               />
             </div>
 
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Email</label>
+              <input
+                type="email"
+                name="email"
+                value={formData.email}
+                disabled
+                className="w-full px-4 py-2 border border-gray-200 rounded-lg bg-gray-100 text-gray-500 cursor-not-allowed"
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">CPF</label>
+              <input
+                type="text"
+                name="cpf"
+                value={formData.cpf}
+                onChange={handleInputChange}
+                className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-gray-50 focus:bg-white transition-colors"
+                placeholder="000.000.000-00"
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Telefone</label>
+              <input
+                type="tel"
+                name="phone"
+                value={formData.phone}
+                onChange={handleInputChange}
+                className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-gray-50 focus:bg-white transition-colors"
+                placeholder="(00) 00000-0000"
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Data de Nascimento</label>
+              <input
+                type="date"
+                name="birthDate"
+                value={formData.birthDate}
+                onChange={handleInputChange}
+                className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-gray-50 focus:bg-white transition-colors"
+              />
+            </div>
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Endereço</label>
+            <textarea
+              name="address"
+              value={formData.address}
+              onChange={handleInputChange}
+              rows="3"
+              className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-gray-50 focus:bg-white transition-colors resize-none"
+              placeholder="Seu endereço completo"
+            />
+          </div>
+
+          <div className="pt-4 border-t border-gray-100 flex justify-end">
             <button
               type="submit"
               disabled={loading}
-              className="w-full bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white font-bold py-3 rounded-lg flex items-center justify-center space-x-2 transition"
+              className="bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 px-6 rounded-lg flex items-center gap-2 transition-colors disabled:opacity-50 shadow-sm hover:shadow"
             >
               <Save size={20} />
               <span>{loading ? 'Salvando...' : 'Salvar Alterações'}</span>
             </button>
-          </form>
-        </div>
+          </div>
+        </form>
       </div>
     </div>
   )

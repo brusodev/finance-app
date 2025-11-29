@@ -41,15 +41,15 @@ export default function Categories() {
     try {
       if (editingId) {
         await categoriesAPI.update(editingId, formData)
-        setSuccess('✅ Categoria atualizada!')
+        setSuccess('Categoria atualizada com sucesso!')
       } else {
         await categoriesAPI.create(formData)
-        setSuccess('✅ Categoria criada!')
+        setSuccess('Categoria criada com sucesso!')
       }
       await loadCategories()
       setFormData({ name: '', icon: '📁' })
       setEditingId(null)
-      setTimeout(() => setShowForm(false), 1500)
+      setShowForm(false)
     } catch (err) {
       const errorMessage = err.detail || 'Erro ao salvar categoria'
       setError(errorMessage)
@@ -62,7 +62,7 @@ export default function Categories() {
     if (window.confirm('Tem certeza que deseja deletar esta categoria?')) {
       try {
         await categoriesAPI.delete(id)
-        setSuccess('✅ Categoria deletada!')
+        setSuccess('Categoria deletada com sucesso!')
         await loadCategories()
       } catch (err) {
         setError('Erro ao deletar categoria')
@@ -79,78 +79,67 @@ export default function Categories() {
     setShowForm(true)
   }
 
+  const resetForm = () => {
+    setFormData({ name: '', icon: '📁' })
+    setEditingId(null)
+    setError('')
+    setSuccess('')
+  }
+
   return (
-    <div className="lg:ml-64 p-6 min-h-screen bg-gradient-to-br from-gray-900 to-gray-800">
-      <div className="max-w-6xl mx-auto">
-        <div className="flex justify-between items-center mb-8">
-          <h1 className="text-3xl font-bold text-white">Categorias</h1>
-          <button
-            onClick={() => {
-              setEditingId(null)
-              setFormData({ name: '', icon: '📁' })
-              setError('')
-              setSuccess('')
-              setShowForm(!showForm)
-            }}
-            className="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-lg flex items-center space-x-2"
-          >
-            <Plus size={20} />
-            <span>Nova Categoria</span>
-          </button>
-        </div>
+    <div className='space-y-6'>
+      <div className='flex justify-between items-center'>
+        <h1 className='text-2xl font-bold text-gray-800'>Categorias</h1>
+        <button
+          onClick={() => {
+            resetForm()
+            setShowForm(true)
+          }}
+          className='bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 px-4 rounded-lg flex items-center gap-2'
+        >
+          <Plus size={20} />
+          <span>Nova Categoria</span>
+        </button>
+      </div>
 
-        {error && (
-          <div className="bg-red-500 bg-opacity-20 text-red-300 p-4 rounded-lg mb-6">
-            {typeof error === 'string' ? error : 'Erro ao processar solicitação'}
-          </div>
-        )}
+      {error && <div className='bg-red-50 text-red-700 p-4 rounded-lg'>{error}</div>}
+      {success && <div className='bg-green-50 text-green-700 p-4 rounded-lg'>{success}</div>}
 
-        {success && (
-          <div className="bg-green-500 bg-opacity-20 text-green-300 p-4 rounded-lg mb-6">
-            {typeof success === 'string' ? success : 'Operação realizada com sucesso'}
-          </div>
-        )}
-
-        {/* Form */}
-        {showForm && (
-          <div className="bg-gray-800 rounded-lg shadow-xl p-6 mb-8">
-            <div className="flex justify-between items-center mb-4">
-              <h2 className="text-2xl font-bold text-white">
+      {/* Form Modal */}
+      {showForm && (
+        <div className='fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4'>
+          <div className='bg-white rounded-xl shadow-xl w-full max-w-md overflow-hidden'>
+            <div className='flex justify-between items-center p-6 border-b border-gray-100'>
+              <h2 className='text-xl font-semibold text-gray-800'>
                 {editingId ? 'Editar Categoria' : 'Nova Categoria'}
               </h2>
-              <button
-                onClick={() => setShowForm(false)}
-                className="text-gray-400 hover:text-white"
-              >
+              <button onClick={() => setShowForm(false)} className='text-gray-400 hover:text-gray-600'>
                 <X size={24} />
               </button>
             </div>
-
-            <form onSubmit={handleSubmit} className="space-y-4">
+            
+            <form onSubmit={handleSubmit} className='p-6 space-y-4'>
               <div>
-                <label className="block text-gray-300 mb-2">Nome da Categoria</label>
+                <label className='block text-sm font-medium text-gray-700 mb-1'>Nome</label>
                 <input
-                  type="text"
-                  value={formData.name}
-                  onChange={(e) => setFormData({...formData, name: e.target.value})}
-                  placeholder="Ex: Alimentação"
+                  type='text'
                   required
-                  className="w-full bg-gray-700 text-white px-4 py-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className='w-full px-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500'
+                  value={formData.name}
+                  onChange={(e) => setFormData({ ...formData, name: e.target.value })}
                 />
               </div>
 
               <div>
-                <label className="block text-gray-300 mb-2">Ícone</label>
-                <div className="grid grid-cols-5 gap-2 mb-4">
-                  {icons.map(icon => (
+                <label className='block text-sm font-medium text-gray-700 mb-1'>Ícone</label>
+                <div className='grid grid-cols-5 gap-2'>
+                  {icons.map((icon) => (
                     <button
                       key={icon}
-                      type="button"
-                      onClick={() => setFormData({...formData, icon})}
-                      className={`text-3xl p-2 rounded-lg transition ${
-                        formData.icon === icon
-                          ? 'bg-blue-600 scale-110'
-                          : 'bg-gray-700 hover:bg-gray-600'
+                      type='button'
+                      onClick={() => setFormData({ ...formData, icon })}
+                      className={`text-2xl p-2 rounded-lg hover:bg-gray-100 ${
+                        formData.icon === icon ? 'bg-blue-50 ring-2 ring-blue-500' : ''
                       }`}
                     >
                       {icon}
@@ -160,50 +149,40 @@ export default function Categories() {
               </div>
 
               <button
-                type="submit"
+                type='submit'
                 disabled={loading}
-                className="w-full bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white font-bold py-2 rounded-lg"
+                className='w-full bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 px-4 rounded-lg transition-colors disabled:opacity-50'
               >
-                {loading ? 'Salvando...' : 'Salvar Categoria'}
+                {loading ? 'Salvando...' : 'Salvar'}
               </button>
             </form>
           </div>
-        )}
+        </div>
+      )}
 
-        {/* Categories Grid */}
-        {loading && !showForm ? (
-          <div className="text-center text-gray-400">Carregando...</div>
-        ) : categories.length === 0 ? (
-          <div className="text-center text-gray-400 py-12">
-            <p>Nenhuma categoria cadastrada. Crie uma nova!</p>
-          </div>
-        ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-            {categories.map(category => (
-              <div
-                key={category.id}
-                className="bg-gray-800 rounded-lg shadow-lg p-6 hover:shadow-xl transition hover:bg-gray-750"
+      {/* Categories Grid */}
+      <div className='grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6'>
+        {categories.map((category) => (
+          <div key={category.id} className='bg-white p-6 rounded-xl shadow-sm border border-gray-100 hover:shadow-md transition-shadow flex flex-col items-center text-center'>
+            <div className='text-4xl mb-4'>{category.icon || '📁'}</div>
+            <h3 className='text-lg font-semibold text-gray-800 mb-4'>{category.name}</h3>
+            
+            <div className='flex gap-2 w-full justify-center'>
+              <button 
+                onClick={() => handleEdit(category)} 
+                className='p-2 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors'
               >
-                <div className="text-5xl mb-3">{category.icon || '📁'}</div>
-                <h3 className="text-lg font-bold text-white mb-4">{category.name}</h3>
-                <div className="flex space-x-2">
-                  <button
-                    onClick={() => handleEdit(category)}
-                    className="flex-1 bg-yellow-600 hover:bg-yellow-700 text-white font-bold py-2 rounded-lg flex items-center justify-center space-x-1"
-                  >
-                    <Edit2 size={16} />
-                  </button>
-                  <button
-                    onClick={() => handleDelete(category.id)}
-                    className="flex-1 bg-red-600 hover:bg-red-700 text-white font-bold py-2 rounded-lg flex items-center justify-center space-x-1"
-                  >
-                    <Trash2 size={16} />
-                  </button>
-                </div>
-              </div>
-            ))}
+                <Edit2 size={18} />
+              </button>
+              <button 
+                onClick={() => handleDelete(category.id)} 
+                className='p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors'
+              >
+                <Trash2 size={18} />
+              </button>
+            </div>
           </div>
-        )}
+        ))}
       </div>
     </div>
   )

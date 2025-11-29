@@ -1,11 +1,11 @@
-import React, { useState, useEffect } from 'react'
-import { Settings, Lock, AlertCircle } from 'lucide-react'
+import React, { useState } from 'react'
+import { Settings, Lock, Bell, Moon, Shield, Globe } from 'lucide-react'
 import { authAPI } from '../services/api'
 
 export default function SettingsPage() {
   const [settings, setSettings] = useState({
     notifications: true,
-    darkMode: true,
+    darkMode: false,
     twoFactor: false,
     currency: 'BRL'
   })
@@ -60,176 +60,160 @@ export default function SettingsPage() {
     setLoading(true)
     try {
       await authAPI.changePassword(password.currentPassword, password.newPassword)
-      setSuccess('✅ Senha alterada com sucesso!')
+      setSuccess('Senha alterada com sucesso!')
       setPassword({ currentPassword: '', newPassword: '', confirmPassword: '' })
     } catch (err) {
-      setError('❌ Erro ao alterar senha')
+      setError('Erro ao alterar senha. Verifique sua senha atual.')
     } finally {
       setLoading(false)
     }
   }
 
   return (
-    <div className="lg:ml-64 p-6 min-h-screen bg-gradient-to-br from-gray-900 to-gray-800">
-      <div className="max-w-4xl mx-auto">
-        <h1 className="text-3xl font-bold text-white mb-8 flex items-center space-x-2">
-          <Settings size={32} />
-          <span>Configurações</span>
-        </h1>
+    <div className="max-w-4xl mx-auto space-y-6">
+      <h1 className="text-2xl font-bold text-gray-800 flex items-center gap-2">
+        <Settings className="text-gray-600" size={28} />
+        <span>Configurações</span>
+      </h1>
 
-        {/* Preferences */}
-        <div className="bg-gray-800 rounded-lg shadow-xl p-6 mb-6">
-          <h2 className="text-2xl font-bold text-white mb-6">Preferências</h2>
-
-          <div className="space-y-4">
-            <div className="flex items-center justify-between p-4 bg-gray-700 rounded-lg">
-              <div>
-                <h3 className="text-white font-bold">Notificações</h3>
-                <p className="text-gray-400 text-sm">Receber notificações do aplicativo</p>
-              </div>
-              <label className="relative inline-flex items-center cursor-pointer">
-                <input
-                  type="checkbox"
-                  checked={settings.notifications}
-                  onChange={() => handleSettingChange('notifications')}
-                  className="sr-only peer"
-                />
-                <div className="w-11 h-6 bg-gray-600 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-800 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
-              </label>
-            </div>
-
-            <div className="flex items-center justify-between p-4 bg-gray-700 rounded-lg">
-              <div>
-                <h3 className="text-white font-bold">Modo Escuro</h3>
-                <p className="text-gray-400 text-sm">Interface escura padrão</p>
-              </div>
-              <label className="relative inline-flex items-center cursor-pointer">
-                <input
-                  type="checkbox"
-                  checked={settings.darkMode}
-                  onChange={() => handleSettingChange('darkMode')}
-                  className="sr-only peer"
-                />
-                <div className="w-11 h-6 bg-gray-600 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-800 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
-              </label>
-            </div>
-
-            <div className="p-4 bg-gray-700 rounded-lg">
-              <h3 className="text-white font-bold mb-2">Moeda Padrão</h3>
-              <div className="flex space-x-2">
-                {currencies.map(curr => (
-                  <button
-                    key={curr}
-                    onClick={() => handleSettingSelect('currency', curr)}
-                    className={`px-4 py-2 rounded-lg font-bold transition ${
-                      settings.currency === curr
-                        ? 'bg-blue-600 text-white'
-                        : 'bg-gray-600 text-gray-300 hover:bg-gray-500'
-                    }`}
-                  >
-                    {curr}
-                  </button>
-                ))}
-              </div>
-            </div>
-
-            <div className="flex items-center justify-between p-4 bg-gray-700 rounded-lg">
-              <div>
-                <h3 className="text-white font-bold">Autenticação de Dois Fatores</h3>
-                <p className="text-gray-400 text-sm">Aumentar segurança da conta</p>
-              </div>
-              <label className="relative inline-flex items-center cursor-pointer">
-                <input
-                  type="checkbox"
-                  checked={settings.twoFactor}
-                  onChange={() => handleSettingChange('twoFactor')}
-                  className="sr-only peer"
-                />
-                <div className="w-11 h-6 bg-gray-600 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-800 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
-              </label>
-            </div>
-          </div>
+      {/* Preferences */}
+      <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+        <div className="p-6 border-b border-gray-100">
+          <h2 className="text-lg font-semibold text-gray-800">Preferências</h2>
+          <p className="text-sm text-gray-500">Personalize sua experiência no aplicativo</p>
         </div>
 
-        {/* Security */}
-        <div className="bg-gray-800 rounded-lg shadow-xl p-6 mb-6">
-          <h2 className="text-2xl font-bold text-white mb-6 flex items-center space-x-2">
-            <Lock size={24} />
-            <span>Segurança</span>
-          </h2>
-
-          {error && (
-            <div className="bg-red-500 bg-opacity-20 text-red-300 p-4 rounded-lg mb-4 flex items-center space-x-2">
-              <AlertCircle size={20} />
-              <span>{error}</span>
+        <div className="divide-y divide-gray-100">
+          <div className="p-6 flex items-center justify-between hover:bg-gray-50 transition-colors">
+            <div className="flex items-center gap-4">
+              <div className="p-2 bg-blue-50 text-blue-600 rounded-lg">
+                <Bell size={20} />
+              </div>
+              <div>
+                <h3 className="font-medium text-gray-800">Notificações</h3>
+                <p className="text-sm text-gray-500">Receber alertas sobre suas finanças</p>
+              </div>
             </div>
-          )}
-
-          {success && (
-            <div className="bg-green-500 bg-opacity-20 text-green-300 p-4 rounded-lg mb-4">
-              {success}
-            </div>
-          )}
-
-          <form onSubmit={handlePasswordSubmit} className="space-y-4">
-            <div>
-              <label className="block text-gray-300 mb-2">Senha Atual</label>
+            <label className="relative inline-flex items-center cursor-pointer">
               <input
-                type="password"
-                name="currentPassword"
-                value={password.currentPassword}
-                onChange={handlePasswordChange}
-                placeholder="Digite sua senha atual"
-                className="w-full bg-gray-700 text-white px-4 py-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                required
+                type="checkbox"
+                checked={settings.notifications}
+                onChange={() => handleSettingChange('notifications')}
+                className="sr-only peer"
               />
+              <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-100 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
+            </label>
+          </div>
+
+          <div className="p-6 flex items-center justify-between hover:bg-gray-50 transition-colors">
+            <div className="flex items-center gap-4">
+              <div className="p-2 bg-purple-50 text-purple-600 rounded-lg">
+                <Moon size={20} />
+              </div>
+              <div>
+                <h3 className="font-medium text-gray-800">Modo Escuro</h3>
+                <p className="text-sm text-gray-500">Alternar entre temas claro e escuro</p>
+              </div>
+            </div>
+            <label className="relative inline-flex items-center cursor-pointer">
+              <input
+                type="checkbox"
+                checked={settings.darkMode}
+                onChange={() => handleSettingChange('darkMode')}
+                className="sr-only peer"
+              />
+              <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-purple-100 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-purple-600"></div>
+            </label>
+          </div>
+
+          <div className="p-6 flex items-center justify-between hover:bg-gray-50 transition-colors">
+            <div className="flex items-center gap-4">
+              <div className="p-2 bg-green-50 text-green-600 rounded-lg">
+                <Globe size={20} />
+              </div>
+              <div>
+                <h3 className="font-medium text-gray-800">Moeda Principal</h3>
+                <p className="text-sm text-gray-500">Selecione a moeda padrão para exibição</p>
+              </div>
+            </div>
+            <select
+              value={settings.currency}
+              onChange={(e) => handleSettingSelect('currency', e.target.value)}
+              className="bg-gray-50 border border-gray-200 text-gray-800 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block p-2.5"
+            >
+              {currencies.map(curr => (
+                <option key={curr} value={curr}>{curr}</option>
+              ))}
+            </select>
+          </div>
+        </div>
+      </div>
+
+      {/* Security */}
+      <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+        <div className="p-6 border-b border-gray-100">
+          <h2 className="text-lg font-semibold text-gray-800">Segurança</h2>
+          <p className="text-sm text-gray-500">Gerencie sua senha e autenticação</p>
+        </div>
+
+        <div className="p-6 space-y-6">
+          {error && <div className="bg-red-50 text-red-700 p-4 rounded-lg border border-red-100">{error}</div>}
+          {success && <div className="bg-green-50 text-green-700 p-4 rounded-lg border border-green-100">{success}</div>}
+
+          <form onSubmit={handlePasswordSubmit} className="space-y-4 max-w-md">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Senha Atual</label>
+              <div className="relative">
+                <Lock className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
+                <input
+                  type="password"
+                  name="currentPassword"
+                  value={password.currentPassword}
+                  onChange={handlePasswordChange}
+                  className="w-full pl-10 pr-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-gray-50 focus:bg-white transition-colors"
+                  placeholder="••••••••"
+                />
+              </div>
             </div>
 
             <div>
-              <label className="block text-gray-300 mb-2">Nova Senha</label>
-              <input
-                type="password"
-                name="newPassword"
-                value={password.newPassword}
-                onChange={handlePasswordChange}
-                placeholder="Digite sua nova senha"
-                className="w-full bg-gray-700 text-white px-4 py-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                required
-              />
+              <label className="block text-sm font-medium text-gray-700 mb-1">Nova Senha</label>
+              <div className="relative">
+                <Lock className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
+                <input
+                  type="password"
+                  name="newPassword"
+                  value={password.newPassword}
+                  onChange={handlePasswordChange}
+                  className="w-full pl-10 pr-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-gray-50 focus:bg-white transition-colors"
+                  placeholder="••••••••"
+                />
+              </div>
             </div>
 
             <div>
-              <label className="block text-gray-300 mb-2">Confirmar Senha</label>
-              <input
-                type="password"
-                name="confirmPassword"
-                value={password.confirmPassword}
-                onChange={handlePasswordChange}
-                placeholder="Confirme sua nova senha"
-                className="w-full bg-gray-700 text-white px-4 py-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                required
-              />
+              <label className="block text-sm font-medium text-gray-700 mb-1">Confirmar Nova Senha</label>
+              <div className="relative">
+                <Lock className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
+                <input
+                  type="password"
+                  name="confirmPassword"
+                  value={password.confirmPassword}
+                  onChange={handlePasswordChange}
+                  className="w-full pl-10 pr-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-gray-50 focus:bg-white transition-colors"
+                  placeholder="••••••••"
+                />
+              </div>
             </div>
 
             <button
               type="submit"
               disabled={loading}
-              className="w-full bg-yellow-600 hover:bg-yellow-700 disabled:opacity-50 text-white font-bold py-2 rounded-lg"
+              className="bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 px-6 rounded-lg transition-colors disabled:opacity-50 shadow-sm hover:shadow"
             >
               {loading ? 'Alterando...' : 'Alterar Senha'}
             </button>
           </form>
-        </div>
-
-        {/* Danger Zone */}
-        <div className="bg-gray-800 rounded-lg shadow-xl p-6 border border-red-500 border-opacity-30">
-          <h2 className="text-2xl font-bold text-red-400 mb-4 flex items-center space-x-2">
-            <AlertCircle size={24} />
-            <span>Zona de Perigo</span>
-          </h2>
-          <button className="w-full bg-red-600 hover:bg-red-700 text-white font-bold py-2 rounded-lg">
-            Deletar Conta Permanentemente
-          </button>
         </div>
       </div>
     </div>
