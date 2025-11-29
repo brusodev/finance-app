@@ -29,9 +29,9 @@ def init_default_users():
             )
             db.add(default_user)
             db.commit()
-            print("✓ Usuário padrão 'bruno' criado com sucesso")
+            print("Usuario padrao 'bruno' criado com sucesso")
         else:
-            print(f"✓ Banco de dados contém {result} usuário(s)")
+            print(f"Banco de dados contem {result} usuario(s)")
     except Exception as e:
         print(f"Erro ao inicializar usuários: {e}")
         db.rollback()
@@ -81,7 +81,7 @@ if os.getenv('ENVIRONMENT') == 'development':
         'http://192.168.56.1:3000',
     ])
 
-print(f"🌐 CORS configurado para: {ALLOWED_ORIGINS}")
+print(f"CORS configurado para: {ALLOWED_ORIGINS}")
 
 app.add_middleware(
     CORSMiddleware,
