@@ -11,6 +11,10 @@ class User(Base):
     email = Column(String, nullable=True)
     full_name = Column(String, nullable=True)
     avatar = Column(Text, nullable=True)  # Base64 encoded image
+    cpf = Column(String, nullable=True)  # CPF do usuário
+    phone = Column(String, nullable=True)  # Telefone
+    birth_date = Column(Date, nullable=True)  # Data de nascimento
+    address = Column(String, nullable=True)  # Endereço
 
 
 class Category(Base):

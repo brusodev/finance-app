@@ -67,6 +67,14 @@ def update_user_profile(db: Session, user_id: int, user: schemas.UserUpdate):
             db_user.full_name = user.full_name
         if user.avatar is not None:
             db_user.avatar = user.avatar
+        if user.cpf is not None:
+            db_user.cpf = user.cpf
+        if user.phone is not None:
+            db_user.phone = user.phone
+        if user.birth_date is not None:
+            db_user.birth_date = user.birth_date
+        if user.address is not None:
+            db_user.address = user.address
         db.commit()
         db.refresh(db_user)
     return db_user
