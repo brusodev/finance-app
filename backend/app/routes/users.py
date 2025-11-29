@@ -72,6 +72,9 @@ def update_profile(
     current_user: schemas.User = Depends(get_current_user)
 ):
     """Atualizar perfil do usuário autenticado"""
+    print(f"Dados recebidos: {user.dict()}")
+    print(f"Usuário autenticado: {current_user.id}")
+
     db_user = crud.get_user(db, user_id=current_user.id)
     if not db_user:
         raise HTTPException(
