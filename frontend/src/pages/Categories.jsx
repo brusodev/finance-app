@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react'
 import { Plus, Edit2, Trash2, X } from 'lucide-react'
+import { categoriesAPI } from '../services/api'
 
 export default function Categories() {
   const [categories, setCategories] = useState([])
@@ -22,14 +23,8 @@ export default function Categories() {
   const loadCategories = async () => {
     setLoading(true)
     try {
-      const token = localStorage.getItem('token')
-      const response = await fetch('http://localhost:8000/categories/', {
-        headers: { 'Authorization': `Bearer ${token}` }
-      })
-      if (response.ok) {
-        const data = await response.json()
-        setCategories(data)
-      }
+      const data = await categoriesAPI.getAll()
+      setCategories(data)
     } catch (err) {
       setError('Erro ao carregar categorias')
     } finally {
@@ -44,37 +39,20 @@ export default function Categories() {
     setSuccess('')
 
     try {
-      const token = localStorage.getItem('token')
-      const method = editingId ? 'PUT' : 'POST'
-      const url = editingId
-        ? `http://localhost:8000/categories/${editingId}`
-        : 'http://localhost:8000/categories/'
-
-      const response = await fetch(url, {
-        method,
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
-        },
-        body: JSON.stringify(formData)
-      })
-
-      if (response.ok) {
-        setSuccess(editingId ? '✅ Categoria atualizada!' : '✅ Categoria criada!')
-        await loadCategories()
-        setFormData({ name: '', icon: '📁' })
-        setEditingId(null)
-        setTimeout(() => setShowForm(false), 1500)
+      if (editingId) {
+        await categoriesAPI.update(editingId, formData)
+        setSuccess('✅ Categoria atualizada!')
       } else {
-        const errorData = await response.json()
-        // Extrair mensagem de erro de forma segura
-        const errorMessage = typeof errorData.detail === 'string' 
-          ? errorData.detail 
-          : 'Erro ao salvar categoria'
-        setError(errorMessage)
+        await categoriesAPI.create(formData)
+        setSuccess('✅ Categoria criada!')
       }
+      await loadCategories()
+      setFormData({ name: '', icon: '📁' })
+      setEditingId(null)
+      setTimeout(() => setShowForm(false), 1500)
     } catch (err) {
-      setError('Erro ao conectar com o servidor')
+      const errorMessage = err.detail || 'Erro ao salvar categoria'
+      setError(errorMessage)
     } finally {
       setLoading(false)
     }
@@ -83,15 +61,9 @@ export default function Categories() {
   const handleDelete = async (id) => {
     if (window.confirm('Tem certeza que deseja deletar esta categoria?')) {
       try {
-        const token = localStorage.getItem('token')
-        const response = await fetch(`http://localhost:8000/categories/${id}`, {
-          method: 'DELETE',
-          headers: { 'Authorization': `Bearer ${token}` }
-        })
-        if (response.ok) {
-          setSuccess('✅ Categoria deletada!')
-          await loadCategories()
-        }
+        await categoriesAPI.delete(id)
+        setSuccess('✅ Categoria deletada!')
+        await loadCategories()
       } catch (err) {
         setError('Erro ao deletar categoria')
       }

@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react'
 import { Settings, Lock, AlertCircle } from 'lucide-react'
+import { authAPI } from '../services/api'
 
 export default function SettingsPage() {
   const [settings, setSettings] = useState({
@@ -58,27 +59,11 @@ export default function SettingsPage() {
 
     setLoading(true)
     try {
-      const token = localStorage.getItem('token')
-      const response = await fetch('http://localhost:8000/users/change-password', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
-        },
-        body: JSON.stringify({
-          current_password: password.currentPassword,
-          new_password: password.newPassword
-        })
-      })
-
-      if (response.ok) {
-        setSuccess('✅ Senha alterada com sucesso!')
-        setPassword({ currentPassword: '', newPassword: '', confirmPassword: '' })
-      } else {
-        setError('❌ Erro ao alterar senha')
-      }
+      await authAPI.changePassword(password.currentPassword, password.newPassword)
+      setSuccess('✅ Senha alterada com sucesso!')
+      setPassword({ currentPassword: '', newPassword: '', confirmPassword: '' })
     } catch (err) {
-      setError('❌ Erro ao conectar com o servidor')
+      setError('❌ Erro ao alterar senha')
     } finally {
       setLoading(false)
     }
