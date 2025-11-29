@@ -1,4 +1,4 @@
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react'
 import { Link, useNavigate, useLocation } from 'react-router-dom'
 import {
   LayoutDashboard,
@@ -16,8 +16,16 @@ import {
 
 export default function Sidebar() {
   const [isOpen, setIsOpen] = useState(false)
+  const [user, setUser] = useState(null)
   const navigate = useNavigate()
   const location = useLocation()
+
+  useEffect(() => {
+    const userData = JSON.parse(localStorage.getItem('user') || '{}')
+    if (userData.id) {
+      setUser(userData)
+    }
+  }, [])
 
   const handleLogout = () => {
     localStorage.removeItem('token')
@@ -61,8 +69,41 @@ export default function Sidebar() {
           <h1 className="text-2xl font-bold text-blue-400">💰 FinApp</h1>
         </div>
 
+        {/* User Profile Section */}
+        {user && (
+          <Link
+            to="/profile"
+            onClick={() => setIsOpen(false)}
+            className="block p-4 border-b border-gray-700 hover:bg-gray-800 transition-colors"
+          >
+            <div className="flex items-center space-x-3">
+              {/* Avatar */}
+              {user.avatar ? (
+                <img
+                  src={user.avatar}
+                  alt={user.username}
+                  className="w-12 h-12 rounded-full object-cover border-2 border-blue-500"
+                />
+              ) : (
+                <div className="w-12 h-12 rounded-full bg-gradient-to-br from-blue-400 to-blue-600 flex items-center justify-center text-white text-lg font-bold border-2 border-blue-500">
+                  {user.username?.charAt(0).toUpperCase()}
+                </div>
+              )}
+              {/* User Info */}
+              <div className="flex-1 min-w-0">
+                <p className="text-sm font-semibold text-white truncate">
+                  {user.full_name || user.username}
+                </p>
+                <p className="text-xs text-gray-400 truncate">
+                  {user.email || 'Ver perfil'}
+                </p>
+              </div>
+            </div>
+          </Link>
+        )}
+
         {/* Navigation */}
-        <nav className="mt-6 px-3 space-y-2">
+        <nav className="mt-6 px-3 space-y-2 overflow-y-auto" style={{ maxHeight: 'calc(100vh - 280px)' }}>
           {menuItems.map((item) => (
             <Link
               key={item.id}
