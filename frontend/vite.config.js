@@ -5,6 +5,6 @@ export default defineConfig({
   plugins: [react()],
   server: {
     port: 3000,
-    host: 'localhost'
+    host: '0.0.0.0'  // Permite acesso de qualquer IP na rede
   }
 })

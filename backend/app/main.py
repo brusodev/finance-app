@@ -6,6 +6,7 @@ from .database import engine, Base, SessionLocal
 from .models import User
 from .utils import hash_password
 from sqlalchemy import text
+import os
 
 # Criar tabelas automaticamente se não existirem
 Base.metadata.create_all(bind=engine)
@@ -57,15 +58,34 @@ app = FastAPI(
     lifespan=lifespan
 )
 
-# Configurar CORS para permitir requisições do frontend
+# Configurar CORS dinamicamente baseado no ambiente
+# Pega origens permitidas das variáveis de ambiente ou usa padrões
+ALLOWED_ORIGINS = os.getenv('ALLOWED_ORIGINS', '').split(',') if os.getenv('ALLOWED_ORIGINS') else [
+    'http://localhost:3000',
+    'http://localhost:3001',
+    'http://localhost:5173',
+    'http://127.0.0.1:3000',
+    'http://127.0.0.1:3001',
+]
+
+# Se estiver em produção (Railway), adicionar domínio do Railway
+FRONTEND_URL = os.getenv('FRONTEND_URL')
+if FRONTEND_URL:
+    ALLOWED_ORIGINS.append(FRONTEND_URL)
+
+# Modo de desenvolvimento - permite IPs locais
+if os.getenv('ENVIRONMENT') == 'development':
+    ALLOWED_ORIGINS.extend([
+        'http://100.87.89.96:3000',
+        'http://192.168.0.250:3000',
+        'http://192.168.56.1:3000',
+    ])
+
+print(f"🌐 CORS configurado para: {ALLOWED_ORIGINS}")
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=[
-        'http://localhost:3000',
-        'http://localhost:3001',
-        'http://127.0.0.1:3000',
-        'http://127.0.0.1:3001'
-    ],
+    allow_origins=ALLOWED_ORIGINS,
     allow_credentials=True,
     allow_methods=['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
     allow_headers=['*'],
