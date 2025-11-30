@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { useNavigate, Link } from 'react-router-dom'
 import { authAPI } from '../services/api'
+import { useAuth } from '../context/AuthContext'
 
 export default function Login() {
   const [username, setUsername] = useState('')
@@ -8,6 +9,7 @@ export default function Login() {
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
   const navigate = useNavigate()
+  const { login } = useAuth()
 
   const handleSubmit = async (e) => {
     e.preventDefault()
@@ -21,15 +23,16 @@ export default function Login() {
         return
       }
 
-      const user = await authAPI.login(username, password)
-      console.log('Login bem-sucedido:', user)
-      
-      // Armazenar token e usuario
-      localStorage.setItem('token', user.token)
-      localStorage.setItem('user', JSON.stringify(user.user))
-      
+      const response = await authAPI.login(username, password)
+      console.log('Login bem-sucedido:', response)
+
+      // Atualizar o contexto de autenticação
+      login(response.user, response.token)
+
       setUsername('')
       setPassword('')
+
+      // Redirecionar para dashboard
       navigate('/', { replace: true })
     } catch (err) {
       const errorMessage = err.detail || err.message || 'Erro ao fazer login'
