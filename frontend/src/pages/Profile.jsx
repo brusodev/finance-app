@@ -1,11 +1,36 @@
 import React, { useState, useEffect } from 'react'
-import { useNavigate } from 'react-router-dom'
 import { usersAPI } from '../services/api'
 import { Camera, Save } from 'lucide-react'
 import { useAuth } from '../context/AuthContext'
 
+// Funções de formatação (fora do componente)
+const formatCPF = (value) => {
+  const numbers = value.replace(/\D/g, '')
+  if (numbers.length <= 11) {
+    return numbers
+      .replace(/(\d{3})(\d)/, '$1.$2')
+      .replace(/(\d{3})(\d)/, '$1.$2')
+      .replace(/(\d{3})(\d{1,2})$/, '$1-$2')
+  }
+  return value.slice(0, 14)
+}
+
+const formatPhone = (value) => {
+  const numbers = value.replace(/\D/g, '')
+  if (numbers.length <= 11) {
+    if (numbers.length <= 10) {
+      return numbers
+        .replace(/(\d{2})(\d)/, '($1) $2')
+        .replace(/(\d{4})(\d)/, '$1-$2')
+    }
+    return numbers
+      .replace(/(\d{2})(\d)/, '($1) $2')
+      .replace(/(\d{5})(\d)/, '$1-$2')
+  }
+  return value.slice(0, 15)
+}
+
 export default function Profile() {
-  const navigate = useNavigate()
   const { user, updateUser } = useAuth()
   const [formData, setFormData] = useState({
     fullName: '',
@@ -26,8 +51,8 @@ export default function Profile() {
         fullName: user.full_name || '',
         email: user.email || '',
         avatar: user.avatar || null,
-        cpf: user.cpf || '',
-        phone: user.phone || '',
+        cpf: user.cpf ? formatCPF(user.cpf) : '',
+        phone: user.phone ? formatPhone(user.phone) : '',
         birthDate: user.birth_date || '',
         address: user.address || ''
       })
@@ -36,9 +61,17 @@ export default function Profile() {
 
   const handleInputChange = (e) => {
     const { name, value } = e.target
+    let formattedValue = value
+
+    if (name === 'cpf') {
+      formattedValue = formatCPF(value)
+    } else if (name === 'phone') {
+      formattedValue = formatPhone(value)
+    }
+
     setFormData(prev => ({
       ...prev,
-      [name]: value
+      [name]: formattedValue
     }))
   }
 
@@ -63,20 +96,34 @@ export default function Profile() {
     setSuccess('')
 
     try {
-      // Preparar dados, enviando null para campos vazios
+      // Preparar dados - enviar apenas campos preenchidos, outros como null
       const profileData = {
-        full_name: formData.fullName || null,
-        email: formData.email || null,
+        full_name: formData.fullName?.trim() || null,
+        email: formData.email?.trim() || null,
         avatar: formData.avatar || null,
-        cpf: formData.cpf || null,
-        phone: formData.phone || null,
+        cpf: formData.cpf?.replace(/\D/g, '') || null, // Remove formatação antes de enviar
+        phone: formData.phone?.replace(/\D/g, '') || null, // Remove formatação antes de enviar
         birth_date: formData.birthDate || null,
-        address: formData.address || null
+        address: formData.address?.trim() || null
       }
 
+      console.log('Enviando dados:', profileData)
       const updatedUser = await usersAPI.updateProfile(profileData)
+      console.log('Resposta do servidor:', updatedUser)
+
       updateUser(updatedUser)
       setSuccess('Perfil atualizado com sucesso!')
+
+      // Atualizar formData com os dados retornados (já formatados)
+      setFormData({
+        fullName: updatedUser.full_name || '',
+        email: updatedUser.email || '',
+        avatar: updatedUser.avatar || null,
+        cpf: updatedUser.cpf ? formatCPF(updatedUser.cpf) : '',
+        phone: updatedUser.phone ? formatPhone(updatedUser.phone) : '',
+        birthDate: updatedUser.birth_date || '',
+        address: updatedUser.address || ''
+      })
     } catch (err) {
       console.error('Erro completo:', err)
       setError('Erro ao atualizar perfil: ' + (err.detail || err.message || 'Erro desconhecido'))
@@ -158,6 +205,7 @@ export default function Profile() {
                 name="cpf"
                 value={formData.cpf}
                 onChange={handleInputChange}
+                maxLength={14}
                 className="w-full px-4 py-2 border border-gray-200 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-gray-50 dark:bg-gray-700 focus:bg-white dark:focus:bg-gray-600 text-gray-900 dark:text-white transition-colors"
                 placeholder="000.000.000-00"
               />
@@ -170,6 +218,7 @@ export default function Profile() {
                 name="phone"
                 value={formData.phone}
                 onChange={handleInputChange}
+                maxLength={15}
                 className="w-full px-4 py-2 border border-gray-200 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-gray-50 dark:bg-gray-700 focus:bg-white dark:focus:bg-gray-600 text-gray-900 dark:text-white transition-colors"
                 placeholder="(00) 00000-0000"
               />
