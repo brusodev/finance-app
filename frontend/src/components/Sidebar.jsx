@@ -57,15 +57,15 @@ export default function Sidebar() {
 
       {/* Sidebar */}
       <aside
-        className={`fixed left-0 top-0 h-screen w-64 bg-white dark:bg-gray-900 text-gray-800 dark:text-white shadow-lg transform transition-transform duration-300 ease-in-out z-40 lg:transform-none border-r border-gray-200 dark:border-gray-800 ${
+        className={`fixed left-0 top-0 h-screen w-64 bg-white dark:bg-gray-900 text-gray-800 dark:text-white shadow-lg transform transition-transform duration-300 ease-in-out z-40 lg:transform-none border-r border-gray-200 dark:border-gray-800 flex flex-col ${
           isOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'
         }`}
       >
         {/* Logo */}
-        <div className="p-6 border-b border-gray-200 dark:border-gray-800 flex justify-between items-center">
+        <div className="flex-shrink-0 p-6 border-b border-gray-200 dark:border-gray-800 flex justify-between items-center">
           <h1 className="text-2xl font-bold text-blue-600 dark:text-blue-400">💰 FinApp</h1>
-          <button 
-            onClick={() => setIsOpen(false)} 
+          <button
+            onClick={() => setIsOpen(false)}
             className="lg:hidden p-2 text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
           >
             <X size={24} />
@@ -77,7 +77,7 @@ export default function Sidebar() {
           <Link
             to="/profile"
             onClick={() => setIsOpen(false)}
-            className="block p-4 border-b border-gray-200 dark:border-gray-800 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
+            className="flex-shrink-0 block p-4 border-b border-gray-200 dark:border-gray-800 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
           >
             <div className="flex items-center space-x-3">
               {/* Avatar */}
@@ -106,7 +106,7 @@ export default function Sidebar() {
         )}
 
         {/* Navigation */}
-        <nav className="mt-6 px-3 space-y-2 overflow-y-auto" style={{ maxHeight: 'calc(100vh - 280px)' }}>
+        <nav className="flex-1 mt-6 px-3 space-y-2 overflow-y-auto custom-scrollbar">
           {menuItems.map((item) => (
             <Link
               key={item.id}
@@ -121,7 +121,7 @@ export default function Sidebar() {
         </nav>
 
         {/* Bottom Section */}
-        <div className="absolute bottom-0 left-0 right-0 p-4 border-t border-gray-200 dark:border-gray-800 space-y-2 bg-white dark:bg-gray-900">
+        <div className="flex-shrink-0 p-4 border-t border-gray-200 dark:border-gray-800 space-y-2 bg-white dark:bg-gray-900">
           <button
             onClick={handleLogout}
             className="w-full flex items-center space-x-3 px-4 py-3 rounded-lg bg-red-50 dark:bg-red-900/20 hover:bg-red-100 dark:hover:bg-red-900/40 text-red-600 dark:text-red-400 transition-colors"
