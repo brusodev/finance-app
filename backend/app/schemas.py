@@ -1,6 +1,6 @@
 from pydantic import BaseModel
 from typing import Optional, List
-from datetime import date
+from datetime import date, datetime
 
 
 class UserCreate(BaseModel):
@@ -62,19 +62,40 @@ class Category(BaseModel):
 class AccountCreate(BaseModel):
     name: str
     account_type: str
-    balance: float = 0.0
+    initial_balance: float = 0.0
     currency: str = "BRL"
+
+
+class AccountUpdate(BaseModel):
+    name: Optional[str] = None
+    account_type: Optional[str] = None
+    is_active: Optional[bool] = None
 
 
 class Account(BaseModel):
     id: int
     name: str
     account_type: str
+    initial_balance: float
     balance: float
     currency: str
+    is_active: bool
+    created_at: datetime
+    updated_at: datetime
 
     class Config:
         orm_mode = True
+
+
+class AccountBalanceAudit(BaseModel):
+    account_id: int
+    account_name: str
+    initial_balance: float
+    current_balance: float
+    calculated_balance: float
+    total_transactions: int
+    is_consistent: bool
+    difference: float
 
 
 class TransactionCreate(BaseModel):

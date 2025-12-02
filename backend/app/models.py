@@ -1,5 +1,6 @@
-from sqlalchemy import Column, Integer, String, Float, Date, ForeignKey, Text
+from sqlalchemy import Column, Integer, String, Float, Date, ForeignKey, Text, Boolean, DateTime
 from sqlalchemy.orm import relationship
+from datetime import datetime
 from .database import Base
 
 
@@ -31,8 +32,12 @@ class Account(Base):
     id = Column(Integer, primary_key=True, index=True)
     name = Column(String, index=True)
     account_type = Column(String)  # 'checking', 'savings', 'credit_card', etc
-    balance = Column(Float, default=0.0)
+    initial_balance = Column(Float, default=0.0)  # Saldo inicial imutável
+    balance = Column(Float, default=0.0)  # Saldo atual calculado
     currency = Column(String, default='BRL')
+    is_active = Column(Boolean, default=True)  # Soft delete
+    created_at = Column(DateTime, default=datetime.utcnow)  # Auditoria
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)  # Auditoria
     user_id = Column(Integer, ForeignKey('users.id'))
     user = relationship("User")
 
