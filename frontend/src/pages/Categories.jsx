@@ -13,12 +13,23 @@ export default function Categories() {
   })
   const [error, setError] = useState('')
   const [success, setSuccess] = useState('')
+  const [suggestions, setSuggestions] = useState([])
 
   const icons = ['📁', '🍔', '🚗', '🏥', '💡', '🎓', '🏠', '🎮', '✈️', '💳', '🛒', '📱', '🎬', '⚽', '📚']
 
   useEffect(() => {
     loadCategories()
+    loadSuggestions()
   }, [])
+
+  const loadSuggestions = async () => {
+    try {
+      const data = await categoriesAPI.getSuggestions()
+      setSuggestions(data)
+    } catch (err) {
+      console.log('Erro ao carregar sugestões:', err)
+    }
+  }
 
   const loadCategories = async () => {
     setLoading(true)
@@ -120,14 +131,28 @@ export default function Categories() {
             
             <form onSubmit={handleSubmit} className='p-6 space-y-4'>
               <div>
-                <label className='block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1'>Nome</label>
+                <label className='block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1'>
+                  Nome
+                  {!editingId && suggestions.length > 0 && (
+                    <span className='text-xs text-gray-500 dark:text-gray-400 ml-2'>(sugestões disponíveis)</span>
+                  )}
+                </label>
                 <input
                   type='text'
                   required
+                  list="category-suggestions"
                   className='w-full px-4 py-2 border border-gray-200 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-white'
                   value={formData.name}
                   onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                  placeholder="Digite ou selecione uma sugestão"
                 />
+                {!editingId && (
+                  <datalist id="category-suggestions">
+                    {suggestions.map((suggestion, index) => (
+                      <option key={index} value={suggestion} />
+                    ))}
+                  </datalist>
+                )}
               </div>
 
               <div>

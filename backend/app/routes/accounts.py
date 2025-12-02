@@ -12,6 +12,21 @@ router = APIRouter(
 )
 
 
+@router.get("/suggestions", response_model=list[str])
+def get_account_suggestions(
+    db: Session = Depends(get_db),
+    current_user: schemas.User = Depends(get_current_user),
+    limit: int = 10
+):
+    """
+    Obter sugestões de nomes de contas baseadas em contas populares de outros usuários.
+
+    - limit: número máximo de sugestões (padrão: 10)
+    """
+    suggestions = crud.get_account_suggestions(db, user_id=current_user.id, limit=limit)
+    return suggestions
+
+
 @router.get("/", response_model=list[schemas.Account])
 def list_accounts(
     db: Session = Depends(get_db),

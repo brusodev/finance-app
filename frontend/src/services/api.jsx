@@ -115,6 +115,19 @@ export const accountsAPI = {
     }
   },
 
+  getSuggestions: async () => {
+    try {
+      const response = await fetch(`${API_URL}/accounts/suggestions`, {
+        method: "GET",
+        headers: getHeaders(true),
+      });
+      return handleResponse(response);
+    } catch (error) {
+      console.error("Get account suggestions error:", error);
+      throw error;
+    }
+  },
+
   create: async (data) => {
     try {
       const response = await fetch(`${API_URL}/accounts/`, {
@@ -169,6 +182,19 @@ export const categoriesAPI = {
       return handleResponse(response);
     } catch (error) {
       console.error("Get categories error:", error);
+      throw error;
+    }
+  },
+
+  getSuggestions: async () => {
+    try {
+      const response = await fetch(`${API_URL}/categories/suggestions`, {
+        method: "GET",
+        headers: getHeaders(true),
+      });
+      return handleResponse(response);
+    } catch (error) {
+      console.error("Get category suggestions error:", error);
       throw error;
     }
   },

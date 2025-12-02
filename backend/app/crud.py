@@ -116,6 +116,26 @@ def create_account(db: Session, account: schemas.AccountCreate, user_id: int):
     return db_account
 
 
+def get_account_suggestions(db: Session, user_id: int, limit: int = 10):
+    """Get account name suggestions from other users (most popular)"""
+    from sqlalchemy import func
+
+    # Buscar nomes de contas de outros usuários, agrupadas por nome, ordenadas por frequência
+    suggestions = db.query(
+        models.Account.name,
+        func.count(models.Account.name).label('count')
+    ).filter(
+        models.Account.user_id != user_id  # Excluir contas do próprio usuário
+    ).group_by(
+        models.Account.name
+    ).order_by(
+        func.count(models.Account.name).desc()  # Mais populares primeiro
+    ).limit(limit).all()
+
+    # Retornar apenas os nomes
+    return [suggestion.name for suggestion in suggestions]
+
+
 def update_account(db: Session, account_id: int, account: schemas.AccountCreate):
     """Update account"""
     db_account = get_account(db, account_id)
@@ -149,8 +169,16 @@ def get_category(db: Session, category_id: int):
 
 
 def get_category_by_name(db: Session, name: str):
-    """Get category by name"""
+    """Get category by name (global - use apenas para compatibilidade)"""
     return db.query(models.Category).filter(models.Category.name == name).first()
+
+
+def get_category_by_name_and_user(db: Session, name: str, user_id: int):
+    """Get category by name for a specific user"""
+    return db.query(models.Category).filter(
+        models.Category.name == name,
+        models.Category.user_id == user_id
+    ).first()
 
 
 def get_all_categories(db: Session, skip: int = 0, limit: int = 100):
@@ -177,6 +205,26 @@ def create_category(db: Session, category: schemas.CategoryCreate, user_id: int)
     db.commit()
     db.refresh(db_category)
     return db_category
+
+
+def get_category_suggestions(db: Session, user_id: int, limit: int = 10):
+    """Get category name suggestions from other users (most popular)"""
+    from sqlalchemy import func
+
+    # Buscar categorias de outros usuários, agrupadas por nome, ordenadas por frequência
+    suggestions = db.query(
+        models.Category.name,
+        func.count(models.Category.name).label('count')
+    ).filter(
+        models.Category.user_id != user_id  # Excluir categorias do próprio usuário
+    ).group_by(
+        models.Category.name
+    ).order_by(
+        func.count(models.Category.name).desc()  # Mais populares primeiro
+    ).limit(limit).all()
+
+    # Retornar apenas os nomes
+    return [suggestion.name for suggestion in suggestions]
 
 
 def update_category(db: Session, category_id: int,
