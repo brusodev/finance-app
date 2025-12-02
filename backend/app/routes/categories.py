@@ -13,6 +13,21 @@ router = APIRouter(
 )
 
 
+@router.get("/suggestions", response_model=List[str])
+def get_category_suggestions(
+    db: Session = Depends(get_db),
+    current_user: schemas.User = Depends(get_current_user),
+    limit: int = 10
+):
+    """
+    Obter sugestões de nomes de categorias baseadas em categorias populares de outros usuários.
+
+    - limit: número máximo de sugestões (padrão: 10)
+    """
+    suggestions = crud.get_category_suggestions(db, user_id=current_user.id, limit=limit)
+    return suggestions
+
+
 @router.get("/", response_model=List[schemas.Category])
 def list_categories(
     skip: int = 0,
@@ -42,11 +57,14 @@ def create_category(
     current_user: schemas.User = Depends(get_current_user)
 ):
     """Criar uma nova categoria"""
-    db_category = crud.get_category_by_name(db, name=category.name)
+    # Verificar se já existe uma categoria com esse nome para este usuário
+    db_category = crud.get_category_by_name_and_user(
+        db, name=category.name, user_id=current_user.id
+    )
     if db_category:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Categoria com esse nome já existe"
+            detail="Você já possui uma categoria com esse nome"
         )
     return crud.create_category(
         db=db, category=category, user_id=current_user.id
@@ -93,6 +111,17 @@ def update_category(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Acesso negado"
         )
+
+    # Verificar se já existe outra categoria com esse nome para este usuário
+    existing_category = crud.get_category_by_name_and_user(
+        db, name=category.name, user_id=current_user.id
+    )
+    if existing_category and existing_category.id != category_id:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Você já possui outra categoria com esse nome"
+        )
+
     return crud.update_category(
         db=db, category_id=category_id, category=category
     )
