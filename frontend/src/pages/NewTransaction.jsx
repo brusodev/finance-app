@@ -14,6 +14,7 @@ export default function NewTransaction() {
   const [accounts, setAccounts] = useState([])
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
+  const [descriptionSuggestions, setDescriptionSuggestions] = useState([])
   const [formData, setFormData] = useState({
     amount: '',
     date: new Date().toISOString().split('T')[0],
@@ -37,6 +38,10 @@ export default function NewTransaction() {
     }
   }, [editingTransaction])
 
+  useEffect(() => {
+    loadDescriptionSuggestions()
+  }, [formData.transaction_type, formData.category_id])
+
   const loadData = async () => {
     try {
       const [categoriesData, accountsData] = await Promise.all([
@@ -50,13 +55,27 @@ export default function NewTransaction() {
       if (categoriesData.length > 0 && !editingTransaction && !formData.category_id) {
         setFormData(prev => ({ ...prev, category_id: categoriesData[0].id }))
       }
-      
+
       if (accountsData.length > 0 && !editingTransaction && !formData.account_id) {
         setFormData(prev => ({ ...prev, account_id: accountsData[0].id }))
       }
     } catch (err) {
       setError('Erro ao carregar dados')
       console.error('Erro:', err)
+    }
+  }
+
+  const loadDescriptionSuggestions = async () => {
+    try {
+      const suggestions = await transactionsAPI.getDescriptionSuggestions(
+        formData.transaction_type,
+        formData.category_id || null,
+        10
+      )
+      setDescriptionSuggestions(suggestions)
+    } catch (err) {
+      console.error('Erro ao carregar sugestões:', err)
+      setDescriptionSuggestions([])
     }
   }
 
@@ -215,15 +234,28 @@ export default function NewTransaction() {
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Descrição</label>
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+              Descrição
+              {descriptionSuggestions.length > 0 && (
+                <span className="ml-2 text-xs text-gray-500 dark:text-gray-400">
+                  ({descriptionSuggestions.length} sugestões)
+                </span>
+              )}
+            </label>
             <input
               type="text"
               required
+              list="description-suggestions"
               className="w-full px-4 py-2 border border-gray-200 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-gray-50 dark:bg-gray-700 focus:bg-white dark:focus:bg-gray-600 text-gray-900 dark:text-white transition-colors"
               placeholder="Ex: Compras do mês"
               value={formData.description}
               onChange={(e) => setFormData({ ...formData, description: e.target.value })}
             />
+            <datalist id="description-suggestions">
+              {descriptionSuggestions.map((suggestion, index) => (
+                <option key={index} value={suggestion} />
+              ))}
+            </datalist>
           </div>
 
           <div className="pt-4 border-t border-gray-100 dark:border-gray-700 flex justify-end gap-3">
