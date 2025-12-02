@@ -298,6 +298,24 @@ export const transactionsAPI = {
       throw error;
     }
   },
+
+  getDescriptionSuggestions: async (transactionType = null, categoryId = null, limit = 10) => {
+    try {
+      const params = new URLSearchParams();
+      if (transactionType) params.append('transaction_type', transactionType);
+      if (categoryId) params.append('category_id', categoryId);
+      if (limit) params.append('limit', limit);
+
+      const response = await fetch(`${API_URL}/transactions/suggestions/descriptions?${params}`, {
+        method: "GET",
+        headers: getHeaders(true),
+      });
+      return handleResponse(response);
+    } catch (error) {
+      console.error("Get description suggestions error:", error);
+      throw error;
+    }
+  },
 };
 
 // Default export for compatibility
