@@ -13,6 +13,38 @@ router = APIRouter(
 )
 
 
+@router.get("/suggestions/descriptions", response_model=list[str])
+def get_transaction_description_suggestions(
+    transaction_type: str = None,
+    category_id: int = None,
+    limit: int = 10,
+    db: Session = Depends(get_db),
+    current_user: schemas.User = Depends(get_current_user)
+):
+    """
+    Obter sugestões de descrições baseadas em transações populares de outros usuários.
+
+    Parâmetros opcionais:
+    - transaction_type: Filtrar por tipo ('income' ou 'expense')
+    - category_id: Filtrar por categoria específica
+    - limit: Número máximo de sugestões (padrão: 10)
+
+    Exemplos:
+    - GET /transactions/suggestions/descriptions
+    - GET /transactions/suggestions/descriptions?transaction_type=expense
+    - GET /transactions/suggestions/descriptions?category_id=5
+    - GET /transactions/suggestions/descriptions?transaction_type=income&category_id=3&limit=20
+    """
+    suggestions = crud.get_transaction_description_suggestions(
+        db,
+        user_id=current_user.id,
+        transaction_type=transaction_type,
+        category_id=category_id,
+        limit=limit
+    )
+    return suggestions
+
+
 @router.get("/", response_model=List[schemas.Transaction])
 def list_transactions(
     skip: int = 0,

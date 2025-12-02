@@ -94,11 +94,14 @@ def get_all_accounts(db: Session, skip: int = 0, limit: int = 100):
     return db.query(models.Account).offset(skip).limit(limit).all()
 
 
-def get_user_accounts(db: Session, user_id: int, skip: int = 0, limit: int = 100):
+def get_user_accounts(db: Session, user_id: int, skip: int = 0, limit: int = 100, include_inactive: bool = False):
     """Get all accounts for a specific user"""
-    return db.query(models.Account).filter(
-        models.Account.user_id == user_id
-    ).offset(skip).limit(limit).all()
+    query = db.query(models.Account).filter(models.Account.user_id == user_id)
+
+    if not include_inactive:
+        query = query.filter(models.Account.is_active == True)
+
+    return query.offset(skip).limit(limit).all()
 
 
 def create_account(db: Session, account: schemas.AccountCreate, user_id: int):
@@ -106,7 +109,8 @@ def create_account(db: Session, account: schemas.AccountCreate, user_id: int):
     db_account = models.Account(
         name=account.name,
         account_type=account.account_type,
-        balance=account.balance,
+        initial_balance=account.initial_balance,
+        balance=account.initial_balance,  # Começa com o saldo inicial
         currency=account.currency,
         user_id=user_id
     )
@@ -136,27 +140,129 @@ def get_account_suggestions(db: Session, user_id: int, limit: int = 10):
     return [suggestion.name for suggestion in suggestions]
 
 
-def update_account(db: Session, account_id: int, account: schemas.AccountCreate):
-    """Update account"""
+def update_account(db: Session, account_id: int, account: schemas.AccountUpdate):
+    """Update account (não altera initial_balance nem balance diretamente)"""
     db_account = get_account(db, account_id)
     if db_account:
-        db_account.name = account.name
-        db_account.account_type = account.account_type
-        db_account.balance = account.balance
-        db_account.currency = account.currency
+        if account.name is not None:
+            db_account.name = account.name
+        if account.account_type is not None:
+            db_account.account_type = account.account_type
+        if account.is_active is not None:
+            db_account.is_active = account.is_active
         db.commit()
         db.refresh(db_account)
     return db_account
 
 
-def delete_account(db: Session, account_id: int):
-    """Delete account by ID"""
+def delete_account(db: Session, account_id: int, soft_delete: bool = True):
+    """Delete account by ID (soft delete por padrão)"""
     db_account = get_account(db, account_id)
     if db_account:
-        db.delete(db_account)
-        db.commit()
+        if soft_delete:
+            # Soft delete: apenas marca como inativa
+            db_account.is_active = False
+            db.commit()
+        else:
+            # Hard delete: remove permanentemente
+            db.delete(db_account)
+            db.commit()
         return True
     return False
+
+
+def calculate_account_balance(db: Session, account_id: int):
+    """
+    Calcula o saldo real baseado em initial_balance + transações
+    Retorna tupla: (calculated_balance, total_transactions)
+    """
+    account = get_account(db, account_id)
+    if not account:
+        return None, 0
+
+    # Somar todas as transações da conta
+    from sqlalchemy import func
+    result = db.query(
+        func.sum(models.Transaction.amount),
+        func.count(models.Transaction.id)
+    ).filter(
+        models.Transaction.account_id == account_id
+    ).first()
+
+    total_amount = result[0] if result[0] is not None else 0.0
+    total_transactions = result[1] if result[1] is not None else 0
+
+    calculated_balance = account.initial_balance + total_amount
+    return calculated_balance, total_transactions
+
+
+def audit_account_balance(db: Session, account_id: int):
+    """
+    Audita o saldo da conta comparando balance vs calculated_balance
+    Retorna dict com informações detalhadas
+    """
+    account = get_account(db, account_id)
+    if not account:
+        return None
+
+    calculated_balance, total_transactions = calculate_account_balance(
+        db, account_id
+    )
+
+    difference = account.balance - calculated_balance
+    is_consistent = abs(difference) < 0.01  # Tolerância de 1 centavo
+
+    return {
+        "account_id": account.id,
+        "account_name": account.name,
+        "initial_balance": account.initial_balance,
+        "current_balance": account.balance,
+        "calculated_balance": calculated_balance,
+        "total_transactions": total_transactions,
+        "is_consistent": is_consistent,
+        "difference": difference
+    }
+
+
+def recalculate_account_balance(db: Session, account_id: int):
+    """
+    Recalcula e corrige o saldo da conta baseado nas transações
+    Útil para corrigir inconsistências
+    """
+    calculated_balance, _ = calculate_account_balance(db, account_id)
+    if calculated_balance is None:
+        return None
+
+    account = get_account(db, account_id)
+    if account:
+        old_balance = account.balance
+        account.balance = calculated_balance
+        db.commit()
+        db.refresh(account)
+
+        return {
+            "account_id": account.id,
+            "old_balance": old_balance,
+            "new_balance": calculated_balance,
+            "corrected": old_balance != calculated_balance
+        }
+    return None
+
+
+def audit_all_user_accounts(db: Session, user_id: int):
+    """
+    Audita todas as contas de um usuário
+    Retorna lista com status de cada conta
+    """
+    accounts = get_user_accounts(db, user_id, include_inactive=True)
+    audits = []
+
+    for account in accounts:
+        audit = audit_account_balance(db, account.id)
+        if audit:
+            audits.append(audit)
+
+    return audits
 
 
 # ========================
@@ -335,7 +441,57 @@ def delete_transaction(db: Session, transaction_id: int):
             account = get_account(db, db_transaction.account_id)
             if account:
                 account.balance -= db_transaction.amount
-        
+
         db.delete(db_transaction)
         db.commit()
     return db_transaction
+
+
+def get_transaction_description_suggestions(
+    db: Session,
+    user_id: int,
+    transaction_type: str = None,
+    category_id: int = None,
+    limit: int = 10
+):
+    """
+    Get transaction description suggestions from other users (most popular)
+
+    Args:
+        user_id: ID do usuário atual (para excluir suas próprias transações)
+        transaction_type: Filtro opcional por tipo ('income' ou 'expense')
+        category_id: Filtro opcional por categoria
+        limit: Número máximo de sugestões (padrão: 10)
+
+    Returns:
+        Lista de descrições mais populares
+    """
+    from sqlalchemy import func
+
+    # Query base: buscar descrições de outros usuários, não vazias
+    query = db.query(
+        models.Transaction.description,
+        func.count(models.Transaction.description).label('count')
+    ).filter(
+        models.Transaction.user_id != user_id,  # Excluir do próprio usuário
+        models.Transaction.description.isnot(None),  # Não nulas
+        models.Transaction.description != ''  # Não vazias
+    )
+
+    # Filtro opcional por tipo de transação
+    if transaction_type:
+        query = query.filter(models.Transaction.transaction_type == transaction_type)
+
+    # Filtro opcional por categoria
+    if category_id:
+        query = query.filter(models.Transaction.category_id == category_id)
+
+    # Agrupar, ordenar por popularidade e limitar
+    suggestions = query.group_by(
+        models.Transaction.description
+    ).order_by(
+        func.count(models.Transaction.description).desc()
+    ).limit(limit).all()
+
+    # Retornar apenas as descrições
+    return [suggestion.description for suggestion in suggestions]

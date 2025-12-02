@@ -17,10 +17,16 @@ def run_migrations():
     print("Verificando migrações do banco de dados...")
 
     migrations = [
+        # User migrations
         "ALTER TABLE users ADD COLUMN cpf VARCHAR",
         "ALTER TABLE users ADD COLUMN phone VARCHAR",
         "ALTER TABLE users ADD COLUMN birth_date DATE",
         "ALTER TABLE users ADD COLUMN address VARCHAR",
+        # Account migrations
+        "ALTER TABLE accounts ADD COLUMN initial_balance REAL DEFAULT 0.0",
+        "ALTER TABLE accounts ADD COLUMN is_active BOOLEAN DEFAULT TRUE",
+        "ALTER TABLE accounts ADD COLUMN created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP",
+        "ALTER TABLE accounts ADD COLUMN updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP",
     ]
 
     try:
@@ -32,6 +38,19 @@ def run_migrations():
                 except Exception as e:
                     # Coluna pode já existir
                     pass
+
+            # Migrar dados existentes: initial_balance = balance
+            try:
+                result = conn.execute(text("""
+                    UPDATE accounts
+                    SET initial_balance = balance
+                    WHERE initial_balance = 0.0 OR initial_balance IS NULL
+                """))
+                if result.rowcount > 0:
+                    print(f"Migrados {result.rowcount} saldos iniciais")
+            except Exception as e:
+                pass
+
         print("Migrações verificadas com sucesso!")
     except Exception as e:
         print(f"Aviso ao verificar migrações: {str(e)}")
