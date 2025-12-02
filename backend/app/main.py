@@ -22,18 +22,37 @@ def run_migrations():
 
     print(f"📊 Banco de dados detectado: {'PostgreSQL' if is_postgres else 'SQLite'}")
 
-    migrations = [
-        # User migrations
-        ("ALTER TABLE users ADD COLUMN cpf VARCHAR", "cpf"),
-        ("ALTER TABLE users ADD COLUMN phone VARCHAR", "phone"),
-        ("ALTER TABLE users ADD COLUMN birth_date DATE", "birth_date"),
-        ("ALTER TABLE users ADD COLUMN address VARCHAR", "address"),
-        # Account migrations
-        ("ALTER TABLE accounts ADD COLUMN initial_balance REAL DEFAULT 0.0", "initial_balance"),
-        ("ALTER TABLE accounts ADD COLUMN is_active BOOLEAN DEFAULT TRUE", "is_active"),
-        ("ALTER TABLE accounts ADD COLUMN created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP", "created_at"),
-        ("ALTER TABLE accounts ADD COLUMN updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP", "updated_at"),
-    ]
+    # Usar tipo correto dependendo do banco
+    float_type = "DOUBLE PRECISION" if is_postgres else "REAL"
+    bool_default = "TRUE" if is_postgres else "1"
+
+    # PostgreSQL suporta IF NOT EXISTS, SQLite não
+    if is_postgres:
+        migrations = [
+            # User migrations
+            ("ALTER TABLE users ADD COLUMN IF NOT EXISTS cpf VARCHAR", "cpf"),
+            ("ALTER TABLE users ADD COLUMN IF NOT EXISTS phone VARCHAR", "phone"),
+            ("ALTER TABLE users ADD COLUMN IF NOT EXISTS birth_date DATE", "birth_date"),
+            ("ALTER TABLE users ADD COLUMN IF NOT EXISTS address VARCHAR", "address"),
+            # Account migrations
+            (f"ALTER TABLE accounts ADD COLUMN IF NOT EXISTS initial_balance {float_type} DEFAULT 0.0", "initial_balance"),
+            (f"ALTER TABLE accounts ADD COLUMN IF NOT EXISTS is_active BOOLEAN DEFAULT {bool_default}", "is_active"),
+            ("ALTER TABLE accounts ADD COLUMN IF NOT EXISTS created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP", "created_at"),
+            ("ALTER TABLE accounts ADD COLUMN IF NOT EXISTS updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP", "updated_at"),
+        ]
+    else:
+        migrations = [
+            # User migrations
+            ("ALTER TABLE users ADD COLUMN cpf VARCHAR", "cpf"),
+            ("ALTER TABLE users ADD COLUMN phone VARCHAR", "phone"),
+            ("ALTER TABLE users ADD COLUMN birth_date DATE", "birth_date"),
+            ("ALTER TABLE users ADD COLUMN address VARCHAR", "address"),
+            # Account migrations
+            (f"ALTER TABLE accounts ADD COLUMN initial_balance {float_type} DEFAULT 0.0", "initial_balance"),
+            (f"ALTER TABLE accounts ADD COLUMN is_active INTEGER DEFAULT {bool_default}", "is_active"),
+            ("ALTER TABLE accounts ADD COLUMN created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP", "created_at"),
+            ("ALTER TABLE accounts ADD COLUMN updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP", "updated_at"),
+        ]
 
     try:
         with engine.begin() as conn:
