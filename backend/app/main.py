@@ -14,46 +14,57 @@ Base.metadata.create_all(bind=engine)
 
 def run_migrations():
     """Executar migrações do banco de dados"""
-    print("Verificando migrações do banco de dados...")
+    print("🔄 Verificando migrações do banco de dados...")
+
+    # Verificar se estamos usando PostgreSQL ou SQLite
+    db_url = str(engine.url)
+    is_postgres = 'postgresql' in db_url
+
+    print(f"📊 Banco de dados detectado: {'PostgreSQL' if is_postgres else 'SQLite'}")
 
     migrations = [
         # User migrations
-        "ALTER TABLE users ADD COLUMN cpf VARCHAR",
-        "ALTER TABLE users ADD COLUMN phone VARCHAR",
-        "ALTER TABLE users ADD COLUMN birth_date DATE",
-        "ALTER TABLE users ADD COLUMN address VARCHAR",
+        ("ALTER TABLE users ADD COLUMN cpf VARCHAR", "cpf"),
+        ("ALTER TABLE users ADD COLUMN phone VARCHAR", "phone"),
+        ("ALTER TABLE users ADD COLUMN birth_date DATE", "birth_date"),
+        ("ALTER TABLE users ADD COLUMN address VARCHAR", "address"),
         # Account migrations
-        "ALTER TABLE accounts ADD COLUMN initial_balance REAL DEFAULT 0.0",
-        "ALTER TABLE accounts ADD COLUMN is_active BOOLEAN DEFAULT TRUE",
-        "ALTER TABLE accounts ADD COLUMN created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP",
-        "ALTER TABLE accounts ADD COLUMN updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP",
+        ("ALTER TABLE accounts ADD COLUMN initial_balance REAL DEFAULT 0.0", "initial_balance"),
+        ("ALTER TABLE accounts ADD COLUMN is_active BOOLEAN DEFAULT TRUE", "is_active"),
+        ("ALTER TABLE accounts ADD COLUMN created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP", "created_at"),
+        ("ALTER TABLE accounts ADD COLUMN updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP", "updated_at"),
     ]
 
     try:
         with engine.begin() as conn:
-            for migration in migrations:
+            for migration_sql, column_name in migrations:
                 try:
-                    conn.execute(text(migration))
-                    print(f"Migracao executada: {migration}")
+                    conn.execute(text(migration_sql))
+                    print(f"  ✅ Migração aplicada: {column_name}")
                 except Exception as e:
-                    # Coluna pode já existir
-                    pass
+                    error_msg = str(e).lower()
+                    if 'already exists' in error_msg or 'duplicate column' in error_msg:
+                        print(f"  ⏭️  Coluna já existe: {column_name}")
+                    else:
+                        print(f"  ⚠️  Erro ao migrar {column_name}: {e}")
 
             # Migrar dados existentes: initial_balance = balance
             try:
                 result = conn.execute(text("""
                     UPDATE accounts
                     SET initial_balance = balance
-                    WHERE initial_balance = 0.0 OR initial_balance IS NULL
+                    WHERE initial_balance IS NULL OR initial_balance = 0.0
                 """))
                 if result.rowcount > 0:
-                    print(f"Migrados {result.rowcount} saldos iniciais")
+                    print(f"  📦 Migrados {result.rowcount} saldos iniciais")
             except Exception as e:
-                pass
+                print(f"  ⚠️  Erro ao migrar saldos: {e}")
 
-        print("Migrações verificadas com sucesso!")
+        print("✅ Migrações verificadas com sucesso!")
     except Exception as e:
-        print(f"Aviso ao verificar migrações: {str(e)}")
+        print(f"❌ Erro ao verificar migrações: {str(e)}")
+        import traceback
+        traceback.print_exc()
 
 
 def init_default_users():
