@@ -26,6 +26,44 @@ def list_users(skip: int = 0, limit: int = 100, db: Session = Depends(get_db)):
     return users
 
 
+# IMPORTANTE: Rotas especificas ANTES de rotas com parametros
+@router.get("/profile", response_model=schemas.User)
+def get_profile(
+    db: Session = Depends(get_db),
+    current_user: schemas.User = Depends(get_current_user)
+):
+    """Obter perfil do usuário autenticado"""
+    return current_user
+
+
+@router.put("/profile", response_model=schemas.User)
+def update_profile(
+    user: schemas.UserUpdate,
+    db: Session = Depends(get_db),
+    current_user: schemas.User = Depends(get_current_user)
+):
+    """Atualizar perfil do usuário autenticado"""
+    print(f"Dados recebidos: {user.dict()}")
+    print(f"Usuário autenticado: {current_user.id}")
+
+    db_user = crud.get_user(db, user_id=current_user.id)
+    if not db_user:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Usuário não encontrado"
+        )
+
+    try:
+        updated_user = crud.update_user_profile(db=db, user_id=current_user.id, user=user)
+        return updated_user
+    except Exception as e:
+        print(f"Erro ao atualizar perfil: {str(e)}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Erro ao atualizar perfil: {str(e)}"
+        )
+
+
 @router.get("/{user_id}", response_model=schemas.User)
 def get_user(user_id: int, db: Session = Depends(get_db)):
     """Obter dados de um usuário específico"""
@@ -77,40 +115,3 @@ def debug_profile_update(
         "current_user_id": current_user.id,
         "data_types": {k: str(type(v).__name__) for k, v in data.items()}
     }
-
-
-@router.put("/profile", response_model=schemas.User)
-def update_profile(
-    user: schemas.UserUpdate,
-    db: Session = Depends(get_db),
-    current_user: schemas.User = Depends(get_current_user)
-):
-    """Atualizar perfil do usuário autenticado"""
-    print(f"Dados recebidos: {user.dict()}")
-    print(f"Usuário autenticado: {current_user.id}")
-
-    db_user = crud.get_user(db, user_id=current_user.id)
-    if not db_user:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Usuário não encontrado"
-        )
-
-    try:
-        updated_user = crud.update_user_profile(db=db, user_id=current_user.id, user=user)
-        return updated_user
-    except Exception as e:
-        print(f"Erro ao atualizar perfil: {str(e)}")
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Erro ao atualizar perfil: {str(e)}"
-        )
-
-
-@router.get("/profile", response_model=schemas.User)
-def get_profile(
-    db: Session = Depends(get_db),
-    current_user: schemas.User = Depends(get_current_user)
-):
-    """Obter perfil do usuário autenticado"""
-    return current_user
