@@ -17,8 +17,12 @@ if "sqlite" in DATABASE_URL:
         connect_args={"check_same_thread": False}
     )
 else:
-    # Para PostgreSQL (se usar em producao)
-    engine = create_engine(DATABASE_URL)
+    # Para PostgreSQL (Railway ou outro servidor remoto)
+    # Railway exige SSL
+    engine = create_engine(
+        DATABASE_URL,
+        connect_args={"sslmode": "require"}
+    )
 
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 Base = declarative_base()
