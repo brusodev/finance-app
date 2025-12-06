@@ -56,7 +56,7 @@ def get_current_user(
         )
 
 
-@router.post("/register", response_model=schemas.User)
+@router.post("/register", response_model=schemas.User, status_code=status.HTTP_201_CREATED)
 def register(user: schemas.UserCreate, db: Session = Depends(get_db)):
     """
     Registrar novo usuário.

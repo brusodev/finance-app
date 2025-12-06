@@ -14,13 +14,13 @@ Base.metadata.create_all(bind=engine)
 
 def run_migrations():
     """Executar migrações do banco de dados"""
-    print("🔄 Verificando migrações do banco de dados...")
+    print("[INFO] Verificando migracoes do banco de dados...")
 
     # Verificar se estamos usando PostgreSQL ou SQLite
     db_url = str(engine.url)
     is_postgres = 'postgresql' in db_url
 
-    print(f"📊 Banco de dados detectado: {'PostgreSQL' if is_postgres else 'SQLite'}")
+    print(f"[INFO] Banco de dados detectado: {'PostgreSQL' if is_postgres else 'SQLite'}")
 
     # Usar tipo correto dependendo do banco
     float_type = "DOUBLE PRECISION" if is_postgres else "REAL"
@@ -59,13 +59,13 @@ def run_migrations():
             for migration_sql, column_name in migrations:
                 try:
                     conn.execute(text(migration_sql))
-                    print(f"  ✅ Migração aplicada: {column_name}")
+                    print(f"  [OK] Migracao aplicada: {column_name}")
                 except Exception as e:
                     error_msg = str(e).lower()
                     if 'already exists' in error_msg or 'duplicate column' in error_msg:
-                        print(f"  ⏭️  Coluna já existe: {column_name}")
+                        print(f"  [SKIP] Coluna ja existe: {column_name}")
                     else:
-                        print(f"  ⚠️  Erro ao migrar {column_name}: {e}")
+                        print(f"  [WARN] Erro ao migrar {column_name}: {e}")
 
             # Migrar dados existentes: initial_balance = balance
             try:
@@ -75,13 +75,13 @@ def run_migrations():
                     WHERE initial_balance IS NULL OR initial_balance = 0.0
                 """))
                 if result.rowcount > 0:
-                    print(f"  📦 Migrados {result.rowcount} saldos iniciais")
+                    print(f"  [DATA] Migrados {result.rowcount} saldos iniciais")
             except Exception as e:
-                print(f"  ⚠️  Erro ao migrar saldos: {e}")
+                print(f"  [WARN] Erro ao migrar saldos: {e}")
 
-        print("✅ Migrações verificadas com sucesso!")
+        print("[OK] Migracoes verificadas com sucesso!")
     except Exception as e:
-        print(f"❌ Erro ao verificar migrações: {str(e)}")
+        print(f"[ERRO] Erro ao verificar migracoes: {str(e)}")
         import traceback
         traceback.print_exc()
 
