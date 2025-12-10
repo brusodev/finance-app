@@ -1,8 +1,9 @@
 from contextlib import asynccontextmanager
-from fastapi import FastAPI
+from fastapi import FastAPI, Depends
 from fastapi.middleware.cors import CORSMiddleware
+from sqlalchemy.orm import Session
 from .routes import auth, users, categories, transactions, accounts
-from .database import engine, Base, SessionLocal
+from .database import engine, Base, SessionLocal, get_db
 from .models import User
 from .utils import hash_password
 from sqlalchemy import text
@@ -163,6 +164,71 @@ async def root():
             'users': '/users',
             'categories': '/categories',
             'accounts': '/accounts',
-            'transactions': '/transactions'
+            'transactions': '/transactions',
+            'dashboard': '/dashboard'
         }
+    }
+
+
+@app.get('/dashboard')
+async def dashboard(
+    db: Session = Depends(get_db),
+    current_user: User = Depends(auth.get_current_user)
+):
+    """
+    Dashboard com resumo geral das finanças do usuário.
+
+    Retorna:
+    - total_accounts: Número de contas ativas
+    - total_categories: Número de categorias
+    - total_transactions: Número de transações
+    - total_balance: Saldo total de todas as contas
+    - total_income: Total de receitas
+    - total_expense: Total de despesas
+    - net_balance: Balanço líquido (receitas - despesas)
+    """
+    from sqlalchemy import func
+    from .models import Account, Transaction, Category
+
+    # Contar contas ativas
+    total_accounts = db.query(func.count(Account.id)).filter(
+        Account.user_id == current_user.id,
+        Account.is_active == True
+    ).scalar() or 0
+
+    # Saldo total de todas as contas
+    total_balance = db.query(func.sum(Account.balance)).filter(
+        Account.user_id == current_user.id,
+        Account.is_active == True
+    ).scalar() or 0.0
+
+    # Contar categorias
+    total_categories = db.query(func.count(Category.id)).filter(
+        Category.user_id == current_user.id
+    ).scalar() or 0
+
+    # Contar transações
+    total_transactions = db.query(func.count(Transaction.id)).filter(
+        Transaction.user_id == current_user.id
+    ).scalar() or 0
+
+    # Calcular receitas e despesas
+    income_result = db.query(func.sum(Transaction.amount)).filter(
+        Transaction.user_id == current_user.id,
+        Transaction.transaction_type == 'income'
+    ).scalar() or 0.0
+
+    expense_result = db.query(func.sum(func.abs(Transaction.amount))).filter(
+        Transaction.user_id == current_user.id,
+        Transaction.transaction_type == 'expense'
+    ).scalar() or 0.0
+
+    return {
+        "total_accounts": total_accounts,
+        "total_categories": total_categories,
+        "total_transactions": total_transactions,
+        "total_balance": float(total_balance),
+        "total_income": float(income_result),
+        "total_expense": float(expense_result),
+        "net_balance": float(income_result) - float(expense_result)
     }

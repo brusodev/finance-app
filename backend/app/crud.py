@@ -242,8 +242,8 @@ def recalculate_account_balance(db: Session, account_id: int):
 
         return {
             "account_id": account.id,
-            "old_balance": old_balance,
-            "new_balance": calculated_balance,
+            "balance_before": old_balance,
+            "balance_after": calculated_balance,
             "corrected": old_balance != calculated_balance
         }
     return None
