@@ -57,7 +57,7 @@ def get_account(
     return db_account
 
 
-@router.post("/", response_model=schemas.Account)
+@router.post("/", response_model=schemas.Account, status_code=status.HTTP_201_CREATED)
 def create_account(
     account: schemas.AccountCreate,
     db: Session = Depends(get_db),
@@ -182,10 +182,7 @@ def recalculate_account(
             detail="Erro ao recalcular saldo"
         )
 
-    return {
-        "message": "Saldo recalculado com sucesso",
-        "details": result
-    }
+    return result
 
 
 @router.get("/audit/all", response_model=list[schemas.AccountBalanceAudit])

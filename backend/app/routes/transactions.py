@@ -1,11 +1,14 @@
 """Gerenciamento de Transações"""
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, status, Query
 from sqlalchemy.orm import Session
-from typing import List
+from typing import List, Dict, Any
+from datetime import date
+from sqlalchemy import func, and_
 from .. import crud, schemas
 from ..database import get_db
 from .auth import get_current_user
+from ..models import Transaction
 
 router = APIRouter(
     prefix="/transactions",
@@ -179,3 +182,109 @@ def delete_transaction(
         )
     crud.delete_transaction(db=db, transaction_id=transaction_id)
     return None
+
+
+@router.get("/totals/by-category")
+def get_totals_by_category(
+    db: Session = Depends(get_db),
+    current_user: schemas.User = Depends(get_current_user)
+) -> List[Dict[str, Any]]:
+    """
+    Obter totais agrupados por categoria.
+
+    Retorna lista com:
+    - category_id: ID da categoria
+    - category_name: Nome da categoria
+    - total_income: Total de receitas
+    - total_expense: Total de despesas
+    - balance: Saldo (receitas - despesas)
+    - transaction_count: Número de transações
+    """
+    # Buscar todas as transações do usuário
+    transactions = db.query(Transaction).filter(
+        Transaction.user_id == current_user.id
+    ).all()
+
+    # Agrupar por categoria manualmente
+    category_totals = {}
+    for trans in transactions:
+        cat_id = trans.category_id
+        if cat_id not in category_totals:
+            category_totals[cat_id] = {
+                "total_income": 0.0,
+                "total_expense": 0.0,
+                "count": 0
+            }
+
+        if trans.transaction_type == 'income':
+            category_totals[cat_id]["total_income"] += abs(float(trans.amount))
+        else:  # expense
+            category_totals[cat_id]["total_expense"] += abs(float(trans.amount))
+
+        category_totals[cat_id]["count"] += 1
+
+    # Buscar nomes das categorias e formatar resposta
+    totals = []
+    for cat_id, data in category_totals.items():
+        category = crud.get_category(db, cat_id)
+        totals.append({
+            "category_id": cat_id,
+            "category_name": category.name if category else "Desconhecida",
+            "total_income": data["total_income"],
+            "total_expense": data["total_expense"],
+            "balance": data["total_income"] - data["total_expense"],
+            "transaction_count": data["count"]
+        })
+
+    return totals
+
+
+@router.get("/totals/by-period")
+def get_totals_by_period(
+    start: date = Query(..., description="Data inicial (YYYY-MM-DD)"),
+    end: date = Query(..., description="Data final (YYYY-MM-DD)"),
+    db: Session = Depends(get_db),
+    current_user: schemas.User = Depends(get_current_user)
+) -> Dict[str, Any]:
+    """
+    Obter totais de um período específico.
+
+    Parâmetros:
+    - start: Data inicial
+    - end: Data final
+
+    Retorna:
+    - total_income: Total de receitas
+    - total_expense: Total de despesas
+    - balance: Saldo (receitas - despesas)
+    - transaction_count: Número de transações
+    - period_start: Data inicial
+    - period_end: Data final
+    """
+    # Buscar transações do período
+    transactions = db.query(Transaction).filter(
+        and_(
+            Transaction.user_id == current_user.id,
+            Transaction.date >= start,
+            Transaction.date <= end
+        )
+    ).all()
+
+    # Calcular totais manualmente
+    total_income = 0.0
+    total_expense = 0.0
+
+    for trans in transactions:
+        if trans.transaction_type == 'income':
+            total_income += abs(float(trans.amount))
+        else:  # expense
+            total_expense += abs(float(trans.amount))
+
+    return {
+        "total_income": total_income,
+        "total_expense": total_expense,
+        "balance": total_income - total_expense,
+        "transaction_count": len(transactions),
+        "period_start": start.isoformat(),
+        "period_end": end.isoformat()
+    }

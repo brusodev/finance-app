@@ -36,8 +36,8 @@ class Account(Base):
     balance = Column(Float, default=0.0)  # Saldo atual calculado
     currency = Column(String, default='BRL')
     is_active = Column(Boolean, default=True)  # Soft delete
-    created_at = Column(DateTime, default=datetime.utcnow)  # Auditoria
-    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)  # Auditoria
+    created_at = Column(DateTime, default=datetime.utcnow, nullable=True)  # Auditoria (opcional para SQLite)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=True)  # Auditoria (opcional para SQLite)
     user_id = Column(Integer, ForeignKey('users.id'))
     user = relationship("User")
 

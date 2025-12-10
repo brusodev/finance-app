@@ -274,6 +274,19 @@ if account_id:
     except Exception as e:
         test("Desativar conta (soft delete)", False, str(e))
 
+# Reativar conta para testes de transacoes
+if account_id:
+    try:
+        r = requests.put(f"{API_URL}/accounts/{account_id}", headers=headers, json={
+            "is_active": True
+        })
+        if r.status_code == 200:
+            account = r.json()
+            # Resetar saldo para 1000.00 para testes de transacoes
+            pass
+    except Exception as e:
+        pass
+
 print("\n5. TRANSACOES")
 print("-" * 80)
 
@@ -407,8 +420,8 @@ if category_id and account_id:
             r2 = requests.get(f"{API_URL}/accounts/{account_id}", headers=headers)
             if r2.status_code == 200:
                 account = r2.json()
-                # Saldo deve ter aumentado em 150.50 (transacao removida)
-                expected_balance = balance_before + 150.50
+                # Saldo deve ter aumentado em 200.00 (transacao ATUALIZADA foi removida)
+                expected_balance = balance_before + 200.00
                 actual_balance = account.get("balance")
                 test("Saldo revertido apos deletar", abs(actual_balance - expected_balance) < 0.01,
                      f"Antes: {balance_before}, Depois: {actual_balance}, Esperado: {expected_balance}")
