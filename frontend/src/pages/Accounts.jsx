@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react'
 import { Plus, Edit2, Trash2, X, Wallet } from 'lucide-react'
 import { accountsAPI } from '../services/api'
+import { formatCurrency } from '../utils/formatters'
 
 export default function Accounts() {
   const [accounts, setAccounts] = useState([])
@@ -55,8 +56,13 @@ export default function Accounts() {
 
     try {
       const accountData = {
-        ...formData,
-        balance: parseFloat(formData.balance)
+        name: formData.name,
+        account_type: formData.account_type,
+        currency: formData.currency,
+        ...(editingId
+          ? { balance: parseFloat(formData.balance) }
+          : { initial_balance: parseFloat(formData.balance) }
+        )
       }
 
       if (editingId) {
@@ -211,10 +217,18 @@ export default function Accounts() {
                 <Wallet size={24} />
               </div>
               <div className='flex gap-2'>
-                <button onClick={() => handleEdit(account)} className='text-gray-400 hover:text-blue-600 dark:hover:text-blue-400'>
+                <button
+                  onClick={() => handleEdit(account)}
+                  className='text-gray-400 hover:text-blue-600 dark:hover:text-blue-400'
+                  aria-label={`Editar conta ${account.name}`}
+                >
                   <Edit2 size={18} />
                 </button>
-                <button onClick={() => handleDelete(account.id)} className='text-gray-400 hover:text-red-600 dark:hover:text-red-400'>
+                <button
+                  onClick={() => handleDelete(account.id)}
+                  className='text-gray-400 hover:text-red-600 dark:hover:text-red-400'
+                  aria-label={`Excluir conta ${account.name}`}
+                >
                   <Trash2 size={18} />
                 </button>
               </div>
@@ -226,7 +240,7 @@ export default function Accounts() {
             </p>
             
             <p className={`text-2xl font-bold ${account.balance >= 0 ? 'text-gray-900 dark:text-white' : 'text-red-600 dark:text-red-400'}`}>
-              R$ {account.balance.toFixed(2).replace('.', ',')}
+              R$ {formatCurrency(account.balance)}
             </p>
           </div>
         ))}

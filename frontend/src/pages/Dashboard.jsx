@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react'
 import { transactionsAPI, categoriesAPI, accountsAPI } from '../services/api'
 import { useAuth } from '../context/AuthContext'
 import { ArrowUpCircle, ArrowDownCircle, Wallet } from 'lucide-react'
+import { formatCurrency } from '../utils/formatters'
 
 export default function Dashboard() {
   const [transactions, setTransactions] = useState([])
@@ -57,7 +58,7 @@ export default function Dashboard() {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center h-64">
+      <div className="flex items-center justify-center h-64" role="status" aria-label="Carregando dados">
         <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
       </div>
     )
@@ -86,7 +87,7 @@ export default function Dashboard() {
             <Wallet className="text-blue-500" size={20} />
           </div>
           <p className={`text-2xl font-bold ${balance >= 0 ? 'text-gray-900 dark:text-white' : 'text-red-600 dark:text-red-400'}`}>
-            R$ {balance.toFixed(2).replace('.', ',')}
+            R$ {formatCurrency(balance)}
           </p>
         </div>
 
@@ -96,7 +97,7 @@ export default function Dashboard() {
             <ArrowUpCircle className="text-green-500" size={20} />
           </div>
           <p className="text-2xl font-bold text-green-600 dark:text-green-400">
-            R$ {totalIncome.toFixed(2).replace('.', ',')}
+            R$ {formatCurrency(totalIncome)}
           </p>
         </div>
 
@@ -106,7 +107,7 @@ export default function Dashboard() {
             <ArrowDownCircle className="text-red-500" size={20} />
           </div>
           <p className="text-2xl font-bold text-red-600 dark:text-red-400">
-            R$ {totalExpense.toFixed(2).replace('.', ',')}
+            R$ {formatCurrency(totalExpense)}
           </p>
         </div>
       </div>
@@ -146,7 +147,7 @@ export default function Dashboard() {
                       </td>
                       <td className="px-6 py-4 text-sm text-gray-600 dark:text-gray-300">{t.description}</td>
                       <td className={`px-6 py-4 text-sm font-medium text-right ${t.amount > 0 ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'}`}>
-                        R$ {Math.abs(t.amount).toFixed(2).replace('.', ',')}
+                        R$ {formatCurrency(Math.abs(t.amount))}
                       </td>
                     </tr>
                   ))}
@@ -168,7 +169,7 @@ export default function Dashboard() {
                     </div>
                   </div>
                   <span className={`text-sm font-medium ${t.amount > 0 ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'}`}>
-                    {t.amount > 0 ? '+' : '-'} R$ {Math.abs(t.amount).toFixed(2).replace('.', ',')}
+                    {t.amount > 0 ? '+' : '-'} R$ {formatCurrency(Math.abs(t.amount))}
                   </span>
                 </div>
               ))}
