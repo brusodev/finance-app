@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react'
+import { transactionsAPI } from '../services/api'
 
 export default function TransactionForm({ categories, initialData, onSubmit, onCancel }) {
   const [amount, setAmount] = useState('')
@@ -8,6 +9,7 @@ export default function TransactionForm({ categories, initialData, onSubmit, onC
   const [transactionType, setTransactionType] = useState('income')
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
+  const [descriptionSuggestions, setDescriptionSuggestions] = useState([])
 
   // Preencher formulário se estiver editando
   useEffect(() => {
@@ -24,6 +26,25 @@ export default function TransactionForm({ categories, initialData, onSubmit, onC
       setTransactionType('income')
     }
   }, [initialData])
+
+  // Carregar sugestões de descrição quando tipo ou categoria mudam
+  useEffect(() => {
+    loadDescriptionSuggestions()
+  }, [transactionType, categoryId])
+
+  const loadDescriptionSuggestions = async () => {
+    try {
+      const suggestions = await transactionsAPI.getDescriptionSuggestions(
+        transactionType,
+        categoryId || null,
+        10
+      )
+      setDescriptionSuggestions(suggestions)
+    } catch (err) {
+      console.error('Erro ao carregar sugestões:', err)
+      setDescriptionSuggestions([])
+    }
+  }
 
   const handleSubmit = async (e) => {
     e.preventDefault()
@@ -178,17 +199,28 @@ export default function TransactionForm({ categories, initialData, onSubmit, onC
           <div className="md:col-span-2">
             <label htmlFor="description" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
               Descrição
+              {descriptionSuggestions.length > 0 && (
+                <span className="ml-2 text-xs text-gray-500 dark:text-gray-400">
+                  ({descriptionSuggestions.length} sugestões disponíveis)
+                </span>
+              )}
             </label>
-            <textarea
+            <input
               id="description"
+              type="text"
               required
+              list="description-suggestions"
               value={description}
               onChange={(e) => setDescription(e.target.value)}
-              className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none resize-none bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
-              placeholder="Descreva a transação..."
-              rows={3}
+              className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+              placeholder="Digite ou selecione uma sugestão..."
               disabled={loading}
             />
+            <datalist id="description-suggestions">
+              {descriptionSuggestions.map((suggestion, index) => (
+                <option key={index} value={suggestion} />
+              ))}
+            </datalist>
           </div>
         </div>
 
