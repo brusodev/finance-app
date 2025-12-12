@@ -34,14 +34,20 @@ export default function TransactionForm({ categories, initialData, onSubmit, onC
 
   const loadDescriptionSuggestions = async () => {
     try {
+      console.log('🔍 [TransactionForm] Carregando sugestões...', {
+        transaction_type: transactionType,
+        category_id: categoryId || null,
+        limit: 10
+      })
       const suggestions = await transactionsAPI.getDescriptionSuggestions(
         transactionType,
         categoryId || null,
         10
       )
+      console.log('✅ [TransactionForm] Sugestões carregadas:', suggestions)
       setDescriptionSuggestions(suggestions)
     } catch (err) {
-      console.error('Erro ao carregar sugestões:', err)
+      console.error('❌ [TransactionForm] Erro ao carregar sugestões:', err)
       setDescriptionSuggestions([])
     }
   }

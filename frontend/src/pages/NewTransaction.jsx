@@ -67,14 +67,20 @@ export default function NewTransaction() {
 
   const loadDescriptionSuggestions = async () => {
     try {
+      console.log('🔍 Carregando sugestões...', {
+        transaction_type: formData.transaction_type,
+        category_id: formData.category_id || null,
+        limit: 10
+      })
       const suggestions = await transactionsAPI.getDescriptionSuggestions(
         formData.transaction_type,
         formData.category_id || null,
         10
       )
+      console.log('✅ Sugestões carregadas:', suggestions)
       setDescriptionSuggestions(suggestions)
     } catch (err) {
-      console.error('Erro ao carregar sugestões:', err)
+      console.error('❌ Erro ao carregar sugestões:', err)
       setDescriptionSuggestions([])
     }
   }
