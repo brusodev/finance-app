@@ -39,11 +39,24 @@ export default function TransactionForm({ categories, initialData, onSubmit, onC
         category_id: categoryId || null,
         limit: 10
       })
-      const suggestions = await transactionsAPI.getDescriptionSuggestions(
+
+      // Tenta buscar sugestões com categoria específica
+      let suggestions = await transactionsAPI.getDescriptionSuggestions(
         transactionType,
         categoryId || null,
         10
       )
+
+      // Se não houver sugestões para essa categoria, busca sugestões gerais do tipo
+      if (suggestions.length === 0 && categoryId) {
+        console.log('⚠️ [TransactionForm] Sem sugestões para esta categoria, buscando sugestões gerais...')
+        suggestions = await transactionsAPI.getDescriptionSuggestions(
+          transactionType,
+          null, // Sem filtro de categoria
+          10
+        )
+      }
+
       console.log('✅ [TransactionForm] Sugestões carregadas:', suggestions)
       setDescriptionSuggestions(suggestions)
     } catch (err) {
