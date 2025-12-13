@@ -17,7 +17,7 @@ export default function NewTransaction() {
   const [descriptionSuggestions, setDescriptionSuggestions] = useState([])
   const [formData, setFormData] = useState({
     amount: '',
-    date: new Date().toISOString().split('T')[0],
+    date: new Date().toLocaleDateString('pt-BR', { year: 'numeric', month: '2-digit', day: '2-digit' }).split('/').reverse().join('-'),
     description: '',
     category_id: '',
     account_id: '',

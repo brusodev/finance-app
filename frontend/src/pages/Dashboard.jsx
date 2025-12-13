@@ -139,7 +139,7 @@ export default function Dashboard() {
                   {transactions.slice(0, 10).map((t) => (
                     <tr key={t.id} className="hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors">
                       <td className="px-6 py-4 text-sm text-gray-600 dark:text-gray-300">
-                        {new Date(t.date).toLocaleDateString('pt-BR')}
+                        {new Date(t.date + 'T00:00:00').toLocaleDateString('pt-BR')}
                       </td>
                       <td className="px-6 py-4 text-sm text-gray-900 dark:text-white flex items-center gap-2">
                         <span>{t.category?.icon || '📁'}</span>
@@ -165,7 +165,7 @@ export default function Dashboard() {
                     </div>
                     <div>
                       <p className="text-sm font-medium text-gray-900 dark:text-white">{t.description}</p>
-                      <p className="text-xs text-gray-500 dark:text-gray-400">{t.category?.name} • {new Date(t.date).toLocaleDateString('pt-BR')}</p>
+                      <p className="text-xs text-gray-500 dark:text-gray-400">{t.category?.name} • {new Date(t.date + 'T00:00:00').toLocaleDateString('pt-BR')}</p>
                     </div>
                   </div>
                   <span className={`text-sm font-medium ${t.amount > 0 ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'}`}>

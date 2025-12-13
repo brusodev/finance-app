@@ -390,13 +390,13 @@ def create_transaction(db: Session, transaction: schemas.TransactionCreate, user
         user_id=user_id
     )
     db.add(db_transaction)
-    
+
     # Atualizar saldo da conta se account_id foi fornecido
     if transaction.account_id:
         account = get_account(db, transaction.account_id)
         if account:
             account.balance += transaction.amount
-    
+
     db.commit()
     db.refresh(db_transaction)
     return db_transaction
@@ -408,13 +408,13 @@ def update_transaction(db: Session, transaction_id: int, transaction: schemas.Tr
     if db_transaction:
         old_account_id = db_transaction.account_id
         old_amount = db_transaction.amount
-        
+
         # Reverter saldo da conta antiga se houver
         if old_account_id:
             old_account = get_account(db, old_account_id)
             if old_account:
                 old_account.balance -= old_amount
-        
+
         # Atualizar campos da transação
         db_transaction.amount = transaction.amount
         db_transaction.date = transaction.date
@@ -422,13 +422,13 @@ def update_transaction(db: Session, transaction_id: int, transaction: schemas.Tr
         db_transaction.category_id = transaction.category_id
         db_transaction.account_id = transaction.account_id
         db_transaction.transaction_type = transaction.transaction_type
-        
+
         # Adicionar valor na nova conta se houver
         if transaction.account_id:
             new_account = get_account(db, transaction.account_id)
             if new_account:
                 new_account.balance += transaction.amount
-        
+
         db.commit()
         db.refresh(db_transaction)
     return db_transaction
@@ -481,7 +481,8 @@ def get_transaction_description_suggestions(
 
     # Filtro opcional por tipo de transação
     if transaction_type:
-        query = query.filter(models.Transaction.transaction_type == transaction_type)
+        query = query.filter(
+            models.Transaction.transaction_type == transaction_type)
 
     # Filtro opcional por categoria
     if category_id:
