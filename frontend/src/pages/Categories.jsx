@@ -15,7 +15,7 @@ export default function Categories() {
   const [success, setSuccess] = useState('')
   const [suggestions, setSuggestions] = useState([])
 
-  const icons = ['📁', '🍔', '🚗', '🏥', '💡', '🎓', '🏠', '🎮', '✈️', '💳', '🛒', '📱', '🎬', '⚽', '📚']
+  const icons = ['📁', '🍔', '🚗', '🏥', '💡', '🎓', '🏠', '🎮', '✈️', '💳', '🛒', '📱', '🎬', '⚽', '📚',🤝]
 
   useEffect(() => {
     loadCategories()
