@@ -70,14 +70,14 @@ export default function NewTransaction() {
       console.log('🔍 Carregando sugestões...', {
         transaction_type: formData.transaction_type,
         category_id: formData.category_id || null,
-        limit: 10
+        limit: 50
       })
 
       // Tenta buscar sugestões com categoria específica
       let suggestions = await transactionsAPI.getDescriptionSuggestions(
         formData.transaction_type,
         formData.category_id || null,
-        10
+        50
       )
 
       // Se não houver sugestões para essa categoria, busca sugestões gerais do tipo
@@ -86,7 +86,7 @@ export default function NewTransaction() {
         suggestions = await transactionsAPI.getDescriptionSuggestions(
           formData.transaction_type,
           null, // Sem filtro de categoria
-          10
+          50
         )
       }
 
