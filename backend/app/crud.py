@@ -457,10 +457,10 @@ def get_transaction_description_suggestions(
     limit: int = 10
 ):
     """
-    Get transaction description suggestions from other users (most popular)
+    Get transaction description suggestions - prioritiza do usuário atual, depois outros usuários
 
     Args:
-        user_id: ID do usuário atual (para excluir suas próprias transações)
+        user_id: ID do usuário atual
         transaction_type: Filtro opcional por tipo ('income' ou 'expense')
         category_id: Filtro opcional por categoria
         limit: Número máximo de sugestões (padrão: 10)
@@ -470,12 +470,11 @@ def get_transaction_description_suggestions(
     """
     from sqlalchemy import func
 
-    # Query base: buscar descrições de outros usuários, não vazias
+    # Query base: buscar descrições não vazias
     query = db.query(
         models.Transaction.description,
         func.count(models.Transaction.description).label('count')
     ).filter(
-        models.Transaction.user_id != user_id,  # Excluir do próprio usuário
         models.Transaction.description.isnot(None),  # Não nulas
         models.Transaction.description != ''  # Não vazias
     )
