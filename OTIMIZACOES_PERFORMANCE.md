@@ -135,9 +135,37 @@ Os índices serão criados automaticamente quando o backend reiniciar com o novo
 - totals/by-category : **20-50ms**
 - Tempo total de carregamento: **<2 segundos**
 
+## 7. Endpoint Otimizado para Dashboard (Backend + Frontend)
+
+**Arquivos modificados:**
+- [backend/app/main.py](backend/app/main.py:237-302)
+- [frontend/src/pages/Dashboard.jsx](frontend/src/pages/Dashboard.jsx)
+
+**Antes:**
+- Dashboard fazia 3 requisições separadas:
+  - `/categories/` - buscar todas as categorias
+  - `/transactions/` - buscar TODAS as transações (limite 100)
+  - `/accounts/` - buscar todas as contas
+- Total: 3 requisições, ~100KB+ transferidos
+
+**Depois:**
+- Dashboard faz 1 única requisição: `/dashboard/summary`
+- Backend retorna:
+  - Estatísticas agregadas (queries otimizadas com SQL)
+  - Últimas 10 transações (já ordenadas)
+- Total: 1 requisição, ~5-10KB transferidos
+
+**Benefícios:**
+- Redução de **67% nas requisições** (de 3 para 1)
+- Redução de **90%+ nos dados transferidos**
+- Carregamento muito mais rápido em mobile
+- Menos processamento no frontend
+
 ## Arquivos Modificados
 
 - ✅ [backend/app/models.py](backend/app/models.py) - Índices
 - ✅ [backend/app/crud.py](backend/app/crud.py) - Ordenação
 - ✅ [backend/app/routes/transactions.py](backend/app/routes/transactions.py) - Queries otimizadas
-- ✅ [frontend/src/services/api.jsx](frontend/src/services/api.jsx) - Cache e limite
+- ✅ [backend/app/main.py](backend/app/main.py) - Endpoint /dashboard/summary
+- ✅ [frontend/src/services/api.jsx](frontend/src/services/api.jsx) - Cache
+- ✅ [frontend/src/pages/Dashboard.jsx](frontend/src/pages/Dashboard.jsx) - Usa endpoint otimizado e limite

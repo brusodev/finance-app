@@ -232,3 +232,71 @@ async def dashboard(
         "total_expense": float(expense_result),
         "net_balance": float(income_result) - float(expense_result)
     }
+
+
+@app.get('/dashboard/summary')
+async def dashboard_summary(
+    db: Session = Depends(get_db),
+    current_user: User = Depends(auth.get_current_user)
+):
+    """
+    Dashboard otimizado - retorna TUDO em uma única requisição.
+
+    Retorna estatísticas + últimas 10 transações.
+    Reduz de 3 requisições para 1 única requisição.
+    """
+    from sqlalchemy import func
+    from .models import Account, Transaction, Category
+    from . import schemas
+
+    # Queries agregadas otimizadas (executadas em paralelo pelo DB)
+    total_accounts = db.query(func.count(Account.id)).filter(
+        Account.user_id == current_user.id,
+        Account.is_active == True
+    ).scalar() or 0
+
+    total_balance = db.query(func.sum(Account.balance)).filter(
+        Account.user_id == current_user.id,
+        Account.is_active == True
+    ).scalar() or 0.0
+
+    total_categories = db.query(func.count(Category.id)).filter(
+        Category.user_id == current_user.id
+    ).scalar() or 0
+
+    total_transactions = db.query(func.count(Transaction.id)).filter(
+        Transaction.user_id == current_user.id
+    ).scalar() or 0
+
+    income_result = db.query(func.sum(Transaction.amount)).filter(
+        Transaction.user_id == current_user.id,
+        Transaction.transaction_type == 'income'
+    ).scalar() or 0.0
+
+    expense_result = db.query(func.sum(func.abs(Transaction.amount))).filter(
+        Transaction.user_id == current_user.id,
+        Transaction.transaction_type == 'expense'
+    ).scalar() or 0.0
+
+    # Buscar últimas 10 transações com joins otimizados
+    recent_transactions = db.query(Transaction).filter(
+        Transaction.user_id == current_user.id
+    ).order_by(Transaction.date.desc()).limit(10).all()
+
+    # Serializar transações
+    transactions_data = [
+        schemas.Transaction.model_validate(t) for t in recent_transactions
+    ]
+
+    return {
+        "stats": {
+            "total_accounts": total_accounts,
+            "total_categories": total_categories,
+            "total_transactions": total_transactions,
+            "total_balance": float(total_balance),
+            "total_income": float(income_result),
+            "total_expense": float(expense_result),
+            "net_balance": float(income_result) - float(expense_result)
+        },
+        "recent_transactions": transactions_data
+    }

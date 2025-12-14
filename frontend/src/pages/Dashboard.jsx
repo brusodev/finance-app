@@ -1,19 +1,16 @@
 import React, { useState, useEffect } from 'react'
-import { transactionsAPI, categoriesAPI, accountsAPI } from '../services/api'
 import { useAuth } from '../context/AuthContext'
 import { ArrowUpCircle, ArrowDownCircle, Wallet } from 'lucide-react'
 import { formatCurrency } from '../utils/formatters'
 
 export default function Dashboard() {
   const [transactions, setTransactions] = useState([])
-  const [categories, setCategories] = useState([])
-  const [accounts, setAccounts] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
   const [totalIncome, setTotalIncome] = useState(0)
   const [totalExpense, setTotalExpense] = useState(0)
   const [accountsBalance, setAccountsBalance] = useState(0)
-  
+
   const { user } = useAuth()
 
   useEffect(() => {
@@ -24,15 +21,32 @@ export default function Dashboard() {
     try {
       setLoading(true)
       setError('')
-      const [categoriesData, transactionsData, accountsData] = await Promise.all([
-        categoriesAPI.getAll(),
-        transactionsAPI.getAll(),
-        accountsAPI.getAll()
-      ])
-      setCategories(categoriesData)
-      setTransactions(transactionsData)
-      setAccounts(accountsData)
-      calculateTotals(transactionsData, accountsData)
+
+      // OTIMIZAÇÃO: Usar endpoint /dashboard/summary
+      // Reduz de 3 requisições para 1 única!
+      const API_URL = import.meta.env.VITE_API_URL || "http://localhost:8000"
+      const token = localStorage.getItem("token")
+
+      const response = await fetch(`${API_URL}/dashboard/summary`, {
+        method: "GET",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${token}`
+        }
+      })
+
+      if (!response.ok) {
+        throw new Error('Erro ao carregar dashboard')
+      }
+
+      const data = await response.json()
+
+      // Definir dados do dashboard
+      setTransactions(data.recent_transactions)
+      setTotalIncome(data.stats.total_income)
+      setTotalExpense(data.stats.total_expense)
+      setAccountsBalance(data.stats.total_balance)
+
     } catch (err) {
       const errorMessage = err.detail || err.message || 'Erro ao carregar dados'
       setError(errorMessage)
@@ -40,20 +54,6 @@ export default function Dashboard() {
     } finally {
       setLoading(false)
     }
-  }
-
-  const calculateTotals = (txns, accts = []) => {
-    let income = 0
-    let expense = 0
-    let accBalance = 0
-    accts.forEach((acc) => { accBalance += acc.balance })
-    txns.forEach((txn) => {
-      if (txn.amount > 0) income += txn.amount
-      else expense += Math.abs(txn.amount)
-    })
-    setAccountsBalance(accBalance)
-    setTotalIncome(income)
-    setTotalExpense(expense)
   }
 
   if (loading) {
@@ -64,7 +64,8 @@ export default function Dashboard() {
     )
   }
 
-  const balance = accountsBalance + totalIncome - totalExpense
+  // Saldo já vem calculado do backend (total_balance)
+  const balance = accountsBalance
 
   return (
     <div className="space-y-6">
