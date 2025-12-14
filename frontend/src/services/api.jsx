@@ -242,15 +242,49 @@ export const categoriesAPI = {
   },
 };
 
+// Cache simples para transações (5 minutos)
+const transactionsCache = {
+  data: null,
+  timestamp: null,
+  ttl: 5 * 60 * 1000, // 5 minutos
+  isValid() {
+    return this.data && this.timestamp && (Date.now() - this.timestamp < this.ttl);
+  },
+  get() {
+    return this.isValid() ? this.data : null;
+  },
+  set(data) {
+    this.data = data;
+    this.timestamp = Date.now();
+  },
+  clear() {
+    this.data = null;
+    this.timestamp = null;
+  }
+};
+
 // Transactions API
 export const transactionsAPI = {
-  getAll: async () => {
+  getAll: async (useCache = true) => {
     try {
-      const response = await fetch(`${API_URL}/transactions/`, {
+      // Verificar cache
+      if (useCache) {
+        const cached = transactionsCache.get();
+        if (cached) {
+          console.log('✅ Usando transações do cache');
+          return cached;
+        }
+      }
+
+      const response = await fetch(`${API_URL}/transactions/?limit=50`, {
         method: "GET",
         headers: getHeaders(true),
       });
-      return handleResponse(response);
+      const data = await handleResponse(response);
+
+      // Salvar no cache
+      transactionsCache.set(data);
+      return data;
     } catch (error) {
       console.error("Get transactions error:", error);
       throw error;
@@ -264,7 +298,10 @@ export const transactionsAPI = {
         headers: getHeaders(true),
         body: JSON.stringify(data),
       });
-      return handleResponse(response);
+      const result = await handleResponse(response);
+      // Limpar cache após criar
+      transactionsCache.clear();
+      return result;
     } catch (error) {
       console.error("Create transaction error:", error);
       throw error;
@@ -278,7 +315,10 @@ export const transactionsAPI = {
         headers: getHeaders(true),
         body: JSON.stringify(data),
       });
-      return handleResponse(response);
+      const result = await handleResponse(response);
+      // Limpar cache após atualizar
+      transactionsCache.clear();
+      return result;
     } catch (error) {
       console.error("Update transaction error:", error);
       throw error;
@@ -292,6 +332,8 @@ export const transactionsAPI = {
         headers: getHeaders(true),
       });
       if (!response.ok) throw new Error("Failed to delete transaction");
+      // Limpar cache após deletar
+      transactionsCache.clear();
       return null;
     } catch (error) {
       console.error("Delete transaction error:", error);

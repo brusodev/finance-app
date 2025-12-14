@@ -367,10 +367,10 @@ def get_transaction(db: Session, transaction_id: int):
 
 
 def get_user_transactions(db: Session, user_id: int, skip: int = 0, limit: int = 100):
-    """Get all transactions for a user"""
+    """Get all transactions for a user ordered by date (newest first)"""
     return db.query(models.Transaction).filter(
         models.Transaction.user_id == user_id
-    ).offset(skip).limit(limit).all()
+    ).order_by(models.Transaction.date.desc()).offset(skip).limit(limit).all()
 
 
 def get_all_transactions(db: Session, skip: int = 0, limit: int = 100):

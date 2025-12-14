@@ -14,7 +14,8 @@
       "Bash(timeout 90 bash -c '\necho \"\"Aguardando deploy do Railway (60 segundos)...\"\"\nsleep 60\necho \"\"\"\"\necho \"\"Testando endpoint de login...\"\"\ncurl -X POST \"\"https://backend-production-01bf8.up.railway.app/auth/login\"\" \\\n  -H \"\"Content-Type: application/json\"\" \\\n  -d \"\"{\\\"\"username\\\"\":\\\"\"bruno\\\"\",\\\"\"password\\\"\":\\\"\"123456\\\"\"}\"\" \\\n  -w \"\"\\n\\nStatus Code: %{http_code}\\n\"\" \\\n  2>&1 | grep -v \"\"^%\"\" | head -n 40\n')",
       "Bash(npm install:*)",
       "Bash(npm test:*)",
-      "Bash(npm run dev:*)"
+      "Bash(npm run dev:*)",
+      "Bash(timeout 10 bash:*)"
     ],
     "deny": [],
     "ask": []
