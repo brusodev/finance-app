@@ -46,12 +46,12 @@ class Transaction(Base):
     __tablename__ = 'transactions'
     id = Column(Integer, primary_key=True, index=True)
     amount = Column(Float)
-    date = Column(Date)
-    description = Column(String)
-    transaction_type = Column(String)  # 'income' or 'expense'
-    category_id = Column(Integer, ForeignKey('categories.id'))
-    account_id = Column(Integer, ForeignKey('accounts.id'), nullable=True)
-    user_id = Column(Integer, ForeignKey('users.id'))
+    date = Column(Date, index=True)  # Índice para ordenação e filtros
+    description = Column(String, index=True)  # Índice para sugestões
+    transaction_type = Column(String, index=True)  # Índice para filtros
+    category_id = Column(Integer, ForeignKey('categories.id'), index=True)
+    account_id = Column(Integer, ForeignKey('accounts.id'), nullable=True, index=True)
+    user_id = Column(Integer, ForeignKey('users.id'), index=True)  # Índice crítico
 
     category = relationship("Category")
     account = relationship("Account")

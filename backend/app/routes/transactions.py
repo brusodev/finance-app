@@ -4,7 +4,7 @@ from fastapi import APIRouter, Depends, HTTPException, status, Query
 from sqlalchemy.orm import Session
 from typing import List, Dict, Any
 from datetime import date
-from sqlalchemy import func, and_
+from sqlalchemy import and_
 from .. import crud, schemas
 from ..database import get_db
 from .auth import get_current_user
@@ -25,7 +25,7 @@ def get_transaction_description_suggestions(
     current_user: schemas.User = Depends(get_current_user)
 ):
     """
-    Obter sugestões de descrições baseadas em transações populares de outros usuários.
+    Obter sugestões de descrições baseadas em transações.
 
     Parâmetros opcionais:
     - transaction_type: Filtrar por tipo ('income' ou 'expense')
@@ -36,7 +36,8 @@ def get_transaction_description_suggestions(
     - GET /transactions/suggestions/descriptions
     - GET /transactions/suggestions/descriptions?transaction_type=expense
     - GET /transactions/suggestions/descriptions?category_id=5
-    - GET /transactions/suggestions/descriptions?transaction_type=income&category_id=3&limit=20
+    - GET /transactions/suggestions/descriptions?
+      transaction_type=income&category_id=3&limit=20
     """
     suggestions = crud.get_transaction_description_suggestions(
         db,
@@ -200,40 +201,48 @@ def get_totals_by_category(
     - balance: Saldo (receitas - despesas)
     - transaction_count: Número de transações
     """
-    # Buscar todas as transações do usuário
-    transactions = db.query(Transaction).filter(
+    from sqlalchemy import func
+    from ..models import Category
+
+    # Query otimizada com agregação SQL nativa
+    results = db.query(
+        Transaction.category_id,
+        Category.name.label('category_name'),
+        func.sum(
+            func.case(
+                (Transaction.transaction_type == 'income',
+                 func.abs(Transaction.amount)),
+                else_=0
+            )
+        ).label('total_income'),
+        func.sum(
+            func.case(
+                (Transaction.transaction_type == 'expense',
+                 func.abs(Transaction.amount)),
+                else_=0
+            )
+        ).label('total_expense'),
+        func.count(Transaction.id).label('transaction_count')
+    ).join(
+        Category, Transaction.category_id == Category.id
+    ).filter(
         Transaction.user_id == current_user.id
+    ).group_by(
+        Transaction.category_id, Category.name
     ).all()
 
-    # Agrupar por categoria manualmente
-    category_totals = {}
-    for trans in transactions:
-        cat_id = trans.category_id
-        if cat_id not in category_totals:
-            category_totals[cat_id] = {
-                "total_income": 0.0,
-                "total_expense": 0.0,
-                "count": 0
-            }
-
-        if trans.transaction_type == 'income':
-            category_totals[cat_id]["total_income"] += abs(float(trans.amount))
-        else:  # expense
-            category_totals[cat_id]["total_expense"] += abs(float(trans.amount))
-
-        category_totals[cat_id]["count"] += 1
-
-    # Buscar nomes das categorias e formatar resposta
+    # Formatar resposta
     totals = []
-    for cat_id, data in category_totals.items():
-        category = crud.get_category(db, cat_id)
+    for row in results:
+        total_income = float(row.total_income or 0)
+        total_expense = float(row.total_expense or 0)
         totals.append({
-            "category_id": cat_id,
-            "category_name": category.name if category else "Desconhecida",
-            "total_income": data["total_income"],
-            "total_expense": data["total_expense"],
-            "balance": data["total_income"] - data["total_expense"],
-            "transaction_count": data["count"]
+            "category_id": row.category_id,
+            "category_name": row.category_name,
+            "total_income": total_income,
+            "total_expense": total_expense,
+            "balance": total_income - total_expense,
+            "transaction_count": row.transaction_count
         })
 
     return totals
@@ -261,30 +270,41 @@ def get_totals_by_period(
     - period_start: Data inicial
     - period_end: Data final
     """
-    # Buscar transações do período
-    transactions = db.query(Transaction).filter(
+    from sqlalchemy import func
+
+    # Query otimizada com agregação SQL
+    result = db.query(
+        func.sum(
+            func.case(
+                (Transaction.transaction_type == 'income',
+                 func.abs(Transaction.amount)),
+                else_=0
+            )
+        ).label('total_income'),
+        func.sum(
+            func.case(
+                (Transaction.transaction_type == 'expense',
+                 func.abs(Transaction.amount)),
+                else_=0
+            )
+        ).label('total_expense'),
+        func.count(Transaction.id).label('transaction_count')
+    ).filter(
         and_(
             Transaction.user_id == current_user.id,
             Transaction.date >= start,
             Transaction.date <= end
         )
-    ).all()
+    ).first()
 
-    # Calcular totais manualmente
-    total_income = 0.0
-    total_expense = 0.0
-
-    for trans in transactions:
-        if trans.transaction_type == 'income':
-            total_income += abs(float(trans.amount))
-        else:  # expense
-            total_expense += abs(float(trans.amount))
+    total_income = float(result.total_income or 0)
+    total_expense = float(result.total_expense or 0)
 
     return {
         "total_income": total_income,
         "total_expense": total_expense,
         "balance": total_income - total_expense,
-        "transaction_count": len(transactions),
+        "transaction_count": result.transaction_count or 0,
         "period_start": start.isoformat(),
         "period_end": end.isoformat()
     }
