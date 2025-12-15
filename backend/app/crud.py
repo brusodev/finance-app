@@ -368,7 +368,11 @@ def get_transaction(db: Session, transaction_id: int):
 
 def get_user_transactions(db: Session, user_id: int, skip: int = 0, limit: int = 100):
     """Get all transactions for a user ordered by date (newest first)"""
-    return db.query(models.Transaction).filter(
+    from sqlalchemy.orm import joinedload
+    return db.query(models.Transaction).options(
+        joinedload(models.Transaction.category),
+        joinedload(models.Transaction.account)
+    ).filter(
         models.Transaction.user_id == user_id
     ).order_by(models.Transaction.date.desc()).offset(skip).limit(limit).all()
 
