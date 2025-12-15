@@ -134,13 +134,26 @@ app = FastAPI(
     lifespan=lifespan
 )
 
-# Configurar CORS - TEMPORARIAMENTE PERMITINDO TODAS AS ORIGENS
-# TODO: Restringir após testes
-print("CORS: Permitindo todas as origens (modo debug)")
+# Configurar CORS
+# Permitindo frontend Railway e localhost
+allowed_origins = [
+    "https://finance-app-bruno.up.railway.app",
+    "http://localhost:5173",
+    "http://localhost:3000",
+    "http://127.0.0.1:5173",
+]
+
+# Em desenvolvimento, adicionar todas as origens
+if os.getenv("ENVIRONMENT", "development") == "development":
+    allowed_origins = ["*"]
+    print("CORS: Permitindo todas as origens (modo desenvolvimento)")
+else:
+    print(f"CORS: Origens permitidas: {allowed_origins}")
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # Permitir TODAS as origens temporariamente
-    allow_credentials=False,  # Deve ser False quando allow_origins=["*"]
+    allow_origins=allowed_origins,
+    allow_credentials=True if allowed_origins != ["*"] else False,
     allow_methods=['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
     allow_headers=['*'],
 )
