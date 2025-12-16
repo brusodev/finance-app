@@ -143,17 +143,21 @@ allowed_origins = [
     "http://127.0.0.1:5173",
 ]
 
-# Em desenvolvimento, adicionar todas as origens
-if os.getenv("ENVIRONMENT", "development") == "development":
-    allowed_origins = ["*"]
-    print("CORS: Permitindo todas as origens (modo desenvolvimento)")
-else:
-    print(f"CORS: Origens permitidas: {allowed_origins}")
+# Verificar ambiente
+environment = os.getenv("ENVIRONMENT", "production")
+allow_credentials = True
+
+# Se precisar permitir todas origens (NÃO recomendado em produção)
+# Descomente a linha abaixo e comente allow_credentials
+# allowed_origins = ["*"]
+# allow_credentials = False
+
+print(f"CORS: Ambiente={environment}, Origens permitidas: {allowed_origins}")
 
 app.add_middleware(
     CORSMiddleware,
     allow_origins=allowed_origins,
-    allow_credentials=True if allowed_origins != ["*"] else False,
+    allow_credentials=allow_credentials,
     allow_methods=['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
     allow_headers=['*'],
 )
