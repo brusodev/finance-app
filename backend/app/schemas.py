@@ -22,7 +22,7 @@ class User(BaseModel):
     address: Optional[str] = None
 
     class Config:
-        orm_mode = True
+        from_attributes = True
 
 
 class UserUpdate(BaseModel):
@@ -56,7 +56,7 @@ class Category(BaseModel):
     icon: Optional[str] = None
 
     class Config:
-        orm_mode = True
+        from_attributes = True
 
 
 class AccountCreate(BaseModel):
@@ -84,7 +84,7 @@ class Account(BaseModel):
     updated_at: Optional[datetime] = None
 
     class Config:
-        orm_mode = True
+        from_attributes = True
 
 
 class AccountBalanceAudit(BaseModel):
@@ -118,4 +118,4 @@ class Transaction(BaseModel):
     user: User
 
     class Config:
-        orm_mode = True
+        from_attributes = True

@@ -296,11 +296,16 @@ async def dashboard_summary(
     ).scalar() or 0.0
 
     # Buscar últimas 10 transações com joins otimizados
-    recent_transactions = db.query(Transaction).filter(
+    from sqlalchemy.orm import joinedload
+    recent_transactions = db.query(Transaction).options(
+        joinedload(Transaction.category),
+        joinedload(Transaction.account),
+        joinedload(Transaction.user)
+    ).filter(
         Transaction.user_id == current_user.id
     ).order_by(Transaction.date.desc()).limit(10).all()
 
-    # Serializar transações
+    # Serializar transações (Pydantic v2 com from_attributes=True)
     transactions_data = [
         schemas.Transaction.model_validate(t) for t in recent_transactions
     ]
