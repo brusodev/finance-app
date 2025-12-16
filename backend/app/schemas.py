@@ -107,6 +107,16 @@ class TransactionCreate(BaseModel):
     account_id: Optional[int] = None
 
 
+class UserBasic(BaseModel):
+    """User schema sem avatar para evitar payload gigante"""
+    id: int
+    username: str
+    full_name: Optional[str] = None
+
+    class Config:
+        from_attributes = True
+
+
 class Transaction(BaseModel):
     id: int
     amount: float
@@ -115,7 +125,7 @@ class Transaction(BaseModel):
     transaction_type: str
     category: Category
     account: Optional[Account] = None
-    user: User
+    user: UserBasic  # Usar UserBasic em vez de User completo
 
     class Config:
         from_attributes = True
