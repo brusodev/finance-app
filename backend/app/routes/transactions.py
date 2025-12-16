@@ -201,7 +201,7 @@ def get_totals_by_category(
     - balance: Saldo (receitas - despesas)
     - transaction_count: Número de transações
     """
-    from sqlalchemy import func
+    from sqlalchemy import func, case
     from ..models import Category
 
     # Query otimizada com agregação SQL nativa
@@ -209,14 +209,14 @@ def get_totals_by_category(
         Transaction.category_id,
         Category.name.label('category_name'),
         func.sum(
-            func.case(
+            case(
                 (Transaction.transaction_type == 'income',
                  func.abs(Transaction.amount)),
                 else_=0
             )
         ).label('total_income'),
         func.sum(
-            func.case(
+            case(
                 (Transaction.transaction_type == 'expense',
                  func.abs(Transaction.amount)),
                 else_=0
@@ -270,19 +270,19 @@ def get_totals_by_period(
     - period_start: Data inicial
     - period_end: Data final
     """
-    from sqlalchemy import func
+    from sqlalchemy import func, case
 
     # Query otimizada com agregação SQL
     result = db.query(
         func.sum(
-            func.case(
+            case(
                 (Transaction.transaction_type == 'income',
                  func.abs(Transaction.amount)),
                 else_=0
             )
         ).label('total_income'),
         func.sum(
-            func.case(
+            case(
                 (Transaction.transaction_type == 'expense',
                  func.abs(Transaction.amount)),
                 else_=0
