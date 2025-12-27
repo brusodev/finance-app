@@ -199,6 +199,19 @@ export const categoriesAPI = {
     }
   },
 
+  getIcons: async () => {
+    try {
+      const response = await fetch(`${API_URL}/categories/icons`, {
+        method: "GET",
+        headers: getHeaders(true),
+      });
+      return handleResponse(response);
+    } catch (error) {
+      console.error("Get category icons error:", error);
+      throw error;
+    }
+  },
+
   create: async (data) => {
     try {
       const response = await fetch(`${API_URL}/categories/`, {

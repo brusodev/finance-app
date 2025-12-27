@@ -14,12 +14,14 @@ export default function Categories() {
   const [error, setError] = useState('')
   const [success, setSuccess] = useState('')
   const [suggestions, setSuggestions] = useState([])
-
-  const icons = ['📁', '🍔', '🚗', '🏥', '💡', '🎓', '🏠', '🎮', '✈️', '💳', '🛒', '📱', '🎬', '⚽', '📚', '🤝']
+  const [iconSuggestions, setIconSuggestions] = useState([])
+  const [customIcon, setCustomIcon] = useState('')
+  const [selectedCategory, setSelectedCategory] = useState(null)
 
   useEffect(() => {
     loadCategories()
     loadSuggestions()
+    loadIconSuggestions()
   }, [])
 
   const loadSuggestions = async () => {
@@ -28,6 +30,15 @@ export default function Categories() {
       setSuggestions(data)
     } catch (err) {
       console.log('Erro ao carregar sugestões:', err)
+    }
+  }
+
+  const loadIconSuggestions = async () => {
+    try {
+      const data = await categoriesAPI.getIcons()
+      setIconSuggestions(data)
+    } catch (err) {
+      console.log('Erro ao carregar ícones:', err)
     }
   }
 
@@ -95,6 +106,7 @@ export default function Categories() {
     setEditingId(null)
     setError('')
     setSuccess('')
+    setCustomIcon('')
   }
 
   return (
@@ -156,21 +168,74 @@ export default function Categories() {
               </div>
 
               <div>
-                <label className='block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1'>Ícone</label>
-                <div className='grid grid-cols-5 gap-2'>
-                  {icons.map((icon) => (
-                    <button
-                      key={icon}
-                      type='button'
-                      onClick={() => setFormData({ ...formData, icon })}
-                      className={`text-2xl p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-600 ${
-                        formData.icon === icon ? 'bg-blue-50 dark:bg-blue-900/30 ring-2 ring-blue-500' : ''
-                      }`}
-                    >
-                      {icon}
-                    </button>
-                  ))}
+                <label className='block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2'>
+                  Ícone {formData.icon && <span className='text-2xl ml-2'>{formData.icon}</span>}
+                </label>
+
+                {/* Campo de entrada personalizado */}
+                <div className='mb-3'>
+                  <input
+                    type='text'
+                    placeholder='Cole ou digite um emoji personalizado'
+                    value={customIcon}
+                    onChange={(e) => {
+                      setCustomIcon(e.target.value)
+                      if (e.target.value) {
+                        setFormData({ ...formData, icon: e.target.value })
+                      }
+                    }}
+                    className='w-full px-4 py-2 border border-gray-200 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-white text-center text-2xl'
+                  />
+                  <p className='text-xs text-gray-500 dark:text-gray-400 mt-1 text-center'>
+                    Ou escolha entre as sugestões abaixo
+                  </p>
                 </div>
+
+                {/* Categorias de ícones */}
+                {iconSuggestions.length > 0 ? (
+                  <div className='space-y-3 max-h-60 overflow-y-auto'>
+                    {iconSuggestions.map((iconGroup, idx) => (
+                      <div key={idx} className='border-b border-gray-100 dark:border-gray-700 pb-2 last:border-0'>
+                        <p className='text-xs font-medium text-gray-600 dark:text-gray-400 mb-1'>
+                          {iconGroup.category}
+                        </p>
+                        <div className='flex flex-wrap gap-1'>
+                          <button
+                            type='button'
+                            onClick={() => {
+                              setFormData({ ...formData, icon: iconGroup.icon })
+                              setCustomIcon('')
+                            }}
+                            className={`text-xl p-1.5 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-600 transition-colors ${
+                              formData.icon === iconGroup.icon ? 'bg-blue-50 dark:bg-blue-900/30 ring-2 ring-blue-500' : ''
+                            }`}
+                          >
+                            {iconGroup.icon}
+                          </button>
+                          {iconGroup.alternatives?.map((icon, iconIdx) => (
+                            <button
+                              key={iconIdx}
+                              type='button'
+                              onClick={() => {
+                                setFormData({ ...formData, icon })
+                                setCustomIcon('')
+                              }}
+                              className={`text-xl p-1.5 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-600 transition-colors ${
+                                formData.icon === icon ? 'bg-blue-50 dark:bg-blue-900/30 ring-2 ring-blue-500' : ''
+                              }`}
+                            >
+                              {icon}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <div className='text-center text-gray-500 dark:text-gray-400 py-4'>
+                    Carregando ícones...
+                  </div>
+                )}
               </div>
 
               <button
