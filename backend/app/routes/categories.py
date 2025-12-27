@@ -13,6 +13,37 @@ router = APIRouter(
 )
 
 
+@router.get("/icons", response_model=List[dict])
+def get_available_icons(
+    current_user: schemas.User = Depends(get_current_user)
+):
+    """
+    Obter lista de emojis/ícones disponíveis para categorias.
+    Retorna uma lista com categorias comuns e seus ícones sugeridos.
+    """
+    icons = [
+        {"category": "Alimentação", "icon": "🍔", "alternatives": ["🍕", "🍜", "🥗", "🍱"]},
+        {"category": "Transporte", "icon": "🚗", "alternatives": ["🚕", "🚌", "🚇", "✈️"]},
+        {"category": "Saúde", "icon": "🏥", "alternatives": ["💊", "🩺", "💉", "🧘"]},
+        {"category": "Educação", "icon": "📚", "alternatives": ["🎓", "✏️", "📝", "🏫"]},
+        {"category": "Lazer", "icon": "🎮", "alternatives": ["🎬", "🎵", "🎨", "🎪"]},
+        {"category": "Moradia", "icon": "🏠", "alternatives": ["🏡", "🏢", "🔑", "🛋️"]},
+        {"category": "Vestuário", "icon": "👔", "alternatives": ["👕", "👗", "👟", "🧥"]},
+        {"category": "Beleza", "icon": "💄", "alternatives": ["💅", "💇", "🧴", "✨"]},
+        {"category": "Pets", "icon": "🐶", "alternatives": ["🐱", "🐹", "🐠", "🐾"]},
+        {"category": "Tecnologia", "icon": "💻", "alternatives": ["📱", "🖥️", "⌚", "🎧"]},
+        {"category": "Esportes", "icon": "⚽", "alternatives": ["🏋️", "🏊", "🏃", "🧗"]},
+        {"category": "Viagem", "icon": "✈️", "alternatives": ["🏖️", "🗺️", "🎒", "🧳"]},
+        {"category": "Mercado", "icon": "🛒", "alternatives": ["🛍️", "🏪", "🥕", "🍞"]},
+        {"category": "Contas", "icon": "📄", "alternatives": ["💡", "💧", "📞", "📺"]},
+        {"category": "Investimentos", "icon": "📈", "alternatives": ["💰", "💵", "💳", "🏦"]},
+        {"category": "Presentes", "icon": "🎁", "alternatives": ["🎉", "🎂", "💝", "🌹"]},
+        {"category": "Doação", "icon": "❤️", "alternatives": ["🤝", "🙏", "💙", "💚"]},
+        {"category": "Outros", "icon": "📌", "alternatives": ["⭐", "🔔", "💡", "🎯"]}
+    ]
+    return icons
+
+
 @router.get("/suggestions", response_model=List[str])
 def get_category_suggestions(
     db: Session = Depends(get_db),
