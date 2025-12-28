@@ -11,6 +11,7 @@ export default function Transactions() {
   const [error, setError] = useState('')
   const [success, setSuccess] = useState('')
   const [searchTerm, setSearchTerm] = useState('')
+  const [selectedMonth, setSelectedMonth] = useState('current') // 'current', 'all', ou 'YYYY-MM'
   const navigate = useNavigate()
   const { user } = useAuth()
 
@@ -52,23 +53,57 @@ export default function Transactions() {
     navigate('/nova-transacao', { state: { transaction } })
   }
 
-  // Filtrar transações do mês atual
-  const getCurrentMonthTransactions = (transactions) => {
-    const now = new Date()
-    const currentMonth = now.getMonth()
-    const currentYear = now.getFullYear()
+  // Gerar lista de meses disponíveis nas transações
+  const getAvailableMonths = () => {
+    const monthsSet = new Set()
+    transactions.forEach(t => {
+      const date = new Date(t.date + 'T00:00:00')
+      const monthKey = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`
+      monthsSet.add(monthKey)
+    })
+    return Array.from(monthsSet).sort().reverse()
+  }
 
+  // Filtrar transações por mês
+  const filterTransactionsByMonth = (transactions) => {
+    if (selectedMonth === 'all') {
+      return transactions
+    }
+
+    if (selectedMonth === 'current') {
+      const now = new Date()
+      const currentMonth = now.getMonth()
+      const currentYear = now.getFullYear()
+      return transactions.filter(t => {
+        const transactionDate = new Date(t.date + 'T00:00:00')
+        return transactionDate.getMonth() === currentMonth &&
+               transactionDate.getFullYear() === currentYear
+      })
+    }
+
+    // Formato 'YYYY-MM'
+    const [year, month] = selectedMonth.split('-').map(Number)
     return transactions.filter(t => {
       const transactionDate = new Date(t.date + 'T00:00:00')
-      return transactionDate.getMonth() === currentMonth &&
-             transactionDate.getFullYear() === currentYear
+      return transactionDate.getFullYear() === year &&
+             transactionDate.getMonth() === month - 1
     })
   }
 
-  const filteredTransactions = getCurrentMonthTransactions(transactions)
+  const filteredTransactions = filterTransactionsByMonth(transactions)
     .filter(t => t.description.toLowerCase().includes(searchTerm.toLowerCase()) ||
                  (t.category?.name || '').toLowerCase().includes(searchTerm.toLowerCase()))
     .sort((a, b) => new Date(b.date) - new Date(a.date))
+
+  const availableMonths = getAvailableMonths()
+
+  // Formatar mês para exibição
+  const formatMonthDisplay = (monthKey) => {
+    const [year, month] = monthKey.split('-')
+    const monthNames = ['Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho',
+                        'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro']
+    return `${monthNames[parseInt(month) - 1]} ${year}`
+  }
 
   if (loading) return <div className="flex justify-center p-8"><div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div></div>
 
@@ -86,16 +121,32 @@ export default function Transactions() {
       </div>
 
       {/* Search and Filter */}
-      <div className="bg-white dark:bg-gray-800 p-4 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700 flex gap-4">
+      <div className="bg-white dark:bg-gray-800 p-4 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700 flex flex-col sm:flex-row gap-4">
         <div className="relative flex-1">
           <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={20} />
-          <input 
-            type="text" 
-            placeholder="Buscar transações..." 
+          <input
+            type="text"
+            placeholder="Buscar transações..."
             className="w-full pl-10 pr-4 py-2 border border-gray-200 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-400"
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
           />
+        </div>
+        <div className="sm:w-64">
+          <select
+            value={selectedMonth}
+            onChange={(e) => setSelectedMonth(e.target.value)}
+            className="w-full px-4 py-2 border border-gray-200 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+          >
+            <option value="current">Mês Atual</option>
+            <option value="all">Todos os Meses</option>
+            {availableMonths.length > 0 && <option disabled>─────────────</option>}
+            {availableMonths.map(monthKey => (
+              <option key={monthKey} value={monthKey}>
+                {formatMonthDisplay(monthKey)}
+              </option>
+            ))}
+          </select>
         </div>
       </div>
 
