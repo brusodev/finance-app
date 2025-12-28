@@ -52,8 +52,21 @@ export default function Transactions() {
     navigate('/nova-transacao', { state: { transaction } })
   }
 
-  const filteredTransactions = transactions
-    .filter(t => t.description.toLowerCase().includes(searchTerm.toLowerCase()) || 
+  // Filtrar transações do mês atual
+  const getCurrentMonthTransactions = (transactions) => {
+    const now = new Date()
+    const currentMonth = now.getMonth()
+    const currentYear = now.getFullYear()
+
+    return transactions.filter(t => {
+      const transactionDate = new Date(t.date + 'T00:00:00')
+      return transactionDate.getMonth() === currentMonth &&
+             transactionDate.getFullYear() === currentYear
+    })
+  }
+
+  const filteredTransactions = getCurrentMonthTransactions(transactions)
+    .filter(t => t.description.toLowerCase().includes(searchTerm.toLowerCase()) ||
                  (t.category?.name || '').toLowerCase().includes(searchTerm.toLowerCase()))
     .sort((a, b) => new Date(b.date) - new Date(a.date))
 
