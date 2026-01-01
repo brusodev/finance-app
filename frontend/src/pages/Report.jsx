@@ -19,10 +19,12 @@ export default function Report() {
   const [dashboardData, setDashboardData] = useState(null);
   const [categoryData, setCategoryData] = useState([]);
   const [periodData, setPeriodData] = useState(null);
+  const [selectedMonth, setSelectedMonth] = useState('current');
+  const [availableMonths, setAvailableMonths] = useState([]);
 
   useEffect(() => {
     fetchReportData();
-  }, []);
+  }, [selectedMonth]);
 
   const fetchReportData = async () => {
     try {
@@ -35,27 +37,47 @@ export default function Report() {
         "Authorization": `Bearer ${token}`
       };
 
-      // Get current month start and end dates
+      // Get dates based on selectedMonth
+      let startDate, endDate;
       const now = new Date();
-      const year = now.getFullYear();
-      const month = String(now.getMonth() + 1).padStart(2, '0');
-      const startDate = `${year}-${month}-01`;
-      const lastDay = new Date(year, now.getMonth() + 1, 0).getDate();
-      const endDate = `${year}-${month}-${String(lastDay).padStart(2, '0')}`;
 
-      const [dashboardRes, categoryRes, periodRes] = await Promise.all([
+      if (selectedMonth === 'current') {
+        const year = now.getFullYear();
+        const month = String(now.getMonth() + 1).padStart(2, '0');
+        startDate = `${year}-${month}-01`;
+        const lastDay = new Date(year, now.getMonth() + 1, 0).getDate();
+        endDate = `${year}-${month}-${String(lastDay).padStart(2, '0')}`;
+      } else {
+        const [year, month] = selectedMonth.split('-');
+        startDate = `${year}-${month}-01`;
+        const lastDay = new Date(parseInt(year), parseInt(month), 0).getDate();
+        endDate = `${year}-${month}-${String(lastDay).padStart(2, '0')}`;
+      }
+
+      const [dashboardRes, categoryRes, periodRes, transactionsRes] = await Promise.all([
         fetch(`${API_URL}/dashboard?start_date=${startDate}&end_date=${endDate}`, { headers }),
         fetch(`${API_URL}/transactions/totals/by-category?start_date=${startDate}&end_date=${endDate}`, { headers }),
-        fetch(`${API_URL}/transactions/totals/by-period?start=${startDate}&end=${endDate}`, { headers })
+        fetch(`${API_URL}/transactions/totals/by-period?start=${startDate}&end=${endDate}`, { headers }),
+        fetch(`${API_URL}/transactions/`, { headers })
       ]);
 
-      if (!dashboardRes.ok || !categoryRes.ok || !periodRes.ok) {
+      if (!dashboardRes.ok || !categoryRes.ok || !periodRes.ok || !transactionsRes.ok) {
         throw new Error('Erro ao carregar dados dos relatórios');
       }
 
       const dashboard = await dashboardRes.json();
       const categories = await categoryRes.json();
       const period = await periodRes.json();
+      const transactions = await transactionsRes.json();
+
+      // Extract available months from transactions
+      const monthsSet = new Set();
+      transactions.forEach(t => {
+        const date = new Date(t.date + 'T00:00:00');
+        const monthKey = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
+        monthsSet.add(monthKey);
+      });
+      setAvailableMonths(Array.from(monthsSet).sort().reverse());
 
       setDashboardData(dashboard);
       setCategoryData(categories);
@@ -66,6 +88,13 @@ export default function Report() {
     } finally {
       setLoading(false);
     }
+  };
+
+  const formatMonthDisplay = (monthKey) => {
+    const [year, month] = monthKey.split('-');
+    const monthNames = ['Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho',
+                        'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro'];
+    return `${monthNames[parseInt(month) - 1]} ${year}`;
   };
 
   if (loading) {
@@ -89,7 +118,24 @@ export default function Report() {
 
   return (
     <div className="space-y-6">
-      <h1 className="text-2xl font-bold text-gray-800 dark:text-white">Relatórios Financeiros</h1>
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+        <h1 className="text-2xl font-bold text-gray-800 dark:text-white">Relatórios Financeiros</h1>
+        <div className="w-full sm:w-64">
+          <select
+            value={selectedMonth}
+            onChange={(e) => setSelectedMonth(e.target.value)}
+            className="w-full px-4 py-2 border border-gray-200 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+          >
+            <option value="current">Mês Atual</option>
+            {availableMonths.length > 0 && <option disabled>─────────────</option>}
+            {availableMonths.map(monthKey => (
+              <option key={monthKey} value={monthKey}>
+                {formatMonthDisplay(monthKey)}
+              </option>
+            ))}
+          </select>
+        </div>
+      </div>
 
       {/* Dashboard Summary Cards */}
       {dashboardData && (
