@@ -108,7 +108,7 @@ export default function Report() {
   if (error) {
     return (
       <div className="space-y-6">
-        <h1 className="text-2xl font-bold text-gray-800 dark:text-white">Relatórios Financeiros</h1>
+        <h1 className="text-2xl font-bold text-zinc-800 dark:text-white">Relatórios Financeiros</h1>
         <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 p-4 rounded-md text-red-700 dark:text-red-400">
           {error}
         </div>
@@ -119,12 +119,12 @@ export default function Report() {
   return (
     <div className="space-y-6">
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-        <h1 className="text-2xl font-bold text-gray-800 dark:text-white">Relatórios Financeiros</h1>
+        <h1 className="text-2xl font-bold text-zinc-800 dark:text-white">Relatórios Financeiros</h1>
         <div className="w-full sm:w-64">
           <select
             value={selectedMonth}
             onChange={(e) => setSelectedMonth(e.target.value)}
-            className="w-full px-4 py-2 border border-gray-200 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+            className="w-full px-4 py-2 border border-zinc-200 dark:border-zinc-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-zinc-700 text-zinc-900 dark:text-white"
           >
             <option value="current">Mês Atual</option>
             {availableMonths.length > 0 && <option disabled>─────────────</option>}
@@ -140,29 +140,29 @@ export default function Report() {
       {/* Dashboard Summary Cards */}
       {dashboardData && (
         <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-          <div className="bg-white dark:bg-gray-800 p-6 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700">
+          <div className="bg-white dark:bg-zinc-900 p-6 rounded-xl shadow-sm border border-zinc-100 dark:border-zinc-700">
             <div className="flex items-center justify-between mb-4">
-              <p className="text-gray-500 dark:text-gray-400 text-sm font-medium">Total de Contas</p>
+              <p className="text-zinc-500 dark:text-zinc-400 text-sm font-medium">Total de Contas</p>
               <Wallet className="text-blue-500" size={20} />
             </div>
-            <p className="text-2xl font-bold text-gray-900 dark:text-white">
+            <p className="text-2xl font-bold text-zinc-900 dark:text-white">
               {dashboardData.total_accounts}
             </p>
           </div>
 
-          <div className="bg-white dark:bg-gray-800 p-6 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700">
+          <div className="bg-white dark:bg-zinc-900 p-6 rounded-xl shadow-sm border border-zinc-100 dark:border-zinc-700">
             <div className="flex items-center justify-between mb-4">
-              <p className="text-gray-500 dark:text-gray-400 text-sm font-medium">Saldo Total</p>
+              <p className="text-zinc-500 dark:text-zinc-400 text-sm font-medium">Saldo Total</p>
               <Wallet className="text-purple-500" size={20} />
             </div>
-            <p className={`text-2xl font-bold ${dashboardData.total_balance >= 0 ? 'text-gray-900 dark:text-white' : 'text-red-600 dark:text-red-400'}`}>
+            <p className={`text-2xl font-bold ${dashboardData.total_balance >= 0 ? 'text-zinc-900 dark:text-white' : 'text-red-600 dark:text-red-400'}`}>
               R$ {formatCurrency(dashboardData.total_balance)}
             </p>
           </div>
 
-          <div className="bg-white dark:bg-gray-800 p-6 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700">
+          <div className="bg-white dark:bg-zinc-900 p-6 rounded-xl shadow-sm border border-zinc-100 dark:border-zinc-700">
             <div className="flex items-center justify-between mb-4">
-              <p className="text-gray-500 dark:text-gray-400 text-sm font-medium">Receitas</p>
+              <p className="text-zinc-500 dark:text-zinc-400 text-sm font-medium">Receitas</p>
               <ArrowUpCircle className="text-green-500" size={20} />
             </div>
             <p className="text-2xl font-bold text-green-600 dark:text-green-400">
@@ -170,9 +170,9 @@ export default function Report() {
             </p>
           </div>
 
-          <div className="bg-white dark:bg-gray-800 p-6 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700">
+          <div className="bg-white dark:bg-zinc-900 p-6 rounded-xl shadow-sm border border-zinc-100 dark:border-zinc-700">
             <div className="flex items-center justify-between mb-4">
-              <p className="text-gray-500 dark:text-gray-400 text-sm font-medium">Despesas</p>
+              <p className="text-zinc-500 dark:text-zinc-400 text-sm font-medium">Despesas</p>
               <ArrowDownCircle className="text-red-500" size={20} />
             </div>
             <p className="text-2xl font-bold text-red-600 dark:text-red-400">
@@ -183,25 +183,25 @@ export default function Report() {
       )}
 
       {/* Category Breakdown */}
-      <div className="bg-white dark:bg-gray-800 p-6 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700">
+      <div className="bg-white dark:bg-zinc-900 p-6 rounded-xl shadow-sm border border-zinc-100 dark:border-zinc-700">
         <div className="flex items-center gap-4 mb-4">
           <div className="p-3 bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 rounded-lg">
             <BarChart3 size={24} />
           </div>
-          <h3 className="font-semibold text-gray-800 dark:text-white">Despesas por Categoria</h3>
+          <h3 className="font-semibold text-zinc-800 dark:text-white">Despesas por Categoria</h3>
         </div>
 
         {categoryData && categoryData.length > 0 ? (
           <div className="space-y-4">
             {categoryData.map((category) => (
-              <div key={category.category_id} className="border-b border-gray-100 dark:border-gray-700 pb-4 last:border-b-0">
+              <div key={category.category_id} className="border-b border-zinc-100 dark:border-zinc-700 pb-4 last:border-b-0">
                 <div className="flex justify-between items-center mb-2">
-                  <span className="font-medium text-gray-800 dark:text-white">{category.category_name}</span>
+                  <span className="font-medium text-zinc-800 dark:text-white">{category.category_name}</span>
                   <span className="text-red-600 dark:text-red-400 font-semibold">
                     R$ {formatCurrency(Math.abs(category.total_expense))}
                   </span>
                 </div>
-                <div className="flex justify-between text-sm text-gray-500 dark:text-gray-400">
+                <div className="flex justify-between text-sm text-zinc-500 dark:text-zinc-400">
                   <span>{category.transaction_count} transações</span>
                   {category.total_income > 0 && (
                     <span className="text-green-600 dark:text-green-400">
@@ -213,7 +213,7 @@ export default function Report() {
             ))}
           </div>
         ) : (
-          <div className="h-40 flex items-center justify-center bg-gray-50 dark:bg-gray-700 rounded-lg text-gray-400 dark:text-gray-500">
+          <div className="h-40 flex items-center justify-center bg-zinc-50 dark:bg-zinc-700 rounded-lg text-zinc-400 dark:text-zinc-500">
             Nenhuma transação encontrada
           </div>
         )}
@@ -221,72 +221,72 @@ export default function Report() {
 
       {/* Period Summary */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        <div className="bg-white dark:bg-gray-800 p-6 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700">
+        <div className="bg-white dark:bg-zinc-900 p-6 rounded-xl shadow-sm border border-zinc-100 dark:border-zinc-700">
           <div className="flex items-center gap-4 mb-4">
             <div className="p-3 bg-green-50 dark:bg-green-900/30 text-green-600 dark:text-green-400 rounded-lg">
               <TrendingUp size={24} />
             </div>
-            <h3 className="font-semibold text-gray-800 dark:text-white">Fluxo de Caixa do Mês</h3>
+            <h3 className="font-semibold text-zinc-800 dark:text-white">Fluxo de Caixa do Mês</h3>
           </div>
 
           {periodData ? (
             <div className="space-y-3">
               <div className="flex justify-between items-center">
-                <span className="text-gray-600 dark:text-gray-400">Receitas</span>
+                <span className="text-zinc-600 dark:text-zinc-400">Receitas</span>
                 <span className="text-green-600 dark:text-green-400 font-semibold">
                   R$ {formatCurrency(periodData.total_income)}
                 </span>
               </div>
               <div className="flex justify-between items-center">
-                <span className="text-gray-600 dark:text-gray-400">Despesas</span>
+                <span className="text-zinc-600 dark:text-zinc-400">Despesas</span>
                 <span className="text-red-600 dark:text-red-400 font-semibold">
                   R$ {formatCurrency(Math.abs(periodData.total_expense))}
                 </span>
               </div>
-              <div className="border-t border-gray-200 dark:border-gray-700 pt-3 mt-3">
+              <div className="border-t border-zinc-200 dark:border-zinc-700 pt-3 mt-3">
                 <div className="flex justify-between items-center">
-                  <span className="font-medium text-gray-800 dark:text-white">Saldo</span>
+                  <span className="font-medium text-zinc-800 dark:text-white">Saldo</span>
                   <span className={`font-bold text-lg ${periodData.balance >= 0 ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'}`}>
                     R$ {formatCurrency(periodData.balance)}
                   </span>
                 </div>
               </div>
-              <div className="text-xs text-gray-500 dark:text-gray-400 mt-4">
+              <div className="text-xs text-zinc-500 dark:text-zinc-400 mt-4">
                 {periodData.transaction_count} transações no período
               </div>
             </div>
           ) : (
-            <div className="h-32 flex items-center justify-center bg-gray-50 dark:bg-gray-700 rounded-lg text-gray-400 dark:text-gray-500">
+            <div className="h-32 flex items-center justify-center bg-zinc-50 dark:bg-zinc-700 rounded-lg text-zinc-400 dark:text-zinc-500">
               Sem dados
             </div>
           )}
         </div>
 
-        <div className="bg-white dark:bg-gray-800 p-6 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700">
+        <div className="bg-white dark:bg-zinc-900 p-6 rounded-xl shadow-sm border border-zinc-100 dark:border-zinc-700">
           <div className="flex items-center gap-4 mb-4">
             <div className="p-3 bg-purple-50 dark:bg-purple-900/30 text-purple-600 dark:text-purple-400 rounded-lg">
               <PieChart size={24} />
             </div>
-            <h3 className="font-semibold text-gray-800 dark:text-white">Resumo Geral</h3>
+            <h3 className="font-semibold text-zinc-800 dark:text-white">Resumo Geral</h3>
           </div>
 
           {dashboardData ? (
             <div className="space-y-3">
               <div className="flex justify-between items-center">
-                <span className="text-gray-600 dark:text-gray-400">Total de Categorias</span>
-                <span className="font-semibold text-gray-800 dark:text-white">
+                <span className="text-zinc-600 dark:text-zinc-400">Total de Categorias</span>
+                <span className="font-semibold text-zinc-800 dark:text-white">
                   {dashboardData.total_categories}
                 </span>
               </div>
               <div className="flex justify-between items-center">
-                <span className="text-gray-600 dark:text-gray-400">Total de Transações</span>
-                <span className="font-semibold text-gray-800 dark:text-white">
+                <span className="text-zinc-600 dark:text-zinc-400">Total de Transações</span>
+                <span className="font-semibold text-zinc-800 dark:text-white">
                   {dashboardData.total_transactions}
                 </span>
               </div>
-              <div className="border-t border-gray-200 dark:border-gray-700 pt-3 mt-3">
+              <div className="border-t border-zinc-200 dark:border-zinc-700 pt-3 mt-3">
                 <div className="flex justify-between items-center">
-                  <span className="font-medium text-gray-800 dark:text-white">Saldo Líquido</span>
+                  <span className="font-medium text-zinc-800 dark:text-white">Saldo Líquido</span>
                   <span className={`font-bold text-lg ${dashboardData.net_balance >= 0 ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'}`}>
                     R$ {formatCurrency(dashboardData.net_balance)}
                   </span>
@@ -294,7 +294,7 @@ export default function Report() {
               </div>
             </div>
           ) : (
-            <div className="h-32 flex items-center justify-center bg-gray-50 dark:bg-gray-700 rounded-lg text-gray-400 dark:text-gray-500">
+            <div className="h-32 flex items-center justify-center bg-zinc-50 dark:bg-zinc-700 rounded-lg text-zinc-400 dark:text-zinc-500">
               Sem dados
             </div>
           )}
@@ -303,3 +303,4 @@ export default function Report() {
     </div>
   );
 }
+

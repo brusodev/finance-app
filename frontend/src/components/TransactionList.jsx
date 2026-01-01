@@ -12,7 +12,7 @@ export default function TransactionList({ transactions, categories, onDelete, on
       4: 'bg-yellow-100 dark:bg-yellow-900/50 text-yellow-800 dark:text-yellow-200',
       5: 'bg-purple-100 dark:bg-purple-900/50 text-purple-800 dark:text-purple-200'
     }
-    return colors[categoryId] || 'bg-gray-100 dark:bg-gray-700 text-gray-800 dark:text-gray-200'
+    return colors[categoryId] || 'bg-zinc-100 dark:bg-zinc-700 text-zinc-800 dark:text-zinc-200'
   }
 
   const formatDate = (dateString) => {
@@ -29,28 +29,28 @@ export default function TransactionList({ transactions, categories, onDelete, on
   })
 
   return (
-    <div className="bg-white dark:bg-gray-800 rounded-lg shadow-md border border-gray-200 dark:border-gray-700 overflow-hidden">
+    <div className="bg-white dark:bg-zinc-900 rounded-lg shadow-md border border-zinc-200 dark:border-zinc-700 overflow-hidden">
       <div className="overflow-x-auto">
         <table className="w-full">
           <thead>
-            <tr className="bg-gray-50 dark:bg-gray-700 border-b border-gray-200 dark:border-gray-700">
-              <th className="px-6 py-3 text-left text-sm font-semibold text-gray-900 dark:text-white">Data</th>
-              <th className="px-6 py-3 text-left text-sm font-semibold text-gray-900 dark:text-white">Descrição</th>
-              <th className="px-6 py-3 text-left text-sm font-semibold text-gray-900 dark:text-white">Categoria</th>
-              <th className="px-6 py-3 text-right text-sm font-semibold text-gray-900 dark:text-white">Valor</th>
-              <th className="px-6 py-3 text-center text-sm font-semibold text-gray-900 dark:text-white">Ações</th>
+            <tr className="bg-zinc-50 dark:bg-zinc-700 border-b border-zinc-200 dark:border-zinc-700">
+              <th className="px-6 py-3 text-left text-sm font-semibold text-zinc-900 dark:text-white">Data</th>
+              <th className="px-6 py-3 text-left text-sm font-semibold text-zinc-900 dark:text-white">Descrição</th>
+              <th className="px-6 py-3 text-left text-sm font-semibold text-zinc-900 dark:text-white">Categoria</th>
+              <th className="px-6 py-3 text-right text-sm font-semibold text-zinc-900 dark:text-white">Valor</th>
+              <th className="px-6 py-3 text-center text-sm font-semibold text-zinc-900 dark:text-white">Ações</th>
             </tr>
           </thead>
-          <tbody className="divide-y divide-gray-200 dark:divide-gray-700">
+          <tbody className="divide-y divide-zinc-200 dark:divide-zinc-700">
             {sortedTransactions.map((transaction) => (
-              <tr key={transaction.id} className="hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors">
+              <tr key={transaction.id} className="hover:bg-zinc-50 dark:hover:bg-zinc-700 transition-colors">
                 {/* Data */}
-                <td className="px-6 py-4 text-sm text-gray-700 dark:text-gray-300 font-medium">
+                <td className="px-6 py-4 text-sm text-zinc-700 dark:text-zinc-300 font-medium">
                   {formatDate(transaction.date)}
                 </td>
 
                 {/* Descrição */}
-                <td className="px-6 py-4 text-sm text-gray-700 dark:text-gray-300">
+                <td className="px-6 py-4 text-sm text-zinc-700 dark:text-zinc-300">
                   {transaction.description}
                 </td>
 
@@ -99,11 +99,12 @@ export default function TransactionList({ transactions, categories, onDelete, on
       </div>
 
       {/* Rodapé com contagem */}
-      <div className="bg-gray-50 dark:bg-gray-700 px-6 py-3 border-t border-gray-200 dark:border-gray-700">
-        <p className="text-sm text-gray-600 dark:text-gray-400">
+      <div className="bg-zinc-50 dark:bg-zinc-700 px-6 py-3 border-t border-zinc-200 dark:border-zinc-700">
+        <p className="text-sm text-zinc-600 dark:text-zinc-400">
           Total de transações: <span className="font-semibold">{transactions.length}</span>
         </p>
       </div>
     </div>
   )
 }
+

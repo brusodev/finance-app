@@ -200,3 +200,4 @@ describe('Dashboard Component', () => {
     expect(screen.queryByText('Transaction 11')).not.toBeInTheDocument();
   });
 });
+

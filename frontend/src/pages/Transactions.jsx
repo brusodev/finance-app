@@ -110,7 +110,7 @@ export default function Transactions() {
   return (
     <div className="space-y-6">
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-        <h1 className="text-2xl font-bold text-gray-800 dark:text-white">Transações</h1>
+        <h1 className="text-2xl font-bold text-zinc-800 dark:text-white">Transações</h1>
         <button
           onClick={() => navigate('/nova-transacao')}
           className="bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 px-4 rounded-lg flex items-center gap-2 w-full sm:w-auto justify-center"
@@ -121,13 +121,13 @@ export default function Transactions() {
       </div>
 
       {/* Search and Filter */}
-      <div className="bg-white dark:bg-gray-800 p-4 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700 flex flex-col sm:flex-row gap-4">
+      <div className="bg-white dark:bg-zinc-900 p-4 rounded-xl shadow-sm border border-zinc-100 dark:border-zinc-700 flex flex-col sm:flex-row gap-4">
         <div className="relative flex-1">
-          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={20} />
+          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-zinc-400" size={20} />
           <input
             type="text"
             placeholder="Buscar transações..."
-            className="w-full pl-10 pr-4 py-2 border border-gray-200 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-400"
+            className="w-full pl-10 pr-4 py-2 border border-zinc-200 dark:border-zinc-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-zinc-700 text-zinc-900 dark:text-white placeholder-zinc-400"
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
           />
@@ -136,7 +136,7 @@ export default function Transactions() {
           <select
             value={selectedMonth}
             onChange={(e) => setSelectedMonth(e.target.value)}
-            className="w-full px-4 py-2 border border-gray-200 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+            className="w-full px-4 py-2 border border-zinc-200 dark:border-zinc-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-zinc-700 text-zinc-900 dark:text-white"
           >
             <option value="current">Mês Atual</option>
             <option value="all">Todos os Meses</option>
@@ -153,15 +153,15 @@ export default function Transactions() {
       {error && <div className="bg-red-50 dark:bg-red-900/20 text-red-700 dark:text-red-400 p-4 rounded-lg">{error}</div>}
       {success && <div className="bg-green-50 dark:bg-green-900/20 text-green-700 dark:text-green-400 p-4 rounded-lg">{success}</div>}
 
-      <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700 overflow-hidden">
+      <div className="bg-white dark:bg-zinc-900 rounded-xl shadow-sm border border-zinc-100 dark:border-zinc-700 overflow-hidden">
         {filteredTransactions.length === 0 ? (
-          <div className="p-8 text-center text-gray-500 dark:text-gray-400">Nenhuma transação encontrada.</div>
+          <div className="p-8 text-center text-zinc-500 dark:text-zinc-400">Nenhuma transação encontrada.</div>
         ) : (
           <>
             {/* Desktop Table */}
             <div className="hidden md:block overflow-x-auto">
               <table className="w-full text-left">
-                <thead className="bg-gray-50 dark:bg-gray-700/50 text-gray-600 dark:text-gray-300 text-sm">
+                <thead className="bg-zinc-50 dark:bg-zinc-700/50 text-zinc-600 dark:text-zinc-300 text-sm">
                   <tr>
                     <th className="px-6 py-3 font-medium">Data</th>
                     <th className="px-6 py-3 font-medium">Categoria</th>
@@ -171,15 +171,15 @@ export default function Transactions() {
                     <th className="px-6 py-3 font-medium text-center">Ações</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-gray-100 dark:divide-gray-700">
+                <tbody className="divide-y divide-zinc-100 dark:divide-zinc-700">
                   {filteredTransactions.map((t) => (
-                    <tr key={t.id} className="hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors">
-                      <td className="px-6 py-4 text-sm text-gray-600 dark:text-gray-300">{new Date(t.date + 'T00:00:00').toLocaleDateString('pt-BR')}</td>
-                      <td className="px-6 py-4 text-sm text-gray-900 dark:text-white flex items-center gap-2">
+                    <tr key={t.id} className="hover:bg-zinc-50 dark:hover:bg-zinc-700/50 transition-colors">
+                      <td className="px-6 py-4 text-sm text-zinc-600 dark:text-zinc-300">{new Date(t.date + 'T00:00:00').toLocaleDateString('pt-BR')}</td>
+                      <td className="px-6 py-4 text-sm text-zinc-900 dark:text-white flex items-center gap-2">
                         <span>{t.category?.icon || '📁'}</span>
                         <span>{t.category?.name || 'Sem categoria'}</span>
                       </td>
-                      <td className="px-6 py-4 text-sm text-gray-600 dark:text-gray-300">{t.description}</td>
+                      <td className="px-6 py-4 text-sm text-zinc-600 dark:text-zinc-300">{t.description}</td>
                       <td className="px-6 py-4">
                         <span className={`px-2 py-1 rounded-full text-xs font-medium ${t.amount > 0 ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400' : 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400'}`}>
                           {t.amount > 0 ? 'Receita' : 'Despesa'}
@@ -190,8 +190,8 @@ export default function Transactions() {
                       </td>
                       <td className="px-6 py-4 text-center">
                         <div className="flex justify-center gap-2">
-                          <button onClick={() => handleEdit(t)} className="text-gray-400 hover:text-blue-600 transition-colors"><Edit2 size={18} /></button>
-                          <button onClick={() => handleDelete(t.id)} className="text-gray-400 hover:text-red-600 transition-colors"><Trash2 size={18} /></button>
+                          <button onClick={() => handleEdit(t)} className="text-zinc-400 hover:text-blue-600 transition-colors"><Edit2 size={18} /></button>
+                          <button onClick={() => handleDelete(t.id)} className="text-zinc-400 hover:text-red-600 transition-colors"><Trash2 size={18} /></button>
                         </div>
                       </td>
                     </tr>
@@ -201,24 +201,24 @@ export default function Transactions() {
             </div>
 
             {/* Mobile List */}
-            <div className="md:hidden divide-y divide-gray-100 dark:divide-gray-700">
+            <div className="md:hidden divide-y divide-zinc-100 dark:divide-zinc-700">
               {filteredTransactions.map((t) => (
                 <div key={t.id} className="p-4 flex flex-col gap-3">
                   <div className="flex justify-between items-start">
                     <div className="flex items-center gap-3">
-                      <div className="w-10 h-10 rounded-full bg-gray-100 dark:bg-gray-700 flex items-center justify-center text-xl">
+                      <div className="w-10 h-10 rounded-full bg-zinc-100 dark:bg-zinc-700 flex items-center justify-center text-xl">
                         {t.category?.icon || '📁'}
                       </div>
                       <div>
-                        <p className="text-sm font-medium text-gray-900 dark:text-white">{t.description}</p>
-                        <p className="text-xs text-gray-500 dark:text-gray-400">{t.category?.name} • {new Date(t.date + 'T00:00:00').toLocaleDateString('pt-BR')}</p>
+                        <p className="text-sm font-medium text-zinc-900 dark:text-white">{t.description}</p>
+                        <p className="text-xs text-zinc-500 dark:text-zinc-400">{t.category?.name} • {new Date(t.date + 'T00:00:00').toLocaleDateString('pt-BR')}</p>
                       </div>
                     </div>
                     <span className={`text-sm font-medium ${t.amount > 0 ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'}`}>
                       {t.amount > 0 ? '+' : '-'} R$ {Math.abs(t.amount).toFixed(2).replace('.', ',')}
                     </span>
                   </div>
-                  <div className="flex justify-end gap-3 pt-2 border-t border-gray-50 dark:border-gray-700">
+                  <div className="flex justify-end gap-3 pt-2 border-t border-zinc-50 dark:border-zinc-700">
                     <button onClick={() => handleEdit(t)} className="text-sm text-blue-600 dark:text-blue-400 flex items-center gap-1"><Edit2 size={14} /> Editar</button>
                     <button onClick={() => handleDelete(t.id)} className="text-sm text-red-600 dark:text-red-400 flex items-center gap-1"><Trash2 size={14} /> Excluir</button>
                   </div>
@@ -231,3 +231,4 @@ export default function Transactions() {
     </div>
   )
 }
+

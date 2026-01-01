@@ -29,7 +29,7 @@ export default function Sidebar() {
   const isActive = (path) => {
     return location.pathname === path 
       ? 'bg-blue-600 dark:bg-blue-700 text-white' 
-      : 'text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800'
+      : 'text-zinc-600 dark:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-zinc-800'
   }
 
   const menuItems = [
@@ -57,16 +57,16 @@ export default function Sidebar() {
 
       {/* Sidebar */}
       <aside
-        className={`fixed left-0 top-0 h-screen w-64 bg-white dark:bg-gray-900 text-gray-800 dark:text-white shadow-lg transform transition-transform duration-300 ease-in-out z-40 lg:transform-none border-r border-gray-200 dark:border-gray-800 flex flex-col ${
+        className={`fixed left-0 top-0 h-screen w-64 bg-white dark:bg-zinc-900 text-zinc-800 dark:text-white shadow-lg transform transition-transform duration-300 ease-in-out z-40 lg:transform-none border-r border-zinc-200 dark:border-zinc-800 flex flex-col ${
           isOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'
         }`}
       >
         {/* Logo */}
-        <div className="flex-shrink-0 p-6 border-b border-gray-200 dark:border-gray-800 flex justify-between items-center">
+        <div className="flex-shrink-0 p-6 border-b border-zinc-200 dark:border-zinc-800 flex justify-between items-center">
           <h1 className="text-2xl font-bold text-blue-600 dark:text-blue-400">💰 FinApp</h1>
           <button
             onClick={() => setIsOpen(false)}
-            className="lg:hidden p-2 text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
+            className="lg:hidden p-2 text-zinc-500 hover:text-zinc-700 dark:text-zinc-400 dark:hover:text-zinc-200 rounded-lg hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors"
           >
             <X size={24} />
           </button>
@@ -77,7 +77,7 @@ export default function Sidebar() {
           <Link
             to="/profile"
             onClick={() => setIsOpen(false)}
-            className="flex-shrink-0 block p-4 border-b border-gray-200 dark:border-gray-800 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
+            className="flex-shrink-0 block p-4 border-b border-zinc-200 dark:border-zinc-800 hover:bg-zinc-50 dark:hover:bg-zinc-800 transition-colors"
           >
             <div className="flex items-center space-x-3">
               {/* Avatar */}
@@ -94,10 +94,10 @@ export default function Sidebar() {
               )}
               {/* User Info */}
               <div className="flex-1 min-w-0">
-                <p className="text-sm font-semibold text-gray-800 dark:text-white truncate">
+                <p className="text-sm font-semibold text-zinc-800 dark:text-white truncate">
                   {user.full_name || user.username}
                 </p>
-                <p className="text-xs text-gray-500 dark:text-gray-400 truncate">
+                <p className="text-xs text-zinc-500 dark:text-zinc-400 truncate">
                   {user.email || 'Ver perfil'}
                 </p>
               </div>
@@ -121,7 +121,7 @@ export default function Sidebar() {
         </nav>
 
         {/* Bottom Section */}
-        <div className="flex-shrink-0 p-4 border-t border-gray-200 dark:border-gray-800 space-y-2 bg-white dark:bg-gray-900">
+        <div className="flex-shrink-0 p-4 border-t border-zinc-200 dark:border-zinc-800 space-y-2 bg-white dark:bg-zinc-900">
           <button
             onClick={handleLogout}
             className="w-full flex items-center space-x-3 px-4 py-3 rounded-lg bg-red-50 dark:bg-red-900/20 hover:bg-red-100 dark:hover:bg-red-900/40 text-red-600 dark:text-red-400 transition-colors"
@@ -142,3 +142,4 @@ export default function Sidebar() {
     </>
   )
 }
+

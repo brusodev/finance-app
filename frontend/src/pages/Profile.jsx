@@ -134,13 +134,13 @@ export default function Profile() {
 
   return (
     <div className="max-w-2xl mx-auto space-y-6">
-      <h1 className="text-2xl font-bold text-gray-800 dark:text-white">Meu Perfil</h1>
+      <h1 className="text-2xl font-bold text-zinc-800 dark:text-white">Meu Perfil</h1>
 
-      <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700 p-8">
+      <div className="bg-white dark:bg-zinc-900 rounded-xl shadow-sm border border-zinc-100 dark:border-zinc-700 p-8">
         {/* Avatar Section */}
         <div className="flex flex-col items-center mb-8">
           <div className="relative">
-            <div className="w-32 h-32 rounded-full overflow-hidden border-4 border-gray-100 dark:border-gray-700 bg-gray-50 dark:bg-gray-700">
+            <div className="w-32 h-32 rounded-full overflow-hidden border-4 border-zinc-100 dark:border-zinc-700 bg-zinc-50 dark:bg-zinc-700">
               {formData.avatar ? (
                 <img 
                   src={formData.avatar} 
@@ -148,7 +148,7 @@ export default function Profile() {
                   className="w-full h-full object-cover"
                 />
               ) : (
-                <div className="w-full h-full flex items-center justify-center text-gray-400 dark:text-gray-500 text-4xl font-bold">
+                <div className="w-full h-full flex items-center justify-center text-zinc-400 dark:text-zinc-500 text-4xl font-bold">
                   {formData.fullName ? formData.fullName.charAt(0).toUpperCase() : 'U'}
                 </div>
               )}
@@ -167,7 +167,7 @@ export default function Profile() {
               />
             </label>
           </div>
-          <p className="mt-4 text-gray-500 dark:text-gray-400 text-sm">Clique na câmera para alterar a foto</p>
+          <p className="mt-4 text-zinc-500 dark:text-zinc-400 text-sm">Clique na câmera para alterar a foto</p>
         </div>
 
         {error && <div className="mb-6 bg-red-50 dark:bg-red-900/20 text-red-700 dark:text-red-400 p-4 rounded-lg border border-red-100 dark:border-red-900/30">{error}</div>}
@@ -176,80 +176,80 @@ export default function Profile() {
         <form onSubmit={handleSubmit} className="space-y-6">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Nome Completo</label>
+              <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">Nome Completo</label>
               <input
                 type="text"
                 name="fullName"
                 value={formData.fullName}
                 onChange={handleInputChange}
-                className="w-full px-4 py-2 border border-gray-200 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-gray-50 dark:bg-gray-700 focus:bg-white dark:focus:bg-gray-600 text-gray-900 dark:text-white transition-colors"
+                className="w-full px-4 py-2 border border-zinc-200 dark:border-zinc-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-zinc-50 dark:bg-zinc-700 focus:bg-white dark:focus:bg-zinc-600 text-zinc-900 dark:text-white transition-colors"
                 placeholder="Seu nome completo"
               />
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Email</label>
+              <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">Email</label>
               <input
                 type="email"
                 name="email"
                 value={formData.email}
                 onChange={handleInputChange}
-                className="w-full px-4 py-2 border border-gray-200 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-gray-50 dark:bg-gray-700 focus:bg-white dark:focus:bg-gray-600 text-gray-900 dark:text-white transition-colors"
+                className="w-full px-4 py-2 border border-zinc-200 dark:border-zinc-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-zinc-50 dark:bg-zinc-700 focus:bg-white dark:focus:bg-zinc-600 text-zinc-900 dark:text-white transition-colors"
                 placeholder="seu@email.com"
               />
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">CPF</label>
+              <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">CPF</label>
               <input
                 type="text"
                 name="cpf"
                 value={formData.cpf}
                 onChange={handleInputChange}
                 maxLength={14}
-                className="w-full px-4 py-2 border border-gray-200 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-gray-50 dark:bg-gray-700 focus:bg-white dark:focus:bg-gray-600 text-gray-900 dark:text-white transition-colors"
+                className="w-full px-4 py-2 border border-zinc-200 dark:border-zinc-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-zinc-50 dark:bg-zinc-700 focus:bg-white dark:focus:bg-zinc-600 text-zinc-900 dark:text-white transition-colors"
                 placeholder="000.000.000-00"
               />
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Telefone</label>
+              <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">Telefone</label>
               <input
                 type="tel"
                 name="phone"
                 value={formData.phone}
                 onChange={handleInputChange}
                 maxLength={15}
-                className="w-full px-4 py-2 border border-gray-200 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-gray-50 dark:bg-gray-700 focus:bg-white dark:focus:bg-gray-600 text-gray-900 dark:text-white transition-colors"
+                className="w-full px-4 py-2 border border-zinc-200 dark:border-zinc-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-zinc-50 dark:bg-zinc-700 focus:bg-white dark:focus:bg-zinc-600 text-zinc-900 dark:text-white transition-colors"
                 placeholder="(00) 00000-0000"
               />
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Data de Nascimento</label>
+              <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">Data de Nascimento</label>
               <input
                 type="date"
                 name="birthDate"
                 value={formData.birthDate}
                 onChange={handleInputChange}
-                className="w-full px-4 py-2 border border-gray-200 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-gray-50 dark:bg-gray-700 focus:bg-white dark:focus:bg-gray-600 text-gray-900 dark:text-white transition-colors"
+                className="w-full px-4 py-2 border border-zinc-200 dark:border-zinc-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-zinc-50 dark:bg-zinc-700 focus:bg-white dark:focus:bg-zinc-600 text-zinc-900 dark:text-white transition-colors"
               />
             </div>
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Endereço</label>
+            <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">Endereço</label>
             <textarea
               name="address"
               value={formData.address}
               onChange={handleInputChange}
               rows="3"
-              className="w-full px-4 py-2 border border-gray-200 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-gray-50 dark:bg-gray-700 focus:bg-white dark:focus:bg-gray-600 text-gray-900 dark:text-white transition-colors resize-none"
+              className="w-full px-4 py-2 border border-zinc-200 dark:border-zinc-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-zinc-50 dark:bg-zinc-700 focus:bg-white dark:focus:bg-zinc-600 text-zinc-900 dark:text-white transition-colors resize-none"
               placeholder="Seu endereço completo"
             />
           </div>
 
-          <div className="pt-4 border-t border-gray-100 dark:border-gray-700 flex justify-end">
+          <div className="pt-4 border-t border-zinc-100 dark:border-zinc-700 flex justify-end">
             <button
               type="submit"
               disabled={loading}
@@ -264,3 +264,4 @@ export default function Profile() {
     </div>
   )
 }
+

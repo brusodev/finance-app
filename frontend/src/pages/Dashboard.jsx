@@ -78,8 +78,8 @@ export default function Dashboard() {
   return (
     <div className="space-y-6">
       <div className="flex justify-between items-center">
-        <h1 className="text-2xl font-bold text-gray-800 dark:text-white">Dashboard</h1>
-        <span className="text-sm text-gray-500 dark:text-gray-400">Bem-vindo, {user?.full_name || user?.username}</span>
+        <h1 className="text-2xl font-bold text-zinc-800 dark:text-white">Dashboard</h1>
+        <span className="text-sm text-zinc-500 dark:text-zinc-400">Bem-vindo, {user?.full_name || user?.username}</span>
       </div>
 
       {error && (
@@ -90,19 +90,19 @@ export default function Dashboard() {
 
       {/* Cards */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        <div className="bg-white dark:bg-gray-800 p-6 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700">
+        <div className="bg-white dark:bg-zinc-900 p-6 rounded-xl shadow-sm border border-zinc-100 dark:border-zinc-700">
           <div className="flex items-center justify-between mb-4">
-            <p className="text-gray-500 dark:text-gray-400 text-sm font-medium">Saldo Total</p>
+            <p className="text-zinc-500 dark:text-zinc-400 text-sm font-medium">Saldo Total</p>
             <Wallet className="text-blue-500" size={20} />
           </div>
-          <p className={`text-2xl font-bold ${balance >= 0 ? 'text-gray-900 dark:text-white' : 'text-red-600 dark:text-red-400'}`}>
+          <p className={`text-2xl font-bold ${balance >= 0 ? 'text-zinc-900 dark:text-white' : 'text-red-600 dark:text-red-400'}`}>
             R$ {formatCurrency(balance)}
           </p>
         </div>
 
-        <div className="bg-white dark:bg-gray-800 p-6 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700">
+        <div className="bg-white dark:bg-zinc-900 p-6 rounded-xl shadow-sm border border-zinc-100 dark:border-zinc-700">
           <div className="flex items-center justify-between mb-4">
-            <p className="text-gray-500 dark:text-gray-400 text-sm font-medium">Receitas</p>
+            <p className="text-zinc-500 dark:text-zinc-400 text-sm font-medium">Receitas</p>
             <ArrowUpCircle className="text-green-500" size={20} />
           </div>
           <p className="text-2xl font-bold text-green-600 dark:text-green-400">
@@ -110,9 +110,9 @@ export default function Dashboard() {
           </p>
         </div>
 
-        <div className="bg-white dark:bg-gray-800 p-6 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700">
+        <div className="bg-white dark:bg-zinc-900 p-6 rounded-xl shadow-sm border border-zinc-100 dark:border-zinc-700">
           <div className="flex items-center justify-between mb-4">
-            <p className="text-gray-500 dark:text-gray-400 text-sm font-medium">Despesas</p>
+            <p className="text-zinc-500 dark:text-zinc-400 text-sm font-medium">Despesas</p>
             <ArrowDownCircle className="text-red-500" size={20} />
           </div>
           <p className="text-2xl font-bold text-red-600 dark:text-red-400">
@@ -122,13 +122,13 @@ export default function Dashboard() {
       </div>
 
       {/* Recent Transactions */}
-      <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700 overflow-hidden">
-        <div className="p-6 border-b border-gray-100 dark:border-gray-700">
-          <h2 className="text-lg font-semibold text-gray-800 dark:text-white">Transações Recentes</h2>
+      <div className="bg-white dark:bg-zinc-900 rounded-xl shadow-sm border border-zinc-100 dark:border-zinc-700 overflow-hidden">
+        <div className="p-6 border-b border-zinc-100 dark:border-zinc-700">
+          <h2 className="text-lg font-semibold text-zinc-800 dark:text-white">Transações Recentes</h2>
         </div>
 
         {transactions.length === 0 ? (
-          <div className="p-8 text-center text-gray-500 dark:text-gray-400">
+          <div className="p-8 text-center text-zinc-500 dark:text-zinc-400">
             Nenhuma transação registrada.
           </div>
         ) : (
@@ -136,7 +136,7 @@ export default function Dashboard() {
             {/* Desktop Table */}
             <div className="hidden md:block overflow-x-auto">
               <table className="w-full text-left">
-                <thead className="bg-gray-50 dark:bg-gray-700/50 text-gray-600 dark:text-gray-300 text-sm">
+                <thead className="bg-zinc-50 dark:bg-zinc-700/50 text-zinc-600 dark:text-zinc-300 text-sm">
                   <tr>
                     <th className="px-6 py-3 font-medium">Data</th>
                     <th className="px-6 py-3 font-medium">Categoria</th>
@@ -144,17 +144,17 @@ export default function Dashboard() {
                     <th className="px-6 py-3 font-medium text-right">Valor</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-gray-100 dark:divide-gray-700">
+                <tbody className="divide-y divide-zinc-100 dark:divide-zinc-700">
                   {transactions.slice(0, 10).map((t) => (
-                    <tr key={t.id} className="hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors">
-                      <td className="px-6 py-4 text-sm text-gray-600 dark:text-gray-300">
+                    <tr key={t.id} className="hover:bg-zinc-50 dark:hover:bg-zinc-700/50 transition-colors">
+                      <td className="px-6 py-4 text-sm text-zinc-600 dark:text-zinc-300">
                         {new Date(t.date + 'T00:00:00').toLocaleDateString('pt-BR')}
                       </td>
-                      <td className="px-6 py-4 text-sm text-gray-900 dark:text-white flex items-center gap-2">
+                      <td className="px-6 py-4 text-sm text-zinc-900 dark:text-white flex items-center gap-2">
                         <span>{t.category?.icon || '📁'}</span>
                         <span>{t.category?.name || 'Sem categoria'}</span>
                       </td>
-                      <td className="px-6 py-4 text-sm text-gray-600 dark:text-gray-300">{t.description}</td>
+                      <td className="px-6 py-4 text-sm text-zinc-600 dark:text-zinc-300">{t.description}</td>
                       <td className={`px-6 py-4 text-sm font-medium text-right ${t.amount > 0 ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'}`}>
                         R$ {formatCurrency(Math.abs(t.amount))}
                       </td>
@@ -165,16 +165,16 @@ export default function Dashboard() {
             </div>
 
             {/* Mobile List */}
-            <div className="md:hidden divide-y divide-gray-100 dark:divide-gray-700">
+            <div className="md:hidden divide-y divide-zinc-100 dark:divide-zinc-700">
               {transactions.slice(0, 10).map((t) => (
                 <div key={t.id} className="p-4 flex items-center justify-between">
                   <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-full bg-gray-100 dark:bg-gray-700 flex items-center justify-center text-xl">
+                    <div className="w-10 h-10 rounded-full bg-zinc-100 dark:bg-zinc-700 flex items-center justify-center text-xl">
                       {t.category?.icon || '📁'}
                     </div>
                     <div>
-                      <p className="text-sm font-medium text-gray-900 dark:text-white">{t.description}</p>
-                      <p className="text-xs text-gray-500 dark:text-gray-400">{t.category?.name} • {new Date(t.date + 'T00:00:00').toLocaleDateString('pt-BR')}</p>
+                      <p className="text-sm font-medium text-zinc-900 dark:text-white">{t.description}</p>
+                      <p className="text-xs text-zinc-500 dark:text-zinc-400">{t.category?.name} • {new Date(t.date + 'T00:00:00').toLocaleDateString('pt-BR')}</p>
                     </div>
                   </div>
                   <span className={`text-sm font-medium ${t.amount > 0 ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'}`}>
@@ -189,3 +189,4 @@ export default function Dashboard() {
     </div>
   )
 }
+
