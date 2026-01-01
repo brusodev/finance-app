@@ -187,6 +187,8 @@ def delete_transaction(
 
 @router.get("/totals/by-category")
 def get_totals_by_category(
+    start_date: date = None,
+    end_date: date = None,
     db: Session = Depends(get_db),
     current_user: schemas.User = Depends(get_current_user)
 ) -> List[Dict[str, Any]]:
@@ -203,6 +205,13 @@ def get_totals_by_category(
     """
     from sqlalchemy import func, case
     from ..models import Category
+
+    # Filtros de transação
+    transaction_filters = [Transaction.user_id == current_user.id]
+    if start_date:
+        transaction_filters.append(Transaction.date >= start_date)
+    if end_date:
+        transaction_filters.append(Transaction.date <= end_date)
 
     # Query otimizada com agregação SQL nativa
     results = db.query(
@@ -226,7 +235,7 @@ def get_totals_by_category(
     ).join(
         Category, Transaction.category_id == Category.id
     ).filter(
-        Transaction.user_id == current_user.id
+        and_(*transaction_filters)
     ).group_by(
         Transaction.category_id, Category.name
     ).all()

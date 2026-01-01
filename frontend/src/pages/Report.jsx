@@ -37,12 +37,15 @@ export default function Report() {
 
       // Get current month start and end dates
       const now = new Date();
-      const startDate = new Date(now.getFullYear(), now.getMonth(), 1).toISOString().split('T')[0];
-      const endDate = new Date(now.getFullYear(), now.getMonth() + 1, 0).toISOString().split('T')[0];
+      const year = now.getFullYear();
+      const month = String(now.getMonth() + 1).padStart(2, '0');
+      const startDate = `${year}-${month}-01`;
+      const lastDay = new Date(year, now.getMonth() + 1, 0).getDate();
+      const endDate = `${year}-${month}-${String(lastDay).padStart(2, '0')}`;
 
       const [dashboardRes, categoryRes, periodRes] = await Promise.all([
-        fetch(`${API_URL}/dashboard`, { headers }),
-        fetch(`${API_URL}/transactions/totals/by-category`, { headers }),
+        fetch(`${API_URL}/dashboard?start_date=${startDate}&end_date=${endDate}`, { headers }),
+        fetch(`${API_URL}/transactions/totals/by-category?start_date=${startDate}&end_date=${endDate}`, { headers }),
         fetch(`${API_URL}/transactions/totals/by-period?start=${startDate}&end=${endDate}`, { headers })
       ]);
 

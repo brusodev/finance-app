@@ -1,13 +1,14 @@
 from contextlib import asynccontextmanager
-from fastapi import FastAPI, Depends
+from fastapi import FastAPI, Depends, Query
 from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy.orm import Session
 from .routes import auth, users, categories, transactions, accounts
 from .database import engine, Base, SessionLocal, get_db
 from .models import User
 from .utils import hash_password
-from sqlalchemy import text
+from sqlalchemy import text, and_
 import os
+from datetime import date
 
 # Criar tabelas automaticamente se não existirem
 Base.metadata.create_all(bind=engine)
@@ -189,6 +190,8 @@ async def root():
 
 @app.get('/dashboard')
 async def dashboard(
+    start_date: date = None,
+    end_date: date = None,
     db: Session = Depends(get_db),
     current_user: User = Depends(auth.get_current_user)
 ):
@@ -224,21 +227,38 @@ async def dashboard(
         Category.user_id == current_user.id
     ).scalar() or 0
 
+    # Filtros de transação
+    transaction_filters = [Transaction.user_id == current_user.id]
+    if start_date:
+        transaction_filters.append(Transaction.date >= start_date)
+    if end_date:
+        transaction_filters.append(Transaction.date <= end_date)
+
     # Contar transações
     total_transactions = db.query(func.count(Transaction.id)).filter(
-        Transaction.user_id == current_user.id
+        and_(*transaction_filters)
     ).scalar() or 0
 
     # Calcular receitas e despesas
     income_result = db.query(func.sum(Transaction.amount)).filter(
-        Transaction.user_id == current_user.id,
+        and_(*transaction_filters),
         Transaction.transaction_type == 'income'
     ).scalar() or 0.0
 
     expense_result = db.query(func.sum(func.abs(Transaction.amount))).filter(
-        Transaction.user_id == current_user.id,
+        and_(*transaction_filters),
         Transaction.transaction_type == 'expense'
     ).scalar() or 0.0
+
+    return {
+        "total_accounts": total_accounts,
+        "total_categories": total_categories,
+        "total_transactions": total_transactions,
+        "total_balance": float(total_balance),
+        "total_income": float(income_result),
+        "total_expense": float(expense_result),
+        "net_balance": float(income_result) - float(expense_result)
+    }
 
     return {
         "total_accounts": total_accounts,
@@ -253,6 +273,8 @@ async def dashboard(
 
 @app.get('/dashboard/summary')
 async def dashboard_summary(
+    start_date: date = None,
+    end_date: date = None,
     db: Session = Depends(get_db),
     current_user: User = Depends(auth.get_current_user)
 ):
@@ -281,17 +303,24 @@ async def dashboard_summary(
         Category.user_id == current_user.id
     ).scalar() or 0
 
+    # Filtros de transação
+    transaction_filters = [Transaction.user_id == current_user.id]
+    if start_date:
+        transaction_filters.append(Transaction.date >= start_date)
+    if end_date:
+        transaction_filters.append(Transaction.date <= end_date)
+
     total_transactions = db.query(func.count(Transaction.id)).filter(
-        Transaction.user_id == current_user.id
+        and_(*transaction_filters)
     ).scalar() or 0
 
     income_result = db.query(func.sum(Transaction.amount)).filter(
-        Transaction.user_id == current_user.id,
+        and_(*transaction_filters),
         Transaction.transaction_type == 'income'
     ).scalar() or 0.0
 
     expense_result = db.query(func.sum(func.abs(Transaction.amount))).filter(
-        Transaction.user_id == current_user.id,
+        and_(*transaction_filters),
         Transaction.transaction_type == 'expense'
     ).scalar() or 0.0
 
@@ -302,7 +331,7 @@ async def dashboard_summary(
         joinedload(Transaction.account),
         joinedload(Transaction.user)
     ).filter(
-        Transaction.user_id == current_user.id
+        and_(*transaction_filters)
     ).order_by(Transaction.date.desc()).limit(10).all()
 
     # Serializar transações (Pydantic v2 com from_attributes=True)

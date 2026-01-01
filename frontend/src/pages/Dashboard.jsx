@@ -22,12 +22,20 @@ export default function Dashboard() {
       setLoading(true)
       setError('')
 
+      // Get current month start and end dates
+      const now = new Date();
+      const year = now.getFullYear();
+      const month = String(now.getMonth() + 1).padStart(2, '0');
+      const startDate = `${year}-${month}-01`;
+      const lastDay = new Date(year, now.getMonth() + 1, 0).getDate();
+      const endDate = `${year}-${month}-${String(lastDay).padStart(2, '0')}`;
+
       // OTIMIZAÇÃO: Usar endpoint /dashboard/summary
       // Reduz de 3 requisições para 1 única!
       const API_URL = import.meta.env.VITE_API_URL || "http://localhost:8000"
       const token = localStorage.getItem("token")
 
-      const response = await fetch(`${API_URL}/dashboard/summary`, {
+      const response = await fetch(`${API_URL}/dashboard/summary?start_date=${startDate}&end_date=${endDate}`, {
         method: "GET",
         headers: {
           "Content-Type": "application/json",
