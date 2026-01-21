@@ -20,6 +20,7 @@ class User(BaseModel):
     phone: Optional[str] = None
     birth_date: Optional[date] = None
     address: Optional[str] = None
+    currency: Optional[str] = "BRL"
 
     class Config:
         from_attributes = True
@@ -33,6 +34,7 @@ class UserUpdate(BaseModel):
     phone: Optional[str] = None
     birth_date: Optional[date] = None
     address: Optional[str] = None
+    currency: Optional[str] = None
 
     class Config:
         # Permitir valores None explícitos

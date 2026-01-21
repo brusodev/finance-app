@@ -1,7 +1,10 @@
 import { useState, useEffect } from 'react'
 import { transactionsAPI } from '../services/api'
+import { useAuth } from '../context/AuthContext'
+import { getCurrencySymbol } from '../utils/formatters'
 
 export default function TransactionForm({ categories, initialData, onSubmit, onCancel }) {
+  const { user } = useAuth()
   const [amount, setAmount] = useState('')
   const [description, setDescription] = useState('')
   const [categoryId, setCategoryId] = useState('')
@@ -160,7 +163,7 @@ export default function TransactionForm({ categories, initialData, onSubmit, onC
           {/* Valor */}
           <div>
             <label htmlFor="amount" className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-2">
-              Valor (R$)
+              Valor ({getCurrencySymbol(user?.currency)})
             </label>
             <input
               id="amount"

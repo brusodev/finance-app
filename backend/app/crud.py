@@ -77,6 +77,8 @@ def update_user_profile(db: Session, user_id: int, user: schemas.UserUpdate):
             db_user.birth_date = user.birth_date
         if user.address is not None:
             db_user.address = user.address
+        if user.currency is not None:
+            db_user.currency = user.currency
         db.commit()
         db.refresh(db_user)
     return db_user

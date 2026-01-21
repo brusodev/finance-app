@@ -16,6 +16,7 @@ class User(Base):
     phone = Column(String, nullable=True)  # Telefone
     birth_date = Column(Date, nullable=True)  # Data de nascimento
     address = Column(String, nullable=True)  # Endereço
+    currency = Column(String, default='BRL')  # Moeda padrão do usuário
 
 
 class Category(Base):

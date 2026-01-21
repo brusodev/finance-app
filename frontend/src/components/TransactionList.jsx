@@ -1,4 +1,9 @@
+import { Trash2, Edit2 } from 'lucide-react'
+import { useAuth } from '../context/AuthContext'
+import { formatCurrency } from '../utils/formatters'
+
 export default function TransactionList({ transactions, categories, onDelete, onEdit }) {
+  const { user } = useAuth()
   const getCategoryName = (categoryId) => {
     const category = categories.find((c) => c.id === categoryId)
     return category ? category.name : 'Sem categoria'
@@ -71,8 +76,8 @@ export default function TransactionList({ transactions, categories, onDelete, on
                     transaction.amount > 0 ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'
                   }`}
                 >
-                  {transaction.amount > 0 ? '+' : ''}R${' '}
-                  {transaction.amount.toFixed(2).replace('.', ',')}
+                  {transaction.amount > 0 ? '+' : ''}
+                  {formatCurrency(Math.abs(transaction.amount), user?.currency)}
                 </td>
 
                 {/* Ações */}

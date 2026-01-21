@@ -1,19 +1,12 @@
 import React, { useState, useEffect } from "react";
 import { BarChart3, PieChart, TrendingUp, Wallet, ArrowUpCircle, ArrowDownCircle } from "lucide-react";
+import { formatCurrency } from '../utils/formatters'
+import { useAuth } from '../context/AuthContext'
 
 const API_URL = import.meta.env.VITE_API_URL || "http://localhost:8000";
 
-const formatCurrency = (value) => {
-  if (value === null || value === undefined || isNaN(value)) {
-    return '0,00';
-  }
-  return value.toLocaleString('pt-BR', {
-    minimumFractionDigits: 2,
-    maximumFractionDigits: 2
-  });
-};
-
 export default function Report() {
+  const { user } = useAuth();
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [dashboardData, setDashboardData] = useState(null);
@@ -156,7 +149,7 @@ export default function Report() {
               <Wallet className="text-purple-500" size={20} />
             </div>
             <p className={`text-2xl font-bold ${dashboardData.total_balance >= 0 ? 'text-zinc-900 dark:text-white' : 'text-red-600 dark:text-red-400'}`}>
-              R$ {formatCurrency(dashboardData.total_balance)}
+              {formatCurrency(dashboardData.total_balance, user?.currency)}
             </p>
           </div>
 
@@ -166,7 +159,7 @@ export default function Report() {
               <ArrowUpCircle className="text-green-500" size={20} />
             </div>
             <p className="text-2xl font-bold text-green-600 dark:text-green-400">
-              R$ {formatCurrency(dashboardData.total_income)}
+              {formatCurrency(dashboardData.total_income, user?.currency)}
             </p>
           </div>
 
@@ -176,7 +169,7 @@ export default function Report() {
               <ArrowDownCircle className="text-red-500" size={20} />
             </div>
             <p className="text-2xl font-bold text-red-600 dark:text-red-400">
-              R$ {formatCurrency(dashboardData.total_expense)}
+              {formatCurrency(dashboardData.total_expense, user?.currency)}
             </p>
           </div>
         </div>
@@ -198,14 +191,14 @@ export default function Report() {
                 <div className="flex justify-between items-center mb-2">
                   <span className="font-medium text-zinc-800 dark:text-white">{category.category_name}</span>
                   <span className="text-red-600 dark:text-red-400 font-semibold">
-                    R$ {formatCurrency(Math.abs(category.total_expense))}
+                    {formatCurrency(Math.abs(category.total_expense), user?.currency)}
                   </span>
                 </div>
                 <div className="flex justify-between text-sm text-zinc-500 dark:text-zinc-400">
                   <span>{category.transaction_count} transações</span>
                   {category.total_income > 0 && (
                     <span className="text-green-600 dark:text-green-400">
-                      Receita: R$ {formatCurrency(category.total_income)}
+                      Receita: {formatCurrency(category.total_income, user?.currency)}
                     </span>
                   )}
                 </div>
@@ -234,20 +227,20 @@ export default function Report() {
               <div className="flex justify-between items-center">
                 <span className="text-zinc-600 dark:text-zinc-400">Receitas</span>
                 <span className="text-green-600 dark:text-green-400 font-semibold">
-                  R$ {formatCurrency(periodData.total_income)}
+                  {formatCurrency(periodData.total_income, user?.currency)}
                 </span>
               </div>
               <div className="flex justify-between items-center">
                 <span className="text-zinc-600 dark:text-zinc-400">Despesas</span>
                 <span className="text-red-600 dark:text-red-400 font-semibold">
-                  R$ {formatCurrency(Math.abs(periodData.total_expense))}
+                  {formatCurrency(Math.abs(periodData.total_expense), user?.currency)}
                 </span>
               </div>
               <div className="border-t border-zinc-200 dark:border-zinc-700 pt-3 mt-3">
                 <div className="flex justify-between items-center">
                   <span className="font-medium text-zinc-800 dark:text-white">Saldo</span>
                   <span className={`font-bold text-lg ${periodData.balance >= 0 ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'}`}>
-                    R$ {formatCurrency(periodData.balance)}
+                    {formatCurrency(periodData.balance, user?.currency)}
                   </span>
                 </div>
               </div>
@@ -288,7 +281,7 @@ export default function Report() {
                 <div className="flex justify-between items-center">
                   <span className="font-medium text-zinc-800 dark:text-white">Saldo Líquido</span>
                   <span className={`font-bold text-lg ${dashboardData.net_balance >= 0 ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'}`}>
-                    R$ {formatCurrency(dashboardData.net_balance)}
+                    {formatCurrency(dashboardData.net_balance, user?.currency)}
                   </span>
                 </div>
               </div>

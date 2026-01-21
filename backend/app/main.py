@@ -36,6 +36,7 @@ def run_migrations():
             ("ALTER TABLE users ADD COLUMN IF NOT EXISTS phone VARCHAR", "phone"),
             ("ALTER TABLE users ADD COLUMN IF NOT EXISTS birth_date DATE", "birth_date"),
             ("ALTER TABLE users ADD COLUMN IF NOT EXISTS address VARCHAR", "address"),
+            ("ALTER TABLE users ADD COLUMN IF NOT EXISTS currency VARCHAR DEFAULT 'BRL'", "currency"),
             # Account migrations
             (f"ALTER TABLE accounts ADD COLUMN IF NOT EXISTS initial_balance {float_type} DEFAULT 0.0", "initial_balance"),
             (f"ALTER TABLE accounts ADD COLUMN IF NOT EXISTS is_active BOOLEAN DEFAULT {bool_default}", "is_active"),
@@ -49,6 +50,7 @@ def run_migrations():
             ("ALTER TABLE users ADD COLUMN phone VARCHAR", "phone"),
             ("ALTER TABLE users ADD COLUMN birth_date DATE", "birth_date"),
             ("ALTER TABLE users ADD COLUMN address VARCHAR", "address"),
+            ("ALTER TABLE users ADD COLUMN currency VARCHAR DEFAULT 'BRL'", "currency"),
             # Account migrations
             (f"ALTER TABLE accounts ADD COLUMN initial_balance {float_type} DEFAULT 0.0", "initial_balance"),
             (f"ALTER TABLE accounts ADD COLUMN is_active INTEGER DEFAULT {bool_default}", "is_active"),

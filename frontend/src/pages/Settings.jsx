@@ -1,15 +1,24 @@
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react'
 import { Settings, Lock, Bell, Moon, Shield, Globe } from 'lucide-react'
-import { authAPI } from '../services/api'
+import { authAPI, usersAPI } from '../services/api'
 import { useTheme } from '../context/ThemeContext'
+import { useAuth } from '../context/AuthContext'
 
 export default function SettingsPage() {
   const { darkMode, toggleTheme } = useTheme()
+  const { user, updateUser } = useAuth()
   const [settings, setSettings] = useState({
     notifications: true,
     twoFactor: false,
-    currency: 'BRL'
+    currency: user?.currency || 'BRL'
   })
+
+  useEffect(() => {
+    if (user?.currency) {
+      setSettings(prev => ({ ...prev, currency: user.currency }))
+    }
+  }, [user])
+
   const [password, setPassword] = useState({
     currentPassword: '',
     newPassword: '',
@@ -28,11 +37,21 @@ export default function SettingsPage() {
     }))
   }
 
-  const handleSettingSelect = (key, value) => {
+  const handleSettingSelect = async (key, value) => {
     setSettings(prev => ({
       ...prev,
       [key]: value
     }))
+
+    if (key === 'currency') {
+      try {
+        const updatedUser = await usersAPI.updateProfile({ currency: value })
+        updateUser(updatedUser)
+        setSuccess('Moeda alterada com sucesso!')
+      } catch (err) {
+        setError('Erro ao salvar moeda padrão.')
+      }
+    }
   }
 
   const handlePasswordChange = (e) => {

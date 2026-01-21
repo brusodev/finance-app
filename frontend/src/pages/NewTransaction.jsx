@@ -3,6 +3,7 @@ import { useNavigate, useLocation } from 'react-router-dom'
 import { ArrowLeft, Save } from 'lucide-react'
 import { accountsAPI, categoriesAPI, transactionsAPI } from '../services/api'
 import { useAuth } from '../context/AuthContext'
+import { getCurrencySymbol } from '../utils/formatters'
 
 export default function NewTransaction() {
   const navigate = useNavigate()
@@ -193,7 +194,9 @@ export default function NewTransaction() {
           <div>
             <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">Valor</label>
             <div className="relative">
-              <span className="absolute left-4 top-1/2 -translate-y-1/2 text-zinc-500 dark:text-zinc-400 font-medium">R$</span>
+              <span className="absolute left-4 top-1/2 -translate-y-1/2 text-zinc-500 dark:text-zinc-400 font-medium">
+                {getCurrencySymbol(user?.currency)}
+              </span>
               <input
                 type="number"
                 step="0.01"

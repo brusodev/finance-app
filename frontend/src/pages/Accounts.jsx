@@ -2,8 +2,10 @@ import React, { useState, useEffect } from 'react'
 import { Plus, Edit2, Trash2, X, Wallet } from 'lucide-react'
 import { accountsAPI } from '../services/api'
 import { formatCurrency } from '../utils/formatters'
+import { useAuth } from '../context/AuthContext'
 
 export default function Accounts() {
+  const { user } = useAuth()
   const [accounts, setAccounts] = useState([])
   const [loading, setLoading] = useState(false)
   const [showForm, setShowForm] = useState(false)
@@ -240,7 +242,7 @@ export default function Accounts() {
             </p>
             
             <p className={`text-2xl font-bold ${account.balance >= 0 ? 'text-zinc-900 dark:text-white' : 'text-red-600 dark:text-red-400'}`}>
-              R$ {formatCurrency(account.balance)}
+              {formatCurrency(account.balance, user?.currency)}
             </p>
           </div>
         ))}

@@ -96,7 +96,7 @@ export default function Dashboard() {
             <Wallet className="text-blue-500" size={20} />
           </div>
           <p className={`text-2xl font-bold ${balance >= 0 ? 'text-zinc-900 dark:text-white' : 'text-red-600 dark:text-red-400'}`}>
-            R$ {formatCurrency(balance)}
+            {formatCurrency(balance, user?.currency)}
           </p>
         </div>
 
@@ -106,7 +106,7 @@ export default function Dashboard() {
             <ArrowUpCircle className="text-green-500" size={20} />
           </div>
           <p className="text-2xl font-bold text-green-600 dark:text-green-400">
-            R$ {formatCurrency(totalIncome)}
+            {formatCurrency(totalIncome, user?.currency)}
           </p>
         </div>
 
@@ -116,7 +116,7 @@ export default function Dashboard() {
             <ArrowDownCircle className="text-red-500" size={20} />
           </div>
           <p className="text-2xl font-bold text-red-600 dark:text-red-400">
-            R$ {formatCurrency(totalExpense)}
+            {formatCurrency(totalExpense, user?.currency)}
           </p>
         </div>
       </div>
@@ -156,7 +156,7 @@ export default function Dashboard() {
                       </td>
                       <td className="px-6 py-4 text-sm text-zinc-600 dark:text-zinc-300">{t.description}</td>
                       <td className={`px-6 py-4 text-sm font-medium text-right ${t.amount > 0 ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'}`}>
-                        R$ {formatCurrency(Math.abs(t.amount))}
+                        {formatCurrency(Math.abs(t.amount), user?.currency)}
                       </td>
                     </tr>
                   ))}
@@ -178,7 +178,7 @@ export default function Dashboard() {
                     </div>
                   </div>
                   <span className={`text-sm font-medium ${t.amount > 0 ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'}`}>
-                    {t.amount > 0 ? '+' : '-'} R$ {formatCurrency(Math.abs(t.amount))}
+                    {t.amount > 0 ? '+' : '-'} {formatCurrency(Math.abs(t.amount), user?.currency)}
                   </span>
                 </div>
               ))}

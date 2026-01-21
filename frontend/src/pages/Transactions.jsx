@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import { Plus, Edit2, Trash2, Search } from 'lucide-react'
 import { transactionsAPI, categoriesAPI } from '../services/api'
 import { useAuth } from '../context/AuthContext'
+import { formatCurrency } from '../utils/formatters'
 
 export default function Transactions() {
   const [transactions, setTransactions] = useState([])
@@ -186,7 +187,7 @@ export default function Transactions() {
                         </span>
                       </td>
                       <td className={`px-6 py-4 text-sm font-medium text-right ${t.amount > 0 ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'}`}>
-                        R$ {Math.abs(t.amount).toFixed(2).replace('.', ',')}
+                        {formatCurrency(Math.abs(t.amount), user?.currency)}
                       </td>
                       <td className="px-6 py-4 text-center">
                         <div className="flex justify-center gap-2">
@@ -215,7 +216,7 @@ export default function Transactions() {
                       </div>
                     </div>
                     <span className={`text-sm font-medium ${t.amount > 0 ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'}`}>
-                      {t.amount > 0 ? '+' : '-'} R$ {Math.abs(t.amount).toFixed(2).replace('.', ',')}
+                      {t.amount > 0 ? '+' : '-'} {formatCurrency(Math.abs(t.amount), user?.currency)}
                     </span>
                   </div>
                   <div className="flex justify-end gap-3 pt-2 border-t border-zinc-50 dark:border-zinc-700">
