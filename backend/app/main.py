@@ -141,6 +141,7 @@ app = FastAPI(
 # Permitindo frontend Railway e localhost
 allowed_origins = [
     "https://finance-app-bruno.up.railway.app",
+    "https://finance.projdev.site",
     "http://localhost:5173",
     "http://localhost:3000",
     "http://127.0.0.1:5173",
