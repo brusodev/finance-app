@@ -10,6 +10,6 @@ export default defineConfig({
   preview: {
     port: 3000,
     host: '0.0.0.0',
-    allowedHosts: ['.railway.app', '.up.railway.app']  // Permite Railway
+    allowedHosts: ['.railway.app', '.up.railway.app', 'finance.projdev.site']  // Permite Railway
   }
 })
