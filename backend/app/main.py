@@ -22,7 +22,8 @@ def run_migrations():
     db_url = str(engine.url)
     is_postgres = 'postgresql' in db_url
 
-    print(f"[INFO] Banco de dados detectado: {'PostgreSQL' if is_postgres else 'SQLite'}")
+    print(
+        f"[INFO] Banco de dados detectado: {'PostgreSQL' if is_postgres else 'SQLite'}")
 
     # Usar tipo correto dependendo do banco
     float_type = "DOUBLE PRECISION" if is_postgres else "REAL"
@@ -79,7 +80,8 @@ def run_migrations():
                     WHERE initial_balance IS NULL OR initial_balance = 0.0
                 """))
                 if result.rowcount > 0:
-                    print(f"  [DATA] Migrados {result.rowcount} saldos iniciais")
+                    print(
+                        f"  [DATA] Migrados {result.rowcount} saldos iniciais")
             except Exception as e:
                 print(f"  [WARN] Erro ao migrar saldos: {e}")
 
@@ -151,10 +153,10 @@ allowed_origins = [
 environment = os.getenv("ENVIRONMENT", "production")
 allow_credentials = True
 
-# Se precisar permitir todas origens (NÃO recomendado em produção)
-# Descomente a linha abaixo e comente allow_credentials
-# allowed_origins = ["*"]
-# allow_credentials = False
+# Se estiver em desenvolvimento, permite todas origens para o App Mobile funcionar
+if environment != "production":
+    allowed_origins = ["*"]
+    allow_credentials = False
 
 print(f"CORS: Ambiente={environment}, Origens permitidas: {allowed_origins}")
 
