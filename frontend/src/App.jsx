@@ -17,6 +17,7 @@ import Categories from "./pages/Categories";
 import Transactions from "./pages/Transactions";
 import NewTransaction from "./pages/NewTransaction";
 import Settings from "./pages/Settings";
+import Transfers from "./pages/Transfers";
 
 function App() {
   return (
@@ -92,6 +93,14 @@ function App() {
                 <ProtectedRoute>
                   <Layout>
                     <Settings />
+                  </Layout>
+                </ProtectedRoute>
+              } />
+
+              <Route path="/transfers" element={
+                <ProtectedRoute>
+                  <Layout>
+                    <Transfers />
                   </Layout>
                 </ProtectedRoute>
               } />

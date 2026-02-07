@@ -503,3 +503,136 @@ def get_transaction_description_suggestions(
 
     # Retornar apenas as descrições
     return [suggestion.description for suggestion in suggestions]
+
+
+# ========================
+# TRANSFER OPERATIONS
+# ========================
+
+
+def create_transfer(db: Session, transfer: schemas.TransferCreate, user_id: int):
+    """
+    Create a transfer between two accounts.
+    Creates two linked transactions: one debit from source account and one credit to destination account.
+    """
+    import uuid
+
+    # Validar que as contas existem e pertencem ao usuário
+    from_account = get_account(db, transfer.from_account_id)
+    to_account = get_account(db, transfer.to_account_id)
+
+    if not from_account or from_account.user_id != user_id:
+        raise ValueError("Conta de origem não encontrada ou não pertence ao usuário")
+
+    if not to_account or to_account.user_id != user_id:
+        raise ValueError("Conta de destino não encontrada ou não pertence ao usuário")
+
+    if transfer.from_account_id == transfer.to_account_id:
+        raise ValueError("Não é possível transferir para a mesma conta")
+
+    if transfer.amount <= 0:
+        raise ValueError("O valor da transferência deve ser positivo")
+
+    # Gerar ID único para vincular as duas transações
+    transfer_id = str(uuid.uuid4())
+
+    # Obter ou criar categoria de transferência
+    category_id = transfer.category_id
+    if not category_id:
+        # Buscar ou criar categoria padrão de transferência
+        transfer_category = db.query(models.Category).filter(
+            models.Category.user_id == user_id,
+            models.Category.name == "Transferência"
+        ).first()
+
+        if not transfer_category:
+            transfer_category = models.Category(
+                name="Transferência",
+                icon="swap_horiz",
+                user_id=user_id
+            )
+            db.add(transfer_category)
+            db.flush()
+
+        category_id = transfer_category.id
+
+    # Criar transação de saída (débito da conta origem)
+    from_transaction = models.Transaction(
+        amount=-abs(transfer.amount),  # Valor negativo para saída
+        date=transfer.date,
+        description=transfer.description or f"Transferência para {to_account.name}",
+        transaction_type="transfer",
+        category_id=category_id,
+        account_id=transfer.from_account_id,
+        transfer_id=transfer_id,
+        transfer_account_id=transfer.to_account_id,
+        user_id=user_id
+    )
+    db.add(from_transaction)
+
+    # Criar transação de entrada (crédito na conta destino)
+    to_transaction = models.Transaction(
+        amount=abs(transfer.amount),  # Valor positivo para entrada
+        date=transfer.date,
+        description=transfer.description or f"Transferência de {from_account.name}",
+        transaction_type="transfer",
+        category_id=category_id,
+        account_id=transfer.to_account_id,
+        transfer_id=transfer_id,
+        transfer_account_id=transfer.from_account_id,
+        user_id=user_id
+    )
+    db.add(to_transaction)
+
+    # Atualizar saldos das contas
+    from_account.balance -= abs(transfer.amount)
+    to_account.balance += abs(transfer.amount)
+
+    db.commit()
+    db.refresh(from_transaction)
+    db.refresh(to_transaction)
+
+    return {
+        "transfer_id": transfer_id,
+        "from_transaction": from_transaction,
+        "to_transaction": to_transaction,
+        "amount": transfer.amount,
+        "date": transfer.date,
+        "description": transfer.description or "Transferência entre contas"
+    }
+
+
+def get_transfer_transactions(db: Session, transfer_id: str, user_id: int):
+    """
+    Get both transactions from a transfer by transfer_id
+    """
+    transactions = db.query(models.Transaction).filter(
+        models.Transaction.transfer_id == transfer_id,
+        models.Transaction.user_id == user_id
+    ).all()
+
+    return transactions
+
+
+def delete_transfer(db: Session, transfer_id: str, user_id: int):
+    """
+    Delete a transfer by removing both linked transactions
+    """
+    transactions = get_transfer_transactions(db, transfer_id, user_id)
+
+    if not transactions:
+        raise ValueError("Transferência não encontrada")
+
+    # Reverter saldos das contas
+    for transaction in transactions:
+        if transaction.account_id:
+            account = get_account(db, transaction.account_id)
+            if account:
+                account.balance -= transaction.amount
+
+    # Deletar transações
+    for transaction in transactions:
+        db.delete(transaction)
+
+    db.commit()
+    return True

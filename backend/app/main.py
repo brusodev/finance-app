@@ -2,7 +2,7 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI, Depends, Query
 from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy.orm import Session
-from .routes import auth, users, categories, transactions, accounts
+from .routes import auth, users, categories, transactions, accounts, transfers
 from .database import engine, Base, SessionLocal, get_db
 from .models import User
 from .utils import hash_password
@@ -43,6 +43,9 @@ def run_migrations():
             (f"ALTER TABLE accounts ADD COLUMN IF NOT EXISTS is_active BOOLEAN DEFAULT {bool_default}", "is_active"),
             ("ALTER TABLE accounts ADD COLUMN IF NOT EXISTS created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP", "created_at"),
             ("ALTER TABLE accounts ADD COLUMN IF NOT EXISTS updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP", "updated_at"),
+            # Transaction migrations for transfers
+            ("ALTER TABLE transactions ADD COLUMN IF NOT EXISTS transfer_id VARCHAR", "transfer_id"),
+            ("ALTER TABLE transactions ADD COLUMN IF NOT EXISTS transfer_account_id INTEGER REFERENCES accounts(id)", "transfer_account_id"),
         ]
     else:
         migrations = [
@@ -57,6 +60,9 @@ def run_migrations():
             (f"ALTER TABLE accounts ADD COLUMN is_active INTEGER DEFAULT {bool_default}", "is_active"),
             ("ALTER TABLE accounts ADD COLUMN created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP", "created_at"),
             ("ALTER TABLE accounts ADD COLUMN updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP", "updated_at"),
+            # Transaction migrations for transfers
+            ("ALTER TABLE transactions ADD COLUMN transfer_id VARCHAR", "transfer_id"),
+            ("ALTER TABLE transactions ADD COLUMN transfer_account_id INTEGER REFERENCES accounts(id)", "transfer_account_id"),
         ]
 
     try:
@@ -174,6 +180,7 @@ app.include_router(users.router)
 app.include_router(categories.router)
 app.include_router(accounts.router)
 app.include_router(transactions.router)
+app.include_router(transfers.router)
 
 
 @app.get('/')

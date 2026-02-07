@@ -107,6 +107,8 @@ class TransactionCreate(BaseModel):
     transaction_type: str
     category_id: int
     account_id: Optional[int] = None
+    transfer_id: Optional[str] = None
+    transfer_account_id: Optional[int] = None
 
 
 class UserBasic(BaseModel):
@@ -128,6 +130,28 @@ class Transaction(BaseModel):
     category: Category
     account: Optional[Account] = None
     user: UserBasic  # Usar UserBasic em vez de User completo
+    transfer_id: Optional[str] = None
+    transfer_account_id: Optional[int] = None
 
     class Config:
         from_attributes = True
+
+
+class TransferCreate(BaseModel):
+    """Schema para criar uma transferência entre contas"""
+    from_account_id: int
+    to_account_id: int
+    amount: float
+    date: date
+    description: Optional[str] = "Transferência entre contas"
+    category_id: Optional[int] = None  # Categoria opcional para transferências
+
+
+class TransferResponse(BaseModel):
+    """Response da transferência com os dois lançamentos criados"""
+    transfer_id: str
+    from_transaction: Transaction
+    to_transaction: Transaction
+    amount: float
+    date: date
+    description: str

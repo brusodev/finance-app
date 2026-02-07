@@ -373,6 +373,55 @@ export const transactionsAPI = {
   },
 };
 
+// Transfers API
+export const transfersAPI = {
+  create: async (data) => {
+    try {
+      const response = await fetch(`${API_URL}/transfers/`, {
+        method: "POST",
+        headers: getHeaders(true),
+        body: JSON.stringify(data),
+      });
+      const result = await handleResponse(response);
+      // Limpar cache de transações após criar transferência
+      transactionsCache.clear();
+      return result;
+    } catch (error) {
+      console.error("Create transfer error:", error);
+      throw error;
+    }
+  },
+
+  getTransactions: async (transferId) => {
+    try {
+      const response = await fetch(`${API_URL}/transfers/${transferId}/transactions`, {
+        method: "GET",
+        headers: getHeaders(true),
+      });
+      return handleResponse(response);
+    } catch (error) {
+      console.error("Get transfer transactions error:", error);
+      throw error;
+    }
+  },
+
+  delete: async (transferId) => {
+    try {
+      const response = await fetch(`${API_URL}/transfers/${transferId}`, {
+        method: "DELETE",
+        headers: getHeaders(true),
+      });
+      if (!response.ok) throw new Error("Failed to delete transfer");
+      // Limpar cache de transações após deletar transferência
+      transactionsCache.clear();
+      return null;
+    } catch (error) {
+      console.error("Delete transfer error:", error);
+      throw error;
+    }
+  },
+};
+
 // Default export for compatibility
 export const api = {
   auth: authAPI,
@@ -380,4 +429,5 @@ export const api = {
   accounts: accountsAPI,
   categories: categoriesAPI,
   transactions: transactionsAPI,
+  transfers: transfersAPI,
 };

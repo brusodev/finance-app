@@ -46,6 +46,27 @@ export const formatDate = (date) => {
 };
 
 /**
+ * Formata uma data ISO (YYYY-MM-DD) sem conversão de timezone
+ * Evita problemas de timezone ao exibir datas que vêm do backend
+ * @param {string} dateString - Data no formato ISO (YYYY-MM-DD)
+ * @returns {string} Data formatada (ex: "10/12/2025")
+ */
+export const formatDateLocal = (dateString) => {
+  if (!dateString) return '';
+
+  // Se a string já está no formato ISO (YYYY-MM-DD), dividir manualmente
+  // para evitar conversão de timezone
+  const parts = dateString.split('T')[0].split('-');
+  if (parts.length === 3) {
+    const [year, month, day] = parts;
+    return `${day.padStart(2, '0')}/${month.padStart(2, '0')}/${year}`;
+  }
+
+  // Fallback para formatação padrão
+  return formatDate(dateString);
+};
+
+/**
  * Formata data e hora no padrão brasileiro
  * @param {string|Date} datetime - Data/hora a ser formatada
  * @returns {string} Data/hora formatada (ex: "10/12/2025 15:30")

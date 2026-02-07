@@ -12,7 +12,8 @@ import {
   Tag,
   User,
   BarChart3,
-  ArrowRightLeft
+  ArrowRightLeft,
+  ArrowLeftRight
 } from 'lucide-react'
 
 export default function Sidebar() {
@@ -37,6 +38,7 @@ export default function Sidebar() {
     { id: 'accounts', icon: Wallet, label: 'Minhas Contas', path: '/accounts' },
     { id: 'categories', icon: Tag, label: 'Categorias', path: '/categories' },
     { id: 'transactions', icon: ArrowRightLeft, label: 'Transações', path: '/transacoes' },
+    { id: 'transfers', icon: ArrowLeftRight, label: 'Transferências', path: '/transfers' },
     { id: 'new-transaction', icon: Plus, label: 'Nova Transação', path: '/nova-transacao' },
     { id: 'report', icon: BarChart3, label: 'Relatórios', path: '/report' },
     { id: 'profile', icon: User, label: 'Meu Perfil', path: '/profile' },

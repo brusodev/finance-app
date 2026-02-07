@@ -49,11 +49,16 @@ class Transaction(Base):
     amount = Column(Float)
     date = Column(Date, index=True)  # Índice para ordenação e filtros
     description = Column(String, index=True)  # Índice para sugestões
-    transaction_type = Column(String, index=True)  # Índice para filtros
+    transaction_type = Column(String, index=True)  # Índice para filtros ('income', 'expense', 'transfer')
     category_id = Column(Integer, ForeignKey('categories.id'), index=True)
     account_id = Column(Integer, ForeignKey('accounts.id'), nullable=True, index=True)
     user_id = Column(Integer, ForeignKey('users.id'), index=True)  # Índice crítico
 
+    # Campos para transferências entre contas
+    transfer_id = Column(String, nullable=True, index=True)  # UUID para vincular transações de transferência
+    transfer_account_id = Column(Integer, ForeignKey('accounts.id'), nullable=True)  # Conta destino/origem da transferência
+
     category = relationship("Category")
-    account = relationship("Account")
+    account = relationship("Account", foreign_keys=[account_id])
+    transfer_account = relationship("Account", foreign_keys=[transfer_account_id])
     user = relationship("User")
