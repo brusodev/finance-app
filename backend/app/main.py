@@ -2,7 +2,7 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI, Depends, Query
 from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy.orm import Session
-from .routes import auth, users, categories, transactions, accounts, transfers
+from .routes import auth, users, categories, transactions, accounts, transfers, investments
 from .database import engine, Base, SessionLocal, get_db
 from .models import User
 from .utils import hash_password
@@ -46,6 +46,7 @@ def run_migrations():
             # Transaction migrations for transfers
             ("ALTER TABLE transactions ADD COLUMN IF NOT EXISTS transfer_id VARCHAR", "transfer_id"),
             ("ALTER TABLE transactions ADD COLUMN IF NOT EXISTS transfer_account_id INTEGER REFERENCES accounts(id)", "transfer_account_id"),
+            # Investment tables will be created by Base.metadata.create_all()
         ]
     else:
         migrations = [
@@ -63,6 +64,7 @@ def run_migrations():
             # Transaction migrations for transfers
             ("ALTER TABLE transactions ADD COLUMN transfer_id VARCHAR", "transfer_id"),
             ("ALTER TABLE transactions ADD COLUMN transfer_account_id INTEGER REFERENCES accounts(id)", "transfer_account_id"),
+            # Investment tables will be created by Base.metadata.create_all()
         ]
 
     try:
@@ -181,12 +183,13 @@ app.include_router(categories.router)
 app.include_router(accounts.router)
 app.include_router(transactions.router)
 app.include_router(transfers.router)
+app.include_router(investments.router)
 
 
 @app.get('/')
 async def root():
     return {
-        'message': 'Finance App API está funcionando!',
+        'message': 'Prospera API está funcionando!',
         'status': 'online',
         'documentation': '/docs',
         'endpoints': {

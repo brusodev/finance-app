@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react'
+import { ArrowLeftRight } from 'lucide-react'
 import { accountsAPI, transactionsAPI } from '../services/api'
 import TransferForm from '../components/TransferForm'
 import { getCurrencySymbol, formatDateLocal } from '../utils/formatters'
@@ -151,7 +152,7 @@ export default function Transfers() {
               >
                 <div className="flex-1">
                   <div className="flex items-center gap-2 mb-1">
-                    <span className="material-icons text-blue-500 dark:text-blue-400 text-sm">swap_horiz</span>
+                    <ArrowLeftRight size={16} className="text-blue-500 dark:text-blue-400" />
                     <p className="font-medium text-zinc-900 dark:text-white">{transfer.description}</p>
                   </div>
                   <div className="text-sm text-gray-600 dark:text-gray-400">

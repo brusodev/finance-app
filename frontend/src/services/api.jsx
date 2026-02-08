@@ -422,6 +422,224 @@ export const transfersAPI = {
   },
 };
 
+// Investments API
+export const investmentsAPI = {
+  // Assets
+  createAsset: async (assetData) => {
+    try {
+      const response = await fetch(`${API_URL}/investments/assets`, {
+        method: "POST",
+        headers: getHeaders(true),
+        body: JSON.stringify(assetData),
+      });
+      return handleResponse(response);
+    } catch (error) {
+      console.error("Create asset error:", error);
+      throw error;
+    }
+  },
+
+  listAssets: async () => {
+    try {
+      const response = await fetch(`${API_URL}/investments/assets`, {
+        method: "GET",
+        headers: getHeaders(true),
+      });
+      return handleResponse(response);
+    } catch (error) {
+      console.error("List assets error:", error);
+      throw error;
+    }
+  },
+
+  getAsset: async (assetId) => {
+    try {
+      const response = await fetch(`${API_URL}/investments/assets/${assetId}`, {
+        method: "GET",
+        headers: getHeaders(true),
+      });
+      return handleResponse(response);
+    } catch (error) {
+      console.error("Get asset error:", error);
+      throw error;
+    }
+  },
+
+  updateAsset: async (assetId, assetData) => {
+    try {
+      const response = await fetch(`${API_URL}/investments/assets/${assetId}`, {
+        method: "PUT",
+        headers: getHeaders(true),
+        body: JSON.stringify(assetData),
+      });
+      return handleResponse(response);
+    } catch (error) {
+      console.error("Update asset error:", error);
+      throw error;
+    }
+  },
+
+  deleteAsset: async (assetId) => {
+    try {
+      const response = await fetch(`${API_URL}/investments/assets/${assetId}`, {
+        method: "DELETE",
+        headers: getHeaders(true),
+      });
+      if (!response.ok) throw new Error("Failed to delete asset");
+      return null;
+    } catch (error) {
+      console.error("Delete asset error:", error);
+      throw error;
+    }
+  },
+
+  // Transactions
+  createTransaction: async (transactionData) => {
+    try {
+      const response = await fetch(`${API_URL}/investments/transactions`, {
+        method: "POST",
+        headers: getHeaders(true),
+        body: JSON.stringify(transactionData),
+      });
+      return handleResponse(response);
+    } catch (error) {
+      console.error("Create investment transaction error:", error);
+      throw error;
+    }
+  },
+
+  listTransactions: async (filters = {}) => {
+    try {
+      const params = new URLSearchParams();
+      if (filters.asset_id) params.append('asset_id', filters.asset_id);
+      if (filters.from_date) params.append('from_date', filters.from_date);
+      if (filters.to_date) params.append('to_date', filters.to_date);
+      if (filters.type) params.append('type', filters.type);
+
+      const url = `${API_URL}/investments/transactions${params.toString() ? '?' + params.toString() : ''}`;
+      const response = await fetch(url, {
+        method: "GET",
+        headers: getHeaders(true),
+      });
+      return handleResponse(response);
+    } catch (error) {
+      console.error("List investment transactions error:", error);
+      throw error;
+    }
+  },
+
+  getTransaction: async (transactionId) => {
+    try {
+      const response = await fetch(`${API_URL}/investments/transactions/${transactionId}`, {
+        method: "GET",
+        headers: getHeaders(true),
+      });
+      return handleResponse(response);
+    } catch (error) {
+      console.error("Get investment transaction error:", error);
+      throw error;
+    }
+  },
+
+  updateTransaction: async (transactionId, transactionData) => {
+    try {
+      const response = await fetch(`${API_URL}/investments/transactions/${transactionId}`, {
+        method: "PUT",
+        headers: getHeaders(true),
+        body: JSON.stringify(transactionData),
+      });
+      return handleResponse(response);
+    } catch (error) {
+      console.error("Update investment transaction error:", error);
+      throw error;
+    }
+  },
+
+  deleteTransaction: async (transactionId) => {
+    try {
+      const response = await fetch(`${API_URL}/investments/transactions/${transactionId}`, {
+        method: "DELETE",
+        headers: getHeaders(true),
+      });
+      if (!response.ok) throw new Error("Failed to delete transaction");
+      return null;
+    } catch (error) {
+      console.error("Delete investment transaction error:", error);
+      throw error;
+    }
+  },
+
+  // Summary
+  getSummary: async () => {
+    try {
+      const response = await fetch(`${API_URL}/investments/summary`, {
+        method: "GET",
+        headers: getHeaders(true),
+      });
+      return handleResponse(response);
+    } catch (error) {
+      console.error("Get investment summary error:", error);
+      throw error;
+    }
+  },
+
+  // Goal
+  createOrUpdateGoal: async (goalData) => {
+    try {
+      const response = await fetch(`${API_URL}/investments/goal`, {
+        method: "POST",
+        headers: getHeaders(true),
+        body: JSON.stringify(goalData),
+      });
+      return handleResponse(response);
+    } catch (error) {
+      console.error("Create/update goal error:", error);
+      throw error;
+    }
+  },
+
+  getGoal: async () => {
+    try {
+      const response = await fetch(`${API_URL}/investments/goal`, {
+        method: "GET",
+        headers: getHeaders(true),
+      });
+      return handleResponse(response);
+    } catch (error) {
+      console.error("Get goal error:", error);
+      throw error;
+    }
+  },
+
+  getGoalProgress: async () => {
+    try {
+      const response = await fetch(`${API_URL}/investments/goal/progress`, {
+        method: "GET",
+        headers: getHeaders(true),
+      });
+      return handleResponse(response);
+    } catch (error) {
+      console.error("Get goal progress error:", error);
+      throw error;
+    }
+  },
+
+  // Simulation
+  simulate: async (simulationData) => {
+    try {
+      const response = await fetch(`${API_URL}/investments/simulate`, {
+        method: "POST",
+        headers: getHeaders(true),
+        body: JSON.stringify(simulationData),
+      });
+      return handleResponse(response);
+    } catch (error) {
+      console.error("Simulate investment error:", error);
+      throw error;
+    }
+  },
+};
+
 // Default export for compatibility
 export const api = {
   auth: authAPI,
@@ -430,4 +648,5 @@ export const api = {
   categories: categoriesAPI,
   transactions: transactionsAPI,
   transfers: transfersAPI,
+  investments: investmentsAPI,
 };

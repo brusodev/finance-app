@@ -636,3 +636,359 @@ def delete_transfer(db: Session, transfer_id: str, user_id: int):
 
     db.commit()
     return True
+
+
+# ========================
+# INVESTMENT OPERATIONS
+# ========================
+
+# --- Investment Assets ---
+
+def create_investment_asset(db: Session, asset: schemas.InvestmentAssetCreate, user_id: int):
+    """Create a new investment asset"""
+    db_asset = models.InvestmentAsset(
+        name=asset.name,
+        type=asset.type,
+        broker=asset.broker,
+        currency=asset.currency,
+        user_id=user_id
+    )
+    db.add(db_asset)
+    db.commit()
+    db.refresh(db_asset)
+    return db_asset
+
+
+def get_investment_assets(db: Session, user_id: int):
+    """Get all investment assets for a user"""
+    return db.query(models.InvestmentAsset).filter(
+        models.InvestmentAsset.user_id == user_id
+    ).order_by(models.InvestmentAsset.created_at.desc()).all()
+
+
+def get_investment_asset(db: Session, asset_id: int, user_id: int):
+    """Get a specific investment asset"""
+    return db.query(models.InvestmentAsset).filter(
+        models.InvestmentAsset.id == asset_id,
+        models.InvestmentAsset.user_id == user_id
+    ).first()
+
+
+def update_investment_asset(db: Session, asset_id: int, asset: schemas.InvestmentAssetUpdate, user_id: int):
+    """Update an investment asset"""
+    db_asset = get_investment_asset(db, asset_id, user_id)
+    if not db_asset:
+        return None
+
+    if asset.name is not None:
+        db_asset.name = asset.name
+    if asset.type is not None:
+        db_asset.type = asset.type
+    if asset.broker is not None:
+        db_asset.broker = asset.broker
+    if asset.currency is not None:
+        db_asset.currency = asset.currency
+
+    db.commit()
+    db.refresh(db_asset)
+    return db_asset
+
+
+def delete_investment_asset(db: Session, asset_id: int, user_id: int):
+    """Delete an investment asset and all its transactions"""
+    db_asset = get_investment_asset(db, asset_id, user_id)
+    if not db_asset:
+        return False
+
+    db.delete(db_asset)
+    db.commit()
+    return True
+
+
+# --- Investment Transactions ---
+
+def create_investment_transaction(db: Session, transaction: schemas.InvestmentTransactionCreate, user_id: int):
+    """Create a new investment transaction"""
+    # Verify asset exists and belongs to user
+    asset = get_investment_asset(db, transaction.asset_id, user_id)
+    if not asset:
+        raise ValueError("Ativo não encontrado ou não pertence ao usuário")
+
+    db_transaction = models.InvestmentTransaction(
+        asset_id=transaction.asset_id,
+        date=transaction.date,
+        type=transaction.type,
+        amount_brl=transaction.amount_brl,
+        quantity=transaction.quantity,
+        unit_price=transaction.unit_price,
+        notes=transaction.notes,
+        user_id=user_id
+    )
+    db.add(db_transaction)
+    db.commit()
+    db.refresh(db_transaction)
+    return db_transaction
+
+
+def get_investment_transactions(db: Session, user_id: int, asset_id: int = None,
+                                 from_date: str = None, to_date: str = None,
+                                 transaction_type: str = None):
+    """Get investment transactions with filters"""
+    query = db.query(models.InvestmentTransaction).filter(
+        models.InvestmentTransaction.user_id == user_id
+    )
+
+    if asset_id:
+        query = query.filter(models.InvestmentTransaction.asset_id == asset_id)
+    if from_date:
+        query = query.filter(models.InvestmentTransaction.date >= from_date)
+    if to_date:
+        query = query.filter(models.InvestmentTransaction.date <= to_date)
+    if transaction_type:
+        query = query.filter(models.InvestmentTransaction.type == transaction_type)
+
+    return query.order_by(models.InvestmentTransaction.date.desc()).all()
+
+
+def get_investment_transaction(db: Session, transaction_id: int, user_id: int):
+    """Get a specific investment transaction"""
+    return db.query(models.InvestmentTransaction).filter(
+        models.InvestmentTransaction.id == transaction_id,
+        models.InvestmentTransaction.user_id == user_id
+    ).first()
+
+
+def update_investment_transaction(db: Session, transaction_id: int,
+                                   transaction: schemas.InvestmentTransactionUpdate, user_id: int):
+    """Update an investment transaction"""
+    db_transaction = get_investment_transaction(db, transaction_id, user_id)
+    if not db_transaction:
+        return None
+
+    if transaction.date is not None:
+        db_transaction.date = transaction.date
+    if transaction.type is not None:
+        db_transaction.type = transaction.type
+    if transaction.amount_brl is not None:
+        db_transaction.amount_brl = transaction.amount_brl
+    if transaction.quantity is not None:
+        db_transaction.quantity = transaction.quantity
+    if transaction.unit_price is not None:
+        db_transaction.unit_price = transaction.unit_price
+    if transaction.notes is not None:
+        db_transaction.notes = transaction.notes
+
+    db.commit()
+    db.refresh(db_transaction)
+    return db_transaction
+
+
+def delete_investment_transaction(db: Session, transaction_id: int, user_id: int):
+    """Delete an investment transaction"""
+    db_transaction = get_investment_transaction(db, transaction_id, user_id)
+    if not db_transaction:
+        return False
+
+    db.delete(db_transaction)
+    db.commit()
+    return True
+
+
+# --- Goal Plans ---
+
+def create_goal_plan(db: Session, goal: schemas.GoalPlanCreate, user_id: int):
+    """Create a new goal plan with steps"""
+    # Delete existing goal plan if any (only one goal per user)
+    existing = db.query(models.GoalPlan).filter(
+        models.GoalPlan.user_id == user_id
+    ).first()
+    if existing:
+        db.delete(existing)
+        db.flush()
+
+    db_goal = models.GoalPlan(
+        goal_name=goal.goal_name,
+        target_value_brl=goal.target_value_brl,
+        start_date=goal.start_date,
+        months=goal.months,
+        default_monthly_rate=goal.default_monthly_rate,
+        plan_mode=goal.plan_mode,
+        user_id=user_id
+    )
+    db.add(db_goal)
+    db.flush()
+
+    # Add steps
+    if goal.steps:
+        for step in goal.steps:
+            db_step = models.GoalPlanStep(
+                goal_plan_id=db_goal.id,
+                start_month=step.start_month,
+                end_month=step.end_month,
+                monthly_contribution_brl=step.monthly_contribution_brl
+            )
+            db.add(db_step)
+    elif goal.plan_mode == "ESCADA":
+        # Create default ladder steps (1k/2k/3k)
+        default_steps = [
+            {"start_month": 1, "end_month": 36, "monthly_contribution_brl": 1000.0},
+            {"start_month": 37, "end_month": 72, "monthly_contribution_brl": 2000.0},
+            {"start_month": 73, "end_month": 120, "monthly_contribution_brl": 3000.0},
+        ]
+        for step_data in default_steps:
+            db_step = models.GoalPlanStep(
+                goal_plan_id=db_goal.id,
+                start_month=step_data["start_month"],
+                end_month=step_data["end_month"],
+                monthly_contribution_brl=step_data["monthly_contribution_brl"]
+            )
+            db.add(db_step)
+
+    db.commit()
+    db.refresh(db_goal)
+    return db_goal
+
+
+def get_goal_plan(db: Session, user_id: int):
+    """Get the user's goal plan"""
+    return db.query(models.GoalPlan).filter(
+        models.GoalPlan.user_id == user_id
+    ).first()
+
+
+def update_goal_plan(db: Session, goal_id: int, goal: schemas.GoalPlanUpdate, user_id: int):
+    """Update a goal plan"""
+    db_goal = db.query(models.GoalPlan).filter(
+        models.GoalPlan.id == goal_id,
+        models.GoalPlan.user_id == user_id
+    ).first()
+
+    if not db_goal:
+        return None
+
+    if goal.goal_name is not None:
+        db_goal.goal_name = goal.goal_name
+    if goal.target_value_brl is not None:
+        db_goal.target_value_brl = goal.target_value_brl
+    if goal.months is not None:
+        db_goal.months = goal.months
+    if goal.default_monthly_rate is not None:
+        db_goal.default_monthly_rate = goal.default_monthly_rate
+    if goal.plan_mode is not None:
+        db_goal.plan_mode = goal.plan_mode
+
+    # Update steps if provided
+    if goal.steps is not None:
+        # Delete existing steps
+        db.query(models.GoalPlanStep).filter(
+            models.GoalPlanStep.goal_plan_id == goal_id
+        ).delete()
+
+        # Add new steps
+        for step in goal.steps:
+            db_step = models.GoalPlanStep(
+                goal_plan_id=goal_id,
+                start_month=step.start_month,
+                end_month=step.end_month,
+                monthly_contribution_brl=step.monthly_contribution_brl
+            )
+            db.add(db_step)
+
+    db.commit()
+    db.refresh(db_goal)
+    return db_goal
+
+
+def delete_goal_plan(db: Session, goal_id: int, user_id: int):
+    """Delete a goal plan"""
+    db_goal = db.query(models.GoalPlan).filter(
+        models.GoalPlan.id == goal_id,
+        models.GoalPlan.user_id == user_id
+    ).first()
+
+    if not db_goal:
+        return False
+
+    db.delete(db_goal)
+    db.commit()
+    return True
+
+
+# --- Investment Summary ---
+
+def get_investment_summary(db: Session, user_id: int):
+    """Get investment portfolio summary"""
+    from sqlalchemy import func
+    from datetime import datetime, timedelta
+
+    # Calculate total invested (aportes - resgates - taxas)
+    transactions = get_investment_transactions(db, user_id)
+
+    total_invested = 0.0
+    for t in transactions:
+        if t.type == "APORTE":
+            total_invested += t.amount_brl
+        elif t.type in ["RESGATE", "TAXA"]:
+            total_invested += t.amount_brl  # Already negative
+
+    # Calculate contributions this month
+    now = datetime.now()
+    month_start = now.replace(day=1)
+    month_transactions = [t for t in transactions if t.date >= month_start.date()]
+
+    total_contributions_month = sum(
+        t.amount_brl for t in month_transactions if t.type == "APORTE"
+    )
+
+    # Group by asset
+    assets = get_investment_assets(db, user_id)
+    by_asset = []
+
+    for asset in assets:
+        asset_transactions = [t for t in transactions if t.asset_id == asset.id]
+        asset_total = sum(
+            t.amount_brl for t in asset_transactions
+            if t.type in ["APORTE", "RESGATE", "TAXA"]
+        )
+
+        by_asset.append({
+            "asset_id": asset.id,
+            "asset_name": asset.name,
+            "asset_type": asset.type,
+            "total_invested": asset_total,
+            "transaction_count": len(asset_transactions)
+        })
+
+    # Last 12 months contributions
+    twelve_months_ago = now - timedelta(days=365)
+    last_12_months = []
+
+    for i in range(12):
+        month_date = now - timedelta(days=30 * i)
+        month_start = month_date.replace(day=1)
+        if i == 0:
+            month_end = now
+        else:
+            month_end = month_start.replace(day=28) + timedelta(days=4)
+            month_end = month_end.replace(day=1) - timedelta(days=1)
+
+        month_transactions = [
+            t for t in transactions
+            if month_start.date() <= t.date <= month_end.date() and t.type == "APORTE"
+        ]
+
+        month_total = sum(t.amount_brl for t in month_transactions)
+
+        last_12_months.append({
+            "month": month_start.strftime("%Y-%m"),
+            "total": month_total
+        })
+
+    last_12_months.reverse()
+
+    return {
+        "total_invested": total_invested,
+        "total_contributions_month": total_contributions_month,
+        "by_asset": by_asset,
+        "last_12_months": last_12_months
+    }

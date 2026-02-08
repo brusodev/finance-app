@@ -18,6 +18,10 @@ import Transactions from "./pages/Transactions";
 import NewTransaction from "./pages/NewTransaction";
 import Settings from "./pages/Settings";
 import Transfers from "./pages/Transfers";
+import Investments from "./pages/Investments";
+import InvestmentAssets from "./pages/InvestmentAssets";
+import InvestmentTransactions from "./pages/InvestmentTransactions";
+import InvestmentGoal from "./pages/InvestmentGoal";
 
 function App() {
   return (
@@ -101,6 +105,38 @@ function App() {
                 <ProtectedRoute>
                   <Layout>
                     <Transfers />
+                  </Layout>
+                </ProtectedRoute>
+              } />
+
+              <Route path="/investimentos" element={
+                <ProtectedRoute>
+                  <Layout>
+                    <Investments />
+                  </Layout>
+                </ProtectedRoute>
+              } />
+
+              <Route path="/investimentos/ativos" element={
+                <ProtectedRoute>
+                  <Layout>
+                    <InvestmentAssets />
+                  </Layout>
+                </ProtectedRoute>
+              } />
+
+              <Route path="/investimentos/movimentacoes" element={
+                <ProtectedRoute>
+                  <Layout>
+                    <InvestmentTransactions />
+                  </Layout>
+                </ProtectedRoute>
+              } />
+
+              <Route path="/investimentos/meta" element={
+                <ProtectedRoute>
+                  <Layout>
+                    <InvestmentGoal />
                   </Layout>
                 </ProtectedRoute>
               } />
