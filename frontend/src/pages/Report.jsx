@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
-import { BarChart3, PieChart, TrendingUp, Wallet, ArrowUpCircle, ArrowDownCircle } from "lucide-react";
-import { formatCurrency } from '../utils/formatters'
+import { BarChart3, PieChart, TrendingUp, Wallet, ArrowUpCircle, ArrowDownCircle, ChevronDown, ChevronRight } from "lucide-react";
+import { formatCurrency, formatDateLocal } from '../utils/formatters'
 import { useAuth } from '../context/AuthContext'
 
 const API_URL = import.meta.env.VITE_API_URL || "http://localhost:8000";
@@ -14,6 +14,8 @@ export default function Report() {
   const [periodData, setPeriodData] = useState(null);
   const [selectedMonth, setSelectedMonth] = useState('current');
   const [availableMonths, setAvailableMonths] = useState([]);
+  const [allTransactions, setAllTransactions] = useState([]);
+  const [expandedCategories, setExpandedCategories] = useState(new Set());
 
   useEffect(() => {
     fetchReportData();
@@ -63,7 +65,13 @@ export default function Report() {
       const period = await periodRes.json();
       const transactions = await transactionsRes.json();
 
-      // Extract available months from transactions
+      // Filter transactions by selected period
+      const filteredTransactions = transactions.filter(t => {
+        const tDate = t.date;
+        return tDate >= startDate && tDate <= endDate;
+      });
+
+      // Extract available months from all transactions
       const monthsSet = new Set();
       transactions.forEach(t => {
         const date = new Date(t.date + 'T00:00:00');
@@ -75,12 +83,29 @@ export default function Report() {
       setDashboardData(dashboard);
       setCategoryData(categories);
       setPeriodData(period);
+      setAllTransactions(filteredTransactions);
     } catch (err) {
       setError(err.message || 'Erro ao carregar relatórios');
       console.error('Erro:', err);
     } finally {
       setLoading(false);
     }
+  };
+
+  const toggleCategory = (categoryId) => {
+    const newExpanded = new Set(expandedCategories);
+    if (newExpanded.has(categoryId)) {
+      newExpanded.delete(categoryId);
+    } else {
+      newExpanded.add(categoryId);
+    }
+    setExpandedCategories(newExpanded);
+  };
+
+  const getTransactionsForCategory = (categoryId) => {
+    return allTransactions
+      .filter(t => t.category?.id === categoryId)
+      .sort((a, b) => new Date(b.date) - new Date(a.date));
   };
 
   const formatMonthDisplay = (monthKey) => {
@@ -117,7 +142,7 @@ export default function Report() {
           <select
             value={selectedMonth}
             onChange={(e) => setSelectedMonth(e.target.value)}
-            className="w-full px-4 py-2 border border-zinc-200 dark:border-zinc-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-zinc-700 text-zinc-900 dark:text-white"
+            className="w-full px-4 py-2 border border-zinc-300 dark:border-zinc-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-zinc-800 text-zinc-900 dark:text-white"
           >
             <option value="current">Mês Atual</option>
             {availableMonths.length > 0 && <option disabled>─────────────</option>}
@@ -133,7 +158,7 @@ export default function Report() {
       {/* Dashboard Summary Cards */}
       {dashboardData && (
         <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-          <div className="bg-white dark:bg-zinc-900 p-6 rounded-xl shadow-sm border border-zinc-100 dark:border-zinc-700">
+          <div className="bg-white dark:bg-zinc-900 p-6 rounded-xl shadow-sm border border-zinc-200 dark:border-zinc-800">
             <div className="flex items-center justify-between mb-4">
               <p className="text-zinc-500 dark:text-zinc-400 text-sm font-medium">Total de Contas</p>
               <Wallet className="text-blue-500" size={20} />
@@ -143,7 +168,7 @@ export default function Report() {
             </p>
           </div>
 
-          <div className="bg-white dark:bg-zinc-900 p-6 rounded-xl shadow-sm border border-zinc-100 dark:border-zinc-700">
+          <div className="bg-white dark:bg-zinc-900 p-6 rounded-xl shadow-sm border border-zinc-200 dark:border-zinc-800">
             <div className="flex items-center justify-between mb-4">
               <p className="text-zinc-500 dark:text-zinc-400 text-sm font-medium">Saldo Total</p>
               <Wallet className="text-purple-500" size={20} />
@@ -153,7 +178,7 @@ export default function Report() {
             </p>
           </div>
 
-          <div className="bg-white dark:bg-zinc-900 p-6 rounded-xl shadow-sm border border-zinc-100 dark:border-zinc-700">
+          <div className="bg-white dark:bg-zinc-900 p-6 rounded-xl shadow-sm border border-zinc-200 dark:border-zinc-800">
             <div className="flex items-center justify-between mb-4">
               <p className="text-zinc-500 dark:text-zinc-400 text-sm font-medium">Receitas</p>
               <ArrowUpCircle className="text-green-500" size={20} />
@@ -163,7 +188,7 @@ export default function Report() {
             </p>
           </div>
 
-          <div className="bg-white dark:bg-zinc-900 p-6 rounded-xl shadow-sm border border-zinc-100 dark:border-zinc-700">
+          <div className="bg-white dark:bg-zinc-900 p-6 rounded-xl shadow-sm border border-zinc-200 dark:border-zinc-800">
             <div className="flex items-center justify-between mb-4">
               <p className="text-zinc-500 dark:text-zinc-400 text-sm font-medium">Despesas</p>
               <ArrowDownCircle className="text-red-500" size={20} />
@@ -175,8 +200,8 @@ export default function Report() {
         </div>
       )}
 
-      {/* Category Breakdown */}
-      <div className="bg-white dark:bg-zinc-900 p-6 rounded-xl shadow-sm border border-zinc-100 dark:border-zinc-700">
+      {/* Category Breakdown - Expandable */}
+      <div className="bg-white dark:bg-zinc-900 p-6 rounded-xl shadow-sm border border-zinc-200 dark:border-zinc-800">
         <div className="flex items-center gap-4 mb-4">
           <div className="p-3 bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 rounded-lg">
             <BarChart3 size={24} />
@@ -185,28 +210,77 @@ export default function Report() {
         </div>
 
         {categoryData && categoryData.length > 0 ? (
-          <div className="space-y-4">
-            {categoryData.map((category) => (
-              <div key={category.category_id} className="border-b border-zinc-100 dark:border-zinc-700 pb-4 last:border-b-0">
-                <div className="flex justify-between items-center mb-2">
-                  <span className="font-medium text-zinc-800 dark:text-white">{category.category_name}</span>
-                  <span className="text-red-600 dark:text-red-400 font-semibold">
-                    {formatCurrency(Math.abs(category.total_expense), user?.currency)}
-                  </span>
-                </div>
-                <div className="flex justify-between text-sm text-zinc-500 dark:text-zinc-400">
-                  <span>{category.transaction_count} transações</span>
-                  {category.total_income > 0 && (
-                    <span className="text-green-600 dark:text-green-400">
-                      Receita: {formatCurrency(category.total_income, user?.currency)}
-                    </span>
+          <div className="space-y-2">
+            {categoryData.map((category) => {
+              const isExpanded = expandedCategories.has(category.category_id);
+              const categoryTransactions = getTransactionsForCategory(category.category_id);
+
+              return (
+                <div key={category.category_id} className="border border-zinc-200 dark:border-zinc-800 rounded-lg overflow-hidden">
+                  {/* Category Header - Clickable */}
+                  <button
+                    onClick={() => toggleCategory(category.category_id)}
+                    className="w-full p-4 hover:bg-zinc-50 dark:hover:bg-zinc-800 transition-colors"
+                  >
+                    <div className="flex items-center justify-between mb-2">
+                      <div className="flex items-center gap-2">
+                        {isExpanded ? <ChevronDown size={20} className="text-zinc-400" /> : <ChevronRight size={20} className="text-zinc-400" />}
+                        <span className="font-medium text-zinc-800 dark:text-white">{category.category_name}</span>
+                      </div>
+                      <span className="text-red-600 dark:text-red-400 font-semibold">
+                        {formatCurrency(Math.abs(category.total_expense), user?.currency)}
+                      </span>
+                    </div>
+                    <div className="flex justify-between text-sm text-zinc-500 dark:text-zinc-400 ml-7">
+                      <span>{category.transaction_count} transações</span>
+                      {category.total_income > 0 && (
+                        <span className="text-green-600 dark:text-green-400">
+                          Receita: {formatCurrency(category.total_income, user?.currency)}
+                        </span>
+                      )}
+                    </div>
+                  </button>
+
+                  {/* Expanded Transactions List */}
+                  {isExpanded && (
+                    <div className="border-t border-zinc-200 dark:border-zinc-800 bg-zinc-50 dark:bg-zinc-800/50">
+                      {categoryTransactions.length > 0 ? (
+                        <div className="divide-y divide-zinc-200 dark:divide-zinc-700">
+                          {categoryTransactions.map((transaction) => (
+                            <div key={transaction.id} className="p-3 flex justify-between items-center text-sm">
+                              <div className="flex-1 min-w-0">
+                                <p className="font-medium text-zinc-900 dark:text-white truncate">
+                                  {transaction.description}
+                                </p>
+                                <div className="flex items-center gap-2 text-xs text-zinc-500 dark:text-zinc-400 mt-1">
+                                  <span>{formatDateLocal(transaction.date)}</span>
+                                  {transaction.account && (
+                                    <>
+                                      <span>•</span>
+                                      <span>{transaction.account.name}</span>
+                                    </>
+                                  )}
+                                </div>
+                              </div>
+                              <span className={`font-semibold ${transaction.amount >= 0 ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'}`}>
+                                {transaction.amount >= 0 ? '+' : '-'} {formatCurrency(Math.abs(transaction.amount), user?.currency)}
+                              </span>
+                            </div>
+                          ))}
+                        </div>
+                      ) : (
+                        <div className="p-4 text-center text-sm text-zinc-500 dark:text-zinc-400">
+                          Nenhuma transação encontrada nesta categoria
+                        </div>
+                      )}
+                    </div>
                   )}
                 </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
         ) : (
-          <div className="h-40 flex items-center justify-center bg-zinc-50 dark:bg-zinc-700 rounded-lg text-zinc-400 dark:text-zinc-500">
+          <div className="h-40 flex items-center justify-center bg-zinc-50 dark:bg-zinc-800 rounded-lg text-zinc-400 dark:text-zinc-500">
             Nenhuma transação encontrada
           </div>
         )}
@@ -214,7 +288,7 @@ export default function Report() {
 
       {/* Period Summary */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        <div className="bg-white dark:bg-zinc-900 p-6 rounded-xl shadow-sm border border-zinc-100 dark:border-zinc-700">
+        <div className="bg-white dark:bg-zinc-900 p-6 rounded-xl shadow-sm border border-zinc-200 dark:border-zinc-800">
           <div className="flex items-center gap-4 mb-4">
             <div className="p-3 bg-green-50 dark:bg-green-900/30 text-green-600 dark:text-green-400 rounded-lg">
               <TrendingUp size={24} />
@@ -249,13 +323,13 @@ export default function Report() {
               </div>
             </div>
           ) : (
-            <div className="h-32 flex items-center justify-center bg-zinc-50 dark:bg-zinc-700 rounded-lg text-zinc-400 dark:text-zinc-500">
+            <div className="h-32 flex items-center justify-center bg-zinc-50 dark:bg-zinc-800 rounded-lg text-zinc-400 dark:text-zinc-500">
               Sem dados
             </div>
           )}
         </div>
 
-        <div className="bg-white dark:bg-zinc-900 p-6 rounded-xl shadow-sm border border-zinc-100 dark:border-zinc-700">
+        <div className="bg-white dark:bg-zinc-900 p-6 rounded-xl shadow-sm border border-zinc-200 dark:border-zinc-800">
           <div className="flex items-center gap-4 mb-4">
             <div className="p-3 bg-purple-50 dark:bg-purple-900/30 text-purple-600 dark:text-purple-400 rounded-lg">
               <PieChart size={24} />
@@ -287,7 +361,7 @@ export default function Report() {
               </div>
             </div>
           ) : (
-            <div className="h-32 flex items-center justify-center bg-zinc-50 dark:bg-zinc-700 rounded-lg text-zinc-400 dark:text-zinc-500">
+            <div className="h-32 flex items-center justify-center bg-zinc-50 dark:bg-zinc-800 rounded-lg text-zinc-400 dark:text-zinc-500">
               Sem dados
             </div>
           )}
@@ -296,4 +370,3 @@ export default function Report() {
     </div>
   );
 }
-
