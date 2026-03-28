@@ -23,6 +23,10 @@ build/
 .env
 .env.local
 .env.*.local
+.env.docker
+
+# Backups (podem conter dados sensíveis)
+backups/
 
 # Node
 node_modules/
