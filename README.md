@@ -1,6 +1,6 @@
 # Prospera
 
-Sistema completo de gestão financeira pessoal com controle de contas, transações, categorias, transferências e investimentos.
+Sistema completo de gestão financeira pessoal com controle de contas, transações, categorias, transferências, cartões de crédito e investimentos.
 
 ## Funcionalidades
 
@@ -8,6 +8,7 @@ Sistema completo de gestão financeira pessoal com controle de contas, transaç�
 
 - **Dashboard Interativo** - Visão geral com gráficos e estatísticas
 - **Contas Bancárias** - Gerenciamento de múltiplas contas com diferentes moedas (BRL, USD, EUR)
+- **Cartões de Crédito** - Cadastro, configuração e revisão de faturas com importação manual, CSV e OFX
 - **Categorias Personalizadas** - Organize receitas e despesas com ícones coloridos
 - **Transações** - Registro completo de movimentações financeiras
 - **Transferências entre Contas** - Movimente valores entre suas contas facilmente
@@ -167,7 +168,6 @@ finance-app/
 
 ## Próximos Passos
 
-- [ ] Importação de OFX/CSV
 - [ ] Notificações de vencimento
 - [ ] Metas de gastos por categoria
 - [ ] Relatórios PDF
