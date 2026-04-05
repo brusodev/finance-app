@@ -6,7 +6,7 @@ from jose import JWTError, jwt
 from sqlalchemy.orm import Session
 from .. import crud, schemas
 from ..database import get_db
-from ..utils import verify_password
+from ..utils import verify_password, hash_password, is_legacy_hash
 import os
 
 router = APIRouter(
@@ -121,6 +121,11 @@ def login(
             detail="Username ou password inválidos"
         )
 
+    # Migração automática: se o hash ainda é PBKDF2 legado, atualiza para bcrypt
+    if is_legacy_hash(db_user.hashed_password):
+        db_user.hashed_password = hash_password(user.password)
+        db.commit()
+
     token = create_access_token(user_id=db_user.id)
     _set_auth_cookie(response, token)
 
@@ -161,7 +166,6 @@ def change_password(
             detail="Senha atual incorreta"
         )
 
-    from ..utils import hash_password
     db_user = crud.get_user(db, user_id=current_user.id)
     new_pw = password_data.get("new_password", "")
     db_user.hashed_password = hash_password(new_pw)
