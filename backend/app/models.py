@@ -151,3 +151,87 @@ class GoalPlanStep(Base):
     monthly_contribution_brl = Column(Float, nullable=False)
 
     goal_plan = relationship("GoalPlan", back_populates="steps")
+
+
+# ============================================================
+# CARTÃO DE CRÉDITO
+# ============================================================
+
+class ImportBatchStatusEnum(str, enum.Enum):
+    PENDING = "pending"      # Recém importado, aguardando revisão
+    REVIEWED = "reviewed"    # Usuário editou itens, ainda não confirmou
+    CONFIRMED = "confirmed"  # Itens convertidos em transactions
+    CANCELLED = "cancelled"  # Cancelado pelo usuário
+
+
+class ImportItemStatusEnum(str, enum.Enum):
+    PENDING = "pending"      # Aguardando revisão
+    CONFIRMED = "confirmed"  # Convertido em transaction
+    IGNORED = "ignored"      # Descartado pelo usuário
+
+
+class CreditCardConfig(Base):
+    """Metadados extras de um cartão de crédito (account_type='credit_card')."""
+    __tablename__ = 'credit_card_configs'
+
+    id = Column(Integer, primary_key=True, index=True)
+    account_id = Column(Integer, ForeignKey('accounts.id'), unique=True, nullable=False)
+    closing_day = Column(Integer, nullable=False)   # Dia de fechamento (1-31)
+    due_day = Column(Integer, nullable=False)        # Dia de vencimento (1-31)
+    # Banco/emissor livre — usado para selecionar parser de PDF
+    bank_name = Column(String, nullable=True)
+    credit_limit = Column(Float, nullable=True)
+
+    account = relationship("Account")
+
+
+class ImportBatch(Base):
+    """Lote de importação de fatura (um arquivo por lote)."""
+    __tablename__ = 'import_batches'
+
+    id = Column(Integer, primary_key=True, index=True)
+    account_id = Column(Integer, ForeignKey('accounts.id'), nullable=False, index=True)
+    user_id = Column(Integer, ForeignKey('users.id'), nullable=False, index=True)
+    # Mês/ano de referência da fatura (ex: 2025-03-01)
+    reference_month = Column(Date, nullable=False)
+    file_name = Column(String, nullable=True)
+    file_type = Column(String, nullable=True)   # 'csv', 'ofx', 'pdf', 'manual'
+    status = Column(Enum(ImportBatchStatusEnum), default=ImportBatchStatusEnum.PENDING, nullable=False)
+    created_at = Column(DateTime, default=datetime.utcnow)
+    confirmed_at = Column(DateTime, nullable=True)
+
+    account = relationship("Account")
+    user = relationship("User")
+    items = relationship("ImportItem", back_populates="batch", cascade="all, delete-orphan")
+
+
+class ImportItem(Base):
+    """Um item (linha) de uma fatura importada, editável antes de confirmar."""
+    __tablename__ = 'import_items'
+
+    id = Column(Integer, primary_key=True, index=True)
+    batch_id = Column(Integer, ForeignKey('import_batches.id'), nullable=False, index=True)
+    user_id = Column(Integer, ForeignKey('users.id'), nullable=False, index=True)
+
+    # Dados extraídos do arquivo (imutáveis após importação)
+    raw_description = Column(String, nullable=True)
+    raw_amount = Column(Float, nullable=False)
+    raw_date = Column(Date, nullable=False)
+
+    # Dados editáveis pelo usuário antes de confirmar
+    description = Column(String, nullable=True)     # Pode ser editado
+    amount = Column(Float, nullable=False)           # Pode ser corrigido
+    date = Column(Date, nullable=False)
+    category_id = Column(Integer, ForeignKey('categories.id'), nullable=True, index=True)
+
+    # Informações de parcelamento (ex: "3/10")
+    installment_current = Column(Integer, nullable=True)
+    installment_total = Column(Integer, nullable=True)
+
+    status = Column(Enum(ImportItemStatusEnum), default=ImportItemStatusEnum.PENDING, nullable=False)
+    # Aponta para a Transaction criada após confirmação
+    transaction_id = Column(Integer, ForeignKey('transactions.id'), nullable=True)
+
+    batch = relationship("ImportBatch", back_populates="items")
+    category = relationship("Category")
+    transaction = relationship("Transaction")

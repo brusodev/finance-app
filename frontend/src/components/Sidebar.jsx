@@ -21,7 +21,8 @@ import {
   ChevronDown,
   DollarSign,
   List,
-  Target
+  Target,
+  CreditCard,
 } from 'lucide-react'
 
 export default function Sidebar() {
@@ -69,6 +70,7 @@ export default function Sidebar() {
     { id: 'categories', icon: Tag, label: 'Categorias', path: '/categories' },
     { id: 'transactions', icon: ArrowRightLeft, label: 'Transações', path: '/transacoes' },
     { id: 'transfers', icon: ArrowLeftRight, label: 'Transferências', path: '/transfers' },
+    { id: 'credit-cards', icon: CreditCard, label: 'Cartões de Crédito', path: '/cartoes' },
     {
       id: 'divider-2',
       type: 'divider',

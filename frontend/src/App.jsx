@@ -22,6 +22,8 @@ import Investments from "./pages/Investments";
 import InvestmentAssets from "./pages/InvestmentAssets";
 import InvestmentTransactions from "./pages/InvestmentTransactions";
 import InvestmentGoal from "./pages/InvestmentGoal";
+import CreditCards from "./pages/CreditCards";
+import CreditCardImport from "./pages/CreditCardImport";
 
 function App() {
   return (
@@ -137,6 +139,22 @@ function App() {
                 <ProtectedRoute>
                   <Layout>
                     <InvestmentGoal />
+                  </Layout>
+                </ProtectedRoute>
+              } />
+
+              <Route path="/cartoes" element={
+                <ProtectedRoute>
+                  <Layout>
+                    <CreditCards />
+                  </Layout>
+                </ProtectedRoute>
+              } />
+
+              <Route path="/cartoes/:accountId/importar" element={
+                <ProtectedRoute>
+                  <Layout>
+                    <CreditCardImport />
                   </Layout>
                 </ProtectedRoute>
               } />

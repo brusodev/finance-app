@@ -640,6 +640,119 @@ export const investmentsAPI = {
   },
 };
 
+// Credit Cards API
+export const creditCardsAPI = {
+  // ---- Config ----
+  getConfig: async (accountId) => {
+    const response = await fetch(
+      `${API_URL}/credit-cards/${accountId}/config`,
+      { headers: getHeaders(true) }
+    );
+    return handleResponse(response);
+  },
+
+  createConfig: async (accountId, data) => {
+    const response = await fetch(
+      `${API_URL}/credit-cards/${accountId}/config`,
+      { method: "POST", headers: getHeaders(true), body: JSON.stringify(data) }
+    );
+    return handleResponse(response);
+  },
+
+  updateConfig: async (accountId, data) => {
+    const response = await fetch(
+      `${API_URL}/credit-cards/${accountId}/config`,
+      { method: "PUT", headers: getHeaders(true), body: JSON.stringify(data) }
+    );
+    return handleResponse(response);
+  },
+
+  // ---- Batches ----
+  listBatches: async (accountId) => {
+    const response = await fetch(
+      `${API_URL}/credit-cards/${accountId}/batches`,
+      { headers: getHeaders(true) }
+    );
+    return handleResponse(response);
+  },
+
+  createManualBatch: async (accountId, data) => {
+    const response = await fetch(
+      `${API_URL}/credit-cards/${accountId}/batches/manual`,
+      { method: "POST", headers: getHeaders(true), body: JSON.stringify(data) }
+    );
+    const result = await handleResponse(response);
+    transactionsCache.clear();
+    return result;
+  },
+
+  uploadBatch: async (accountId, referenceMonth, file) => {
+    const token = localStorage.getItem("token");
+    const formData = new FormData();
+    formData.append("file", file);
+    const response = await fetch(
+      `${API_URL}/credit-cards/${accountId}/batches/upload?reference_month=${referenceMonth}`,
+      {
+        method: "POST",
+        headers: { Authorization: `Bearer ${token}` },
+        body: formData,
+      }
+    );
+    const result = await handleResponse(response);
+    transactionsCache.clear();
+    return result;
+  },
+
+  getBatch: async (accountId, batchId) => {
+    const response = await fetch(
+      `${API_URL}/credit-cards/${accountId}/batches/${batchId}`,
+      { headers: getHeaders(true) }
+    );
+    return handleResponse(response);
+  },
+
+  cancelBatch: async (accountId, batchId) => {
+    const response = await fetch(
+      `${API_URL}/credit-cards/${accountId}/batches/${batchId}`,
+      { method: "DELETE", headers: getHeaders(true) }
+    );
+    if (!response.ok) {
+      const err = await response.json().catch(() => ({}));
+      throw { status: response.status, detail: err.detail || "Erro ao cancelar lote" };
+    }
+    transactionsCache.clear();
+    return null;
+  },
+
+  // ---- Items ----
+  addItem: async (accountId, batchId, data) => {
+    const response = await fetch(
+      `${API_URL}/credit-cards/${accountId}/batches/${batchId}/items`,
+      { method: "POST", headers: getHeaders(true), body: JSON.stringify(data) }
+    );
+    return handleResponse(response);
+  },
+
+  updateItem: async (accountId, batchId, itemId, data) => {
+    const response = await fetch(
+      `${API_URL}/credit-cards/${accountId}/batches/${batchId}/items/${itemId}`,
+      { method: "PUT", headers: getHeaders(true), body: JSON.stringify(data) }
+    );
+    return handleResponse(response);
+  },
+
+  // ---- Confirm ----
+  confirmBatch: async (accountId, batchId) => {
+    const response = await fetch(
+      `${API_URL}/credit-cards/${accountId}/batches/${batchId}/confirm`,
+      { method: "POST", headers: getHeaders(true) }
+    );
+    const result = await handleResponse(response);
+    transactionsCache.clear();
+    return result;
+  },
+};
+
 // Default export for compatibility
 export const api = {
   auth: authAPI,
@@ -649,4 +762,5 @@ export const api = {
   transactions: transactionsAPI,
   transfers: transfersAPI,
   investments: investmentsAPI,
+  creditCards: creditCardsAPI,
 };

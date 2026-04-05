@@ -992,3 +992,344 @@ def get_investment_summary(db: Session, user_id: int):
         "by_asset": by_asset,
         "last_12_months": last_12_months
     }
+
+
+# ============================================================
+# CREDIT CARD OPERATIONS
+# ============================================================
+
+def get_credit_card_config(db: Session, account_id: int):
+    """Retorna a config de cartão vinculada a uma conta."""
+    return db.query(models.CreditCardConfig).filter(
+        models.CreditCardConfig.account_id == account_id
+    ).first()
+
+
+def create_credit_card_config(
+    db: Session,
+    config: schemas.CreditCardConfigCreate,
+    user_id: int
+):
+    """Cria ou substitui a config de cartão de uma conta."""
+    # Garante que a conta pertence ao usuário
+    account = get_account(db, config.account_id)
+    if not account or account.user_id != user_id:
+        raise ValueError(
+            "Conta não encontrada ou não pertence ao usuário"
+        )
+    if account.account_type != 'credit_card':
+        raise ValueError(
+            "A conta deve ser do tipo 'credit_card'"
+        )
+
+    existing = get_credit_card_config(db, config.account_id)
+    if existing:
+        db.delete(existing)
+        db.flush()
+
+    db_config = models.CreditCardConfig(
+        account_id=config.account_id,
+        closing_day=config.closing_day,
+        due_day=config.due_day,
+        bank_name=config.bank_name,
+        credit_limit=config.credit_limit,
+    )
+    db.add(db_config)
+    db.commit()
+    db.refresh(db_config)
+    return db_config
+
+
+def update_credit_card_config(
+    db: Session,
+    account_id: int,
+    config: schemas.CreditCardConfigUpdate,
+    user_id: int
+):
+    """Atualiza a config de cartão de uma conta."""
+    account = get_account(db, account_id)
+    if not account or account.user_id != user_id:
+        raise ValueError(
+            "Conta não encontrada ou não pertence ao usuário"
+        )
+
+    db_config = get_credit_card_config(db, account_id)
+    if not db_config:
+        raise ValueError("Configuração de cartão não encontrada")
+
+    if config.closing_day is not None:
+        db_config.closing_day = config.closing_day
+    if config.due_day is not None:
+        db_config.due_day = config.due_day
+    if config.bank_name is not None:
+        db_config.bank_name = config.bank_name
+    if config.credit_limit is not None:
+        db_config.credit_limit = config.credit_limit
+
+    db.commit()
+    db.refresh(db_config)
+    return db_config
+
+
+# ---- Import Batch ----
+
+def create_import_batch(
+    db: Session,
+    account_id: int,
+    reference_month,
+    file_name: str = None,
+    file_type: str = None,
+    user_id: int = None
+):
+    """Cria um novo lote de importação (staging)."""
+    from datetime import date as date_type
+    # Normaliza para o primeiro dia do mês
+    ref = reference_month
+    if isinstance(ref, date_type):
+        ref = ref.replace(day=1)
+
+    batch = models.ImportBatch(
+        account_id=account_id,
+        user_id=user_id,
+        reference_month=ref,
+        file_name=file_name,
+        file_type=file_type,
+        status=models.ImportBatchStatusEnum.PENDING,
+    )
+    db.add(batch)
+    db.commit()
+    db.refresh(batch)
+    return batch
+
+
+def get_import_batch(db: Session, batch_id: int, user_id: int):
+    return db.query(models.ImportBatch).filter(
+        models.ImportBatch.id == batch_id,
+        models.ImportBatch.user_id == user_id
+    ).first()
+
+
+def list_import_batches(
+    db: Session,
+    user_id: int,
+    account_id: int = None
+):
+    """Lista lotes de importação do usuário."""
+    query = db.query(models.ImportBatch).filter(
+        models.ImportBatch.user_id == user_id
+    )
+    if account_id:
+        query = query.filter(
+            models.ImportBatch.account_id == account_id
+        )
+    return query.order_by(
+        models.ImportBatch.created_at.desc()
+    ).all()
+
+
+def cancel_import_batch(db: Session, batch_id: int, user_id: int):
+    """Cancela um lote pendente/revisado."""
+    batch = get_import_batch(db, batch_id, user_id)
+    if not batch:
+        raise ValueError("Lote não encontrado")
+    if batch.status == models.ImportBatchStatusEnum.CONFIRMED:
+        raise ValueError("Lote já confirmado não pode ser cancelado")
+
+    batch.status = models.ImportBatchStatusEnum.CANCELLED
+    db.commit()
+    db.refresh(batch)
+    return batch
+
+
+# ---- Import Items ----
+
+def add_import_items(
+    db: Session,
+    batch_id: int,
+    items_data: list,
+    user_id: int
+):
+    """
+    Insere uma lista de dicts com dados brutos no lote.
+
+    Cada dict deve ter: raw_description, raw_amount, raw_date
+    e opcionalmente: installment_current, installment_total.
+    """
+    batch = get_import_batch(db, batch_id, user_id)
+    if not batch:
+        raise ValueError("Lote não encontrado")
+
+    created = []
+    for data in items_data:
+        item = models.ImportItem(
+            batch_id=batch_id,
+            user_id=user_id,
+            raw_description=data.get('raw_description'),
+            raw_amount=data['raw_amount'],
+            raw_date=data['raw_date'],
+            description=data.get('raw_description'),
+            amount=data['raw_amount'],
+            date=data['raw_date'],
+            installment_current=data.get('installment_current'),
+            installment_total=data.get('installment_total'),
+            status=models.ImportItemStatusEnum.PENDING,
+        )
+        db.add(item)
+        created.append(item)
+
+    db.commit()
+    for item in created:
+        db.refresh(item)
+    return created
+
+
+def add_manual_import_item(
+    db: Session,
+    batch_id: int,
+    item: schemas.ImportItemCreate,
+    user_id: int
+):
+    """Adiciona um item manualmente a um lote."""
+    batch = get_import_batch(db, batch_id, user_id)
+    if not batch:
+        raise ValueError("Lote não encontrado")
+    if batch.status == models.ImportBatchStatusEnum.CONFIRMED:
+        raise ValueError("Lote já confirmado")
+
+    db_item = models.ImportItem(
+        batch_id=batch_id,
+        user_id=user_id,
+        raw_description=item.description,
+        raw_amount=item.amount,
+        raw_date=item.date,
+        description=item.description,
+        amount=item.amount,
+        date=item.date,
+        category_id=item.category_id,
+        installment_current=item.installment_current,
+        installment_total=item.installment_total,
+        status=models.ImportItemStatusEnum.PENDING,
+    )
+    db.add(db_item)
+    db.commit()
+    db.refresh(db_item)
+    return db_item
+
+
+def update_import_item(
+    db: Session,
+    item_id: int,
+    data: schemas.ImportItemUpdate,
+    user_id: int
+):
+    """Edita descrição, valor, data, categoria ou status de um item."""
+    item = db.query(models.ImportItem).filter(
+        models.ImportItem.id == item_id,
+        models.ImportItem.user_id == user_id
+    ).first()
+    if not item:
+        raise ValueError("Item não encontrado")
+    if item.batch.status == models.ImportBatchStatusEnum.CONFIRMED:
+        raise ValueError("Lote já confirmado, item não pode ser editado")
+
+    if data.description is not None:
+        item.description = data.description
+    if data.amount is not None:
+        item.amount = data.amount
+    if data.date is not None:
+        item.date = data.date
+    if data.category_id is not None:
+        item.category_id = data.category_id
+    if data.installment_current is not None:
+        item.installment_current = data.installment_current
+    if data.installment_total is not None:
+        item.installment_total = data.installment_total
+    if data.status is not None:
+        status_map = {
+            'pending': models.ImportItemStatusEnum.PENDING,
+            'ignored': models.ImportItemStatusEnum.IGNORED,
+        }
+        if data.status not in status_map:
+            raise ValueError("Status inválido: use 'pending' ou 'ignored'")
+        item.status = status_map[data.status]
+
+    # Marca o lote como revisado
+    if item.batch.status == models.ImportBatchStatusEnum.PENDING:
+        item.batch.status = models.ImportBatchStatusEnum.REVIEWED
+
+    db.commit()
+    db.refresh(item)
+    return item
+
+
+def confirm_import_batch(
+    db: Session,
+    batch_id: int,
+    user_id: int
+):
+    """
+    Converte todos os itens PENDING/REVIEWED em transactions oficiais.
+    Itens com status IGNORED são pulados.
+    """
+    from datetime import datetime as dt
+
+    batch = get_import_batch(db, batch_id, user_id)
+    if not batch:
+        raise ValueError("Lote não encontrado")
+    if batch.status == models.ImportBatchStatusEnum.CONFIRMED:
+        raise ValueError("Lote já foi confirmado")
+    if batch.status == models.ImportBatchStatusEnum.CANCELLED:
+        raise ValueError("Lote cancelado não pode ser confirmado")
+
+    account = get_account(db, batch.account_id)
+    if not account:
+        raise ValueError("Conta não encontrada")
+
+    confirmed_count = 0
+    ignored_count = 0
+    transaction_ids = []
+
+    for item in batch.items:
+        if item.status == models.ImportItemStatusEnum.IGNORED:
+            ignored_count += 1
+            continue
+
+        # Monta a descrição com parcela se houver
+        description = item.description or item.raw_description or ""
+        if item.installment_current and item.installment_total:
+            description = (
+                f"{description} "
+                f"{item.installment_current}/{item.installment_total}"
+            ).strip()
+
+        transaction = models.Transaction(
+            amount=-abs(item.amount),   # Despesa no cartão é sempre negativa
+            date=item.date,
+            description=description,
+            transaction_type='expense',
+            category_id=item.category_id,
+            account_id=batch.account_id,
+            user_id=user_id,
+        )
+        db.add(transaction)
+        db.flush()  # Gera o ID antes de atribuir
+
+        # Atualiza saldo da conta
+        account.balance += transaction.amount
+
+        item.status = models.ImportItemStatusEnum.CONFIRMED
+        item.transaction_id = transaction.id
+        transaction_ids.append(transaction.id)
+        confirmed_count += 1
+
+    batch.status = models.ImportBatchStatusEnum.CONFIRMED
+    batch.confirmed_at = dt.utcnow()
+
+    db.commit()
+
+    return {
+        "batch_id": batch_id,
+        "confirmed_count": confirmed_count,
+        "ignored_count": ignored_count,
+        "transactions_created": transaction_ids,
+    }

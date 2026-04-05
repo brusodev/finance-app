@@ -169,7 +169,9 @@ class InvestmentAssetCreate(BaseModel):
     def validate_asset_type(cls, v):
         valid_types = ['TESOURO', 'CDB', 'ETF', 'FII', 'ACAO', 'CRIPTO', 'OUTRO']
         if v not in valid_types:
-            raise ValueError(f'Tipo de ativo inválido. Deve ser um de: {", ".join(valid_types)}')
+            raise ValueError(
+                f'Tipo de ativo inválido. Deve ser um de: {", ".join(valid_types)}'
+            )
         return v
 
 
@@ -205,7 +207,9 @@ class InvestmentTransactionCreate(BaseModel):
     def validate_transaction_type(cls, v):
         valid_types = ['APORTE', 'RESGATE', 'RENDIMENTO', 'TAXA']
         if v not in valid_types:
-            raise ValueError(f'Tipo de transação inválido. Deve ser um de: {", ".join(valid_types)}')
+            raise ValueError(
+                f'Tipo de transação inválido. Deve ser um de: {", ".join(valid_types)}'
+            )
         return v
 
     @validator('amount_brl')
@@ -213,10 +217,14 @@ class InvestmentTransactionCreate(BaseModel):
         transaction_type = values.get('type')
         if transaction_type in ['APORTE', 'RENDIMENTO']:
             if v <= 0:
-                raise ValueError('Valor deve ser positivo para APORTE ou RENDIMENTO')
+                raise ValueError(
+                    'Valor deve ser positivo para APORTE ou RENDIMENTO'
+                )
         elif transaction_type in ['RESGATE', 'TAXA']:
             if v >= 0:
-                raise ValueError('Valor deve ser negativo para RESGATE ou TAXA')
+                raise ValueError(
+                    'Valor deve ser negativo para RESGATE ou TAXA'
+                )
         return v
 
 
@@ -259,7 +267,9 @@ class GoalPlanStepCreate(BaseModel):
     @validator('end_month')
     def validate_end_after_start(cls, v, values):
         if 'start_month' in values and v < values['start_month']:
-            raise ValueError('Mês final deve ser maior ou igual ao mês inicial')
+            raise ValueError(
+                'Mês final deve ser maior ou igual ao mês inicial'
+            )
         return v
 
 
@@ -298,7 +308,9 @@ class GoalPlanCreate(BaseModel):
     def validate_plan_mode(cls, v):
         valid_modes = ['ESCADA', 'FIXO', 'PERSONALIZADO']
         if v not in valid_modes:
-            raise ValueError(f'Modo de plano inválido. Deve ser um de: {", ".join(valid_modes)}')
+            raise ValueError(
+                f'Modo de plano inválido. Deve ser um de: {", ".join(valid_modes)}'
+            )
         return v
 
 
@@ -376,3 +388,131 @@ class GoalProgress(BaseModel):
     months_remaining: int
     projected_final_value: float
     on_track: bool
+
+
+# ============================================================
+# CARTÃO DE CRÉDITO
+# ============================================================
+
+class CreditCardConfigCreate(BaseModel):
+    account_id: int
+    closing_day: int
+    due_day: int
+    bank_name: Optional[str] = None
+    credit_limit: Optional[float] = None
+
+    @validator('closing_day', 'due_day')
+    def validate_day(cls, v):
+        if not 1 <= v <= 31:
+            raise ValueError('Dia deve estar entre 1 e 31')
+        return v
+
+
+class CreditCardConfigUpdate(BaseModel):
+    closing_day: Optional[int] = None
+    due_day: Optional[int] = None
+    bank_name: Optional[str] = None
+    credit_limit: Optional[float] = None
+
+    @validator('closing_day', 'due_day')
+    def validate_day(cls, v):
+        if v is not None and not 1 <= v <= 31:
+            raise ValueError('Dia deve estar entre 1 e 31')
+        return v
+
+
+class CreditCardConfig(BaseModel):
+    id: int
+    account_id: int
+    closing_day: int
+    due_day: int
+    bank_name: Optional[str]
+    credit_limit: Optional[float]
+
+    class Config:
+        from_attributes = True
+
+
+class ImportItemCreate(BaseModel):
+    """Usado para lançamento manual de um item na fatura."""
+    description: str
+    amount: float
+    date: date
+    category_id: Optional[int] = None
+    installment_current: Optional[int] = None
+    installment_total: Optional[int] = None
+
+
+class ImportItemUpdate(BaseModel):
+    """Edição de um item importado antes de confirmar."""
+    description: Optional[str] = None
+    amount: Optional[float] = None
+    date: Optional[date] = None
+    category_id: Optional[int] = None
+    installment_current: Optional[int] = None
+    installment_total: Optional[int] = None
+    status: Optional[str] = None  # 'pending' | 'ignored'
+
+
+class ImportItem(BaseModel):
+    id: int
+    batch_id: int
+    raw_description: Optional[str]
+    raw_amount: float
+    raw_date: date
+    description: Optional[str]
+    amount: float
+    date: date
+    category_id: Optional[int]
+    category: Optional[Category] = None
+    installment_current: Optional[int]
+    installment_total: Optional[int]
+    status: str
+    transaction_id: Optional[int]
+
+    class Config:
+        from_attributes = True
+
+
+class ImportBatchCreate(BaseModel):
+    account_id: int
+    reference_month: date   # Qualquer dia do mês (normalizado para dia 1)
+
+
+class ImportBatch(BaseModel):
+    id: int
+    account_id: int
+    user_id: int
+    reference_month: date
+    file_name: Optional[str]
+    file_type: Optional[str]
+    status: str
+    created_at: datetime
+    confirmed_at: Optional[datetime]
+    items: List[ImportItem] = []
+
+    class Config:
+        from_attributes = True
+
+
+class ImportBatchSummary(BaseModel):
+    """Versão sem itens para listagem."""
+    id: int
+    account_id: int
+    reference_month: date
+    file_name: Optional[str]
+    file_type: Optional[str]
+    status: str
+    created_at: datetime
+    item_count: int
+    total_amount: float
+
+    class Config:
+        from_attributes = True
+
+
+class ConfirmImportResponse(BaseModel):
+    batch_id: int
+    confirmed_count: int
+    ignored_count: int
+    transactions_created: List[int]  # IDs das transactions criadas

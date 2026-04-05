@@ -2,7 +2,10 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI, Depends, Query
 from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy.orm import Session
-from .routes import auth, users, categories, transactions, accounts, transfers, investments
+from .routes import (
+    auth, users, categories, transactions,
+    accounts, transfers, investments, credit_cards,
+)
 from .database import engine, Base, SessionLocal, get_db
 from .models import User
 from .utils import hash_password
@@ -44,9 +47,17 @@ def run_migrations():
             ("ALTER TABLE accounts ADD COLUMN IF NOT EXISTS created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP", "created_at"),
             ("ALTER TABLE accounts ADD COLUMN IF NOT EXISTS updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP", "updated_at"),
             # Transaction migrations for transfers
-            ("ALTER TABLE transactions ADD COLUMN IF NOT EXISTS transfer_id VARCHAR", "transfer_id"),
-            ("ALTER TABLE transactions ADD COLUMN IF NOT EXISTS transfer_account_id INTEGER REFERENCES accounts(id)", "transfer_account_id"),
-            # Investment tables will be created by Base.metadata.create_all()
+            (
+                "ALTER TABLE transactions ADD COLUMN IF NOT EXISTS "
+                "transfer_id VARCHAR",
+                "transfer_id"
+            ),
+            (
+                "ALTER TABLE transactions ADD COLUMN IF NOT EXISTS "
+                "transfer_account_id INTEGER REFERENCES accounts(id)",
+                "transfer_account_id"
+            ),
+            # Investment/credit-card tables created by create_all()
         ]
     else:
         migrations = [
@@ -55,16 +66,42 @@ def run_migrations():
             ("ALTER TABLE users ADD COLUMN phone VARCHAR", "phone"),
             ("ALTER TABLE users ADD COLUMN birth_date DATE", "birth_date"),
             ("ALTER TABLE users ADD COLUMN address VARCHAR", "address"),
-            ("ALTER TABLE users ADD COLUMN currency VARCHAR DEFAULT 'BRL'", "currency"),
+            (
+                "ALTER TABLE users ADD COLUMN currency VARCHAR DEFAULT 'BRL'",
+                "currency"
+            ),
             # Account migrations
-            (f"ALTER TABLE accounts ADD COLUMN initial_balance {float_type} DEFAULT 0.0", "initial_balance"),
-            (f"ALTER TABLE accounts ADD COLUMN is_active INTEGER DEFAULT {bool_default}", "is_active"),
-            ("ALTER TABLE accounts ADD COLUMN created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP", "created_at"),
-            ("ALTER TABLE accounts ADD COLUMN updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP", "updated_at"),
+            (
+                f"ALTER TABLE accounts ADD COLUMN initial_balance "
+                f"{float_type} DEFAULT 0.0",
+                "initial_balance"
+            ),
+            (
+                f"ALTER TABLE accounts ADD COLUMN is_active "
+                f"INTEGER DEFAULT {bool_default}",
+                "is_active"
+            ),
+            (
+                "ALTER TABLE accounts ADD COLUMN created_at "
+                "TIMESTAMP DEFAULT CURRENT_TIMESTAMP",
+                "created_at"
+            ),
+            (
+                "ALTER TABLE accounts ADD COLUMN updated_at "
+                "TIMESTAMP DEFAULT CURRENT_TIMESTAMP",
+                "updated_at"
+            ),
             # Transaction migrations for transfers
-            ("ALTER TABLE transactions ADD COLUMN transfer_id VARCHAR", "transfer_id"),
-            ("ALTER TABLE transactions ADD COLUMN transfer_account_id INTEGER REFERENCES accounts(id)", "transfer_account_id"),
-            # Investment tables will be created by Base.metadata.create_all()
+            (
+                "ALTER TABLE transactions ADD COLUMN transfer_id VARCHAR",
+                "transfer_id"
+            ),
+            (
+                "ALTER TABLE transactions ADD COLUMN "
+                "transfer_account_id INTEGER REFERENCES accounts(id)",
+                "transfer_account_id"
+            ),
+            # Investment/credit-card tables created by create_all()
         ]
 
     try:
@@ -184,6 +221,7 @@ app.include_router(accounts.router)
 app.include_router(transactions.router)
 app.include_router(transfers.router)
 app.include_router(investments.router)
+app.include_router(credit_cards.router)
 
 
 @app.get('/')
