@@ -36,9 +36,29 @@ class UserUpdate(BaseModel):
     address: Optional[str] = None
     currency: Optional[str] = None
 
+    @validator('avatar')
+    def validate_avatar_size(cls, v):
+        # base64 de 1 MB = ~1.37 MB em string; limite de 1.5 MB na string
+        MAX_AVATAR_CHARS = 1_500_000
+        if v is not None and len(v) > MAX_AVATAR_CHARS:
+            raise ValueError('Avatar muito grande. Tamanho máximo: 1 MB.')
+        return v
+
     class Config:
-        # Permitir valores None explícitos
         validate_assignment = True
+
+
+class UserOnly(BaseModel):
+    """Resposta do login — dados do usuário (token vai no cookie httpOnly)."""
+    id: int
+    username: str
+    email: Optional[str] = None
+    full_name: Optional[str] = None
+    avatar: Optional[str] = None
+    currency: Optional[str] = "BRL"
+
+    class Config:
+        from_attributes = True
 
 
 class Token(BaseModel):
@@ -61,11 +81,23 @@ class Category(BaseModel):
         from_attributes = True
 
 
+VALID_ACCOUNT_TYPES = {"checking", "savings", "credit_card", "investment"}
+
+
 class AccountCreate(BaseModel):
     name: str
     account_type: str
     initial_balance: float = 0.0
     currency: str = "BRL"
+
+    @validator('account_type')
+    def validate_account_type(cls, v):
+        if v not in VALID_ACCOUNT_TYPES:
+            raise ValueError(
+                'Tipo de conta inválido. Deve ser um de: '
+                f'{", ".join(sorted(VALID_ACCOUNT_TYPES))}'
+            )
+        return v
 
 
 class AccountUpdate(BaseModel):
@@ -170,7 +202,8 @@ class InvestmentAssetCreate(BaseModel):
         valid_types = ['TESOURO', 'CDB', 'ETF', 'FII', 'ACAO', 'CRIPTO', 'OUTRO']
         if v not in valid_types:
             raise ValueError(
-                f'Tipo de ativo inválido. Deve ser um de: {", ".join(valid_types)}'
+                'Tipo de ativo inválido. Deve ser um de: '
+                f'{", ".join(valid_types)}'
             )
         return v
 
@@ -208,7 +241,8 @@ class InvestmentTransactionCreate(BaseModel):
         valid_types = ['APORTE', 'RESGATE', 'RENDIMENTO', 'TAXA']
         if v not in valid_types:
             raise ValueError(
-                f'Tipo de transação inválido. Deve ser um de: {", ".join(valid_types)}'
+                'Tipo de transação inválido. Deve ser um de: '
+                f'{", ".join(valid_types)}'
             )
         return v
 
@@ -309,7 +343,8 @@ class GoalPlanCreate(BaseModel):
         valid_modes = ['ESCADA', 'FIXO', 'PERSONALIZADO']
         if v not in valid_modes:
             raise ValueError(
-                f'Modo de plano inválido. Deve ser um de: {", ".join(valid_modes)}'
+                'Modo de plano inválido. Deve ser um de: '
+                f'{", ".join(valid_modes)}'
             )
         return v
 

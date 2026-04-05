@@ -27,10 +27,9 @@ export default function Report() {
       setLoading(true);
       setError('');
 
-      const token = localStorage.getItem("token");
-      const headers = {
-        "Content-Type": "application/json",
-        "Authorization": `Bearer ${token}`
+      const fetchOpts = {
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
       };
 
       // Get dates based on selectedMonth
@@ -51,9 +50,9 @@ export default function Report() {
       }
 
       const [dashboardRes, categoryRes, periodRes, transactions] = await Promise.all([
-        fetch(`${API_URL}/dashboard?start_date=${startDate}&end_date=${endDate}`, { headers }),
-        fetch(`${API_URL}/transactions/totals/by-category?start_date=${startDate}&end_date=${endDate}`, { headers }),
-        fetch(`${API_URL}/transactions/totals/by-period?start=${startDate}&end=${endDate}`, { headers }),
+        fetch(`${API_URL}/dashboard?start_date=${startDate}&end_date=${endDate}`, fetchOpts),
+        fetch(`${API_URL}/transactions/totals/by-category?start_date=${startDate}&end_date=${endDate}`, fetchOpts),
+        fetch(`${API_URL}/transactions/totals/by-period?start=${startDate}&end=${endDate}`, fetchOpts),
         transactionsAPI.getAll(false, 5000)
       ]);
 

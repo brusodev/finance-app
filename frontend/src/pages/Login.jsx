@@ -24,10 +24,9 @@ export default function Login() {
       }
 
       const response = await authAPI.login(username, password)
-      console.log('Login bem-sucedido:', response)
 
-      // Atualizar o contexto de autenticação
-      login(response.user, response.token)
+      // Token chegou no cookie httpOnly — só armazena os dados do usuário
+      login(response)
 
       setUsername('')
       setPassword('')

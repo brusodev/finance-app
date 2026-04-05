@@ -1,45 +1,41 @@
 import React, { createContext, useState, useContext, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+
+const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000';
 
 const AuthContext = createContext();
 
 export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
-  const [token, setToken] = useState(localStorage.getItem('token'));
   const [loading, setLoading] = useState(true);
 
+  // Ao montar, tenta recuperar o usuário autenticado via cookie httpOnly
   useEffect(() => {
-    const storedUser = localStorage.getItem('user');
-    const storedToken = localStorage.getItem('token');
-
-    if (storedUser && storedToken) {
-      setUser(JSON.parse(storedUser));
-      setToken(storedToken);
-    }
-    setLoading(false);
+    fetch(`${API_URL}/auth/me`, { credentials: 'include' })
+      .then((res) => (res.ok ? res.json() : null))
+      .then((data) => setUser(data ?? null))
+      .catch(() => setUser(null))
+      .finally(() => setLoading(false));
   }, []);
 
-  const login = (userData, authToken) => {
-    localStorage.setItem('token', authToken);
-    localStorage.setItem('user', JSON.stringify(userData));
+  const login = (userData) => {
+    // Token já chegou no cookie httpOnly — só guarda os dados do usuário em memória
     setUser(userData);
-    setToken(authToken);
   };
 
-  const logout = () => {
-    localStorage.removeItem('token');
-    localStorage.removeItem('user');
+  const logout = async () => {
+    await fetch(`${API_URL}/auth/logout`, {
+      method: 'POST',
+      credentials: 'include',
+    });
     setUser(null);
-    setToken(null);
   };
 
   const updateUser = (userData) => {
-    localStorage.setItem('user', JSON.stringify(userData));
     setUser(userData);
   };
 
   return (
-    <AuthContext.Provider value={{ user, token, login, logout, updateUser, loading, isAuthenticated: !!token }}>
+    <AuthContext.Provider value={{ user, login, logout, updateUser, loading, isAuthenticated: !!user }}>
       {children}
     </AuthContext.Provider>
   );

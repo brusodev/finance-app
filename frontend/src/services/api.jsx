@@ -1,18 +1,9 @@
 const API_URL = import.meta.env.VITE_API_URL || "http://localhost:8000";
 console.log('🌐 API URL configurada:', API_URL);
 
-const getHeaders = (includeAuth = true) => {
-  const headers = {
-    "Content-Type": "application/json",
-  };
-  if (includeAuth) {
-    const token = localStorage.getItem("token");
-    if (token) {
-      headers["Authorization"] = `Bearer ${token}`;
-    }
-  }
-  return headers;
-};
+const getHeaders = () => ({
+  "Content-Type": "application/json",
+});
 
 const handleResponse = async (response) => {
   if (!response.ok) {
@@ -31,7 +22,7 @@ export const authAPI = {
     try {
       const response = await fetch(`${API_URL}/auth/login`, {
         method: "POST",
-        headers: getHeaders(false),
+        headers: getHeaders(), credentials: "include",
         body: JSON.stringify({ username, password }),
       });
       return handleResponse(response);
@@ -45,7 +36,7 @@ export const authAPI = {
     try {
       const response = await fetch(`${API_URL}/auth/register`, {
         method: "POST",
-        headers: getHeaders(false),
+        headers: getHeaders(), credentials: "include",
         body: JSON.stringify({ username, password, email, full_name }),
       });
       return handleResponse(response);
@@ -59,7 +50,7 @@ export const authAPI = {
     try {
       const response = await fetch(`${API_URL}/auth/change-password`, {
         method: "POST",
-        headers: getHeaders(true),
+        headers: getHeaders(), credentials: "include",
         body: JSON.stringify({ current_password: currentPassword, new_password: newPassword }),
       });
       return handleResponse(response);
@@ -76,7 +67,7 @@ export const usersAPI = {
     try {
       const response = await fetch(`${API_URL}/users/profile`, {
         method: "GET",
-        headers: getHeaders(true),
+        headers: getHeaders(), credentials: "include",
       });
       return handleResponse(response);
     } catch (error) {
@@ -89,7 +80,7 @@ export const usersAPI = {
     try {
       const response = await fetch(`${API_URL}/users/profile`, {
         method: "PUT",
-        headers: getHeaders(true),
+        headers: getHeaders(), credentials: "include",
         body: JSON.stringify(data),
       });
       return handleResponse(response);
@@ -106,7 +97,7 @@ export const accountsAPI = {
     try {
       const response = await fetch(`${API_URL}/accounts/`, {
         method: "GET",
-        headers: getHeaders(true),
+        headers: getHeaders(), credentials: "include",
       });
       return handleResponse(response);
     } catch (error) {
@@ -119,7 +110,7 @@ export const accountsAPI = {
     try {
       const response = await fetch(`${API_URL}/accounts/suggestions`, {
         method: "GET",
-        headers: getHeaders(true),
+        headers: getHeaders(), credentials: "include",
       });
       return handleResponse(response);
     } catch (error) {
@@ -132,7 +123,7 @@ export const accountsAPI = {
     try {
       const response = await fetch(`${API_URL}/accounts/`, {
         method: "POST",
-        headers: getHeaders(true),
+        headers: getHeaders(), credentials: "include",
         body: JSON.stringify(data),
       });
       return handleResponse(response);
@@ -146,7 +137,7 @@ export const accountsAPI = {
     try {
       const response = await fetch(`${API_URL}/accounts/${id}`, {
         method: "PUT",
-        headers: getHeaders(true),
+        headers: getHeaders(), credentials: "include",
         body: JSON.stringify(data),
       });
       return handleResponse(response);
@@ -160,7 +151,7 @@ export const accountsAPI = {
     try {
       const response = await fetch(`${API_URL}/accounts/${id}`, {
         method: "DELETE",
-        headers: getHeaders(true),
+        headers: getHeaders(), credentials: "include",
       });
       if (!response.ok) throw new Error("Failed to delete account");
       return null;
@@ -177,7 +168,7 @@ export const categoriesAPI = {
     try {
       const response = await fetch(`${API_URL}/categories/`, {
         method: "GET",
-        headers: getHeaders(true),
+        headers: getHeaders(), credentials: "include",
       });
       return handleResponse(response);
     } catch (error) {
@@ -190,7 +181,7 @@ export const categoriesAPI = {
     try {
       const response = await fetch(`${API_URL}/categories/suggestions`, {
         method: "GET",
-        headers: getHeaders(true),
+        headers: getHeaders(), credentials: "include",
       });
       return handleResponse(response);
     } catch (error) {
@@ -203,7 +194,7 @@ export const categoriesAPI = {
     try {
       const response = await fetch(`${API_URL}/categories/icons`, {
         method: "GET",
-        headers: getHeaders(true),
+        headers: getHeaders(), credentials: "include",
       });
       return handleResponse(response);
     } catch (error) {
@@ -216,7 +207,7 @@ export const categoriesAPI = {
     try {
       const response = await fetch(`${API_URL}/categories/`, {
         method: "POST",
-        headers: getHeaders(true),
+        headers: getHeaders(), credentials: "include",
         body: JSON.stringify(data),
       });
       return handleResponse(response);
@@ -230,7 +221,7 @@ export const categoriesAPI = {
     try {
       const response = await fetch(`${API_URL}/categories/${id}`, {
         method: "PUT",
-        headers: getHeaders(true),
+        headers: getHeaders(), credentials: "include",
         body: JSON.stringify(data),
       });
       return handleResponse(response);
@@ -244,7 +235,7 @@ export const categoriesAPI = {
     try {
       const response = await fetch(`${API_URL}/categories/${id}`, {
         method: "DELETE",
-        headers: getHeaders(true),
+        headers: getHeaders(), credentials: "include",
       });
       if (!response.ok) throw new Error("Failed to delete category");
       return null;
@@ -291,7 +282,7 @@ export const transactionsAPI = {
 
       const response = await fetch(`${API_URL}/transactions/?limit=${limit}`, {
         method: "GET",
-        headers: getHeaders(true),
+        headers: getHeaders(), credentials: "include",
       });
       const data = await handleResponse(response);
 
@@ -308,7 +299,7 @@ export const transactionsAPI = {
     try {
       const response = await fetch(`${API_URL}/transactions/`, {
         method: "POST",
-        headers: getHeaders(true),
+        headers: getHeaders(), credentials: "include",
         body: JSON.stringify(data),
       });
       const result = await handleResponse(response);
@@ -325,7 +316,7 @@ export const transactionsAPI = {
     try {
       const response = await fetch(`${API_URL}/transactions/${id}`, {
         method: "PUT",
-        headers: getHeaders(true),
+        headers: getHeaders(), credentials: "include",
         body: JSON.stringify(data),
       });
       const result = await handleResponse(response);
@@ -342,7 +333,7 @@ export const transactionsAPI = {
     try {
       const response = await fetch(`${API_URL}/transactions/${id}`, {
         method: "DELETE",
-        headers: getHeaders(true),
+        headers: getHeaders(), credentials: "include",
       });
       if (!response.ok) throw new Error("Failed to delete transaction");
       // Limpar cache após deletar
@@ -363,7 +354,7 @@ export const transactionsAPI = {
 
       const response = await fetch(`${API_URL}/transactions/suggestions/descriptions?${params}`, {
         method: "GET",
-        headers: getHeaders(true),
+        headers: getHeaders(), credentials: "include",
       });
       return handleResponse(response);
     } catch (error) {
@@ -379,7 +370,7 @@ export const transfersAPI = {
     try {
       const response = await fetch(`${API_URL}/transfers/`, {
         method: "POST",
-        headers: getHeaders(true),
+        headers: getHeaders(), credentials: "include",
         body: JSON.stringify(data),
       });
       const result = await handleResponse(response);
@@ -396,7 +387,7 @@ export const transfersAPI = {
     try {
       const response = await fetch(`${API_URL}/transfers/${transferId}/transactions`, {
         method: "GET",
-        headers: getHeaders(true),
+        headers: getHeaders(), credentials: "include",
       });
       return handleResponse(response);
     } catch (error) {
@@ -409,7 +400,7 @@ export const transfersAPI = {
     try {
       const response = await fetch(`${API_URL}/transfers/${transferId}`, {
         method: "DELETE",
-        headers: getHeaders(true),
+        headers: getHeaders(), credentials: "include",
       });
       if (!response.ok) throw new Error("Failed to delete transfer");
       // Limpar cache de transações após deletar transferência
@@ -429,7 +420,7 @@ export const investmentsAPI = {
     try {
       const response = await fetch(`${API_URL}/investments/assets`, {
         method: "POST",
-        headers: getHeaders(true),
+        headers: getHeaders(), credentials: "include",
         body: JSON.stringify(assetData),
       });
       return handleResponse(response);
@@ -443,7 +434,7 @@ export const investmentsAPI = {
     try {
       const response = await fetch(`${API_URL}/investments/assets`, {
         method: "GET",
-        headers: getHeaders(true),
+        headers: getHeaders(), credentials: "include",
       });
       return handleResponse(response);
     } catch (error) {
@@ -456,7 +447,7 @@ export const investmentsAPI = {
     try {
       const response = await fetch(`${API_URL}/investments/assets/${assetId}`, {
         method: "GET",
-        headers: getHeaders(true),
+        headers: getHeaders(), credentials: "include",
       });
       return handleResponse(response);
     } catch (error) {
@@ -469,7 +460,7 @@ export const investmentsAPI = {
     try {
       const response = await fetch(`${API_URL}/investments/assets/${assetId}`, {
         method: "PUT",
-        headers: getHeaders(true),
+        headers: getHeaders(), credentials: "include",
         body: JSON.stringify(assetData),
       });
       return handleResponse(response);
@@ -483,7 +474,7 @@ export const investmentsAPI = {
     try {
       const response = await fetch(`${API_URL}/investments/assets/${assetId}`, {
         method: "DELETE",
-        headers: getHeaders(true),
+        headers: getHeaders(), credentials: "include",
       });
       if (!response.ok) throw new Error("Failed to delete asset");
       return null;
@@ -498,7 +489,7 @@ export const investmentsAPI = {
     try {
       const response = await fetch(`${API_URL}/investments/transactions`, {
         method: "POST",
-        headers: getHeaders(true),
+        headers: getHeaders(), credentials: "include",
         body: JSON.stringify(transactionData),
       });
       return handleResponse(response);
@@ -519,7 +510,7 @@ export const investmentsAPI = {
       const url = `${API_URL}/investments/transactions${params.toString() ? '?' + params.toString() : ''}`;
       const response = await fetch(url, {
         method: "GET",
-        headers: getHeaders(true),
+        headers: getHeaders(), credentials: "include",
       });
       return handleResponse(response);
     } catch (error) {
@@ -532,7 +523,7 @@ export const investmentsAPI = {
     try {
       const response = await fetch(`${API_URL}/investments/transactions/${transactionId}`, {
         method: "GET",
-        headers: getHeaders(true),
+        headers: getHeaders(), credentials: "include",
       });
       return handleResponse(response);
     } catch (error) {
@@ -545,7 +536,7 @@ export const investmentsAPI = {
     try {
       const response = await fetch(`${API_URL}/investments/transactions/${transactionId}`, {
         method: "PUT",
-        headers: getHeaders(true),
+        headers: getHeaders(), credentials: "include",
         body: JSON.stringify(transactionData),
       });
       return handleResponse(response);
@@ -559,7 +550,7 @@ export const investmentsAPI = {
     try {
       const response = await fetch(`${API_URL}/investments/transactions/${transactionId}`, {
         method: "DELETE",
-        headers: getHeaders(true),
+        headers: getHeaders(), credentials: "include",
       });
       if (!response.ok) throw new Error("Failed to delete transaction");
       return null;
@@ -574,7 +565,7 @@ export const investmentsAPI = {
     try {
       const response = await fetch(`${API_URL}/investments/summary`, {
         method: "GET",
-        headers: getHeaders(true),
+        headers: getHeaders(), credentials: "include",
       });
       return handleResponse(response);
     } catch (error) {
@@ -588,7 +579,7 @@ export const investmentsAPI = {
     try {
       const response = await fetch(`${API_URL}/investments/goal`, {
         method: "POST",
-        headers: getHeaders(true),
+        headers: getHeaders(), credentials: "include",
         body: JSON.stringify(goalData),
       });
       return handleResponse(response);
@@ -602,7 +593,7 @@ export const investmentsAPI = {
     try {
       const response = await fetch(`${API_URL}/investments/goal`, {
         method: "GET",
-        headers: getHeaders(true),
+        headers: getHeaders(), credentials: "include",
       });
       return handleResponse(response);
     } catch (error) {
@@ -615,7 +606,7 @@ export const investmentsAPI = {
     try {
       const response = await fetch(`${API_URL}/investments/goal/progress`, {
         method: "GET",
-        headers: getHeaders(true),
+        headers: getHeaders(), credentials: "include",
       });
       return handleResponse(response);
     } catch (error) {
@@ -629,7 +620,7 @@ export const investmentsAPI = {
     try {
       const response = await fetch(`${API_URL}/investments/simulate`, {
         method: "POST",
-        headers: getHeaders(true),
+        headers: getHeaders(), credentials: "include",
         body: JSON.stringify(simulationData),
       });
       return handleResponse(response);
@@ -646,7 +637,7 @@ export const creditCardsAPI = {
   getConfig: async (accountId) => {
     const response = await fetch(
       `${API_URL}/credit-cards/${accountId}/config`,
-      { headers: getHeaders(true) }
+      { headers: getHeaders(), credentials: "include" }
     );
     return handleResponse(response);
   },
@@ -654,7 +645,7 @@ export const creditCardsAPI = {
   createConfig: async (accountId, data) => {
     const response = await fetch(
       `${API_URL}/credit-cards/${accountId}/config`,
-      { method: "POST", headers: getHeaders(true), body: JSON.stringify(data) }
+      { method: "POST", headers: getHeaders(), credentials: "include", body: JSON.stringify(data) }
     );
     return handleResponse(response);
   },
@@ -662,7 +653,7 @@ export const creditCardsAPI = {
   updateConfig: async (accountId, data) => {
     const response = await fetch(
       `${API_URL}/credit-cards/${accountId}/config`,
-      { method: "PUT", headers: getHeaders(true), body: JSON.stringify(data) }
+      { method: "PUT", headers: getHeaders(), credentials: "include", body: JSON.stringify(data) }
     );
     return handleResponse(response);
   },
@@ -671,7 +662,7 @@ export const creditCardsAPI = {
   listBatches: async (accountId) => {
     const response = await fetch(
       `${API_URL}/credit-cards/${accountId}/batches`,
-      { headers: getHeaders(true) }
+      { headers: getHeaders(), credentials: "include" }
     );
     return handleResponse(response);
   },
@@ -679,7 +670,7 @@ export const creditCardsAPI = {
   createManualBatch: async (accountId, data) => {
     const response = await fetch(
       `${API_URL}/credit-cards/${accountId}/batches/manual`,
-      { method: "POST", headers: getHeaders(true), body: JSON.stringify(data) }
+      { method: "POST", headers: getHeaders(), credentials: "include", body: JSON.stringify(data) }
     );
     const result = await handleResponse(response);
     transactionsCache.clear();
@@ -687,14 +678,13 @@ export const creditCardsAPI = {
   },
 
   uploadBatch: async (accountId, referenceMonth, file) => {
-    const token = localStorage.getItem("token");
     const formData = new FormData();
     formData.append("file", file);
     const response = await fetch(
       `${API_URL}/credit-cards/${accountId}/batches/upload?reference_month=${referenceMonth}`,
       {
         method: "POST",
-        headers: { Authorization: `Bearer ${token}` },
+        credentials: "include",
         body: formData,
       }
     );
@@ -706,7 +696,7 @@ export const creditCardsAPI = {
   getBatch: async (accountId, batchId) => {
     const response = await fetch(
       `${API_URL}/credit-cards/${accountId}/batches/${batchId}`,
-      { headers: getHeaders(true) }
+      { headers: getHeaders(), credentials: "include" }
     );
     return handleResponse(response);
   },
@@ -714,7 +704,7 @@ export const creditCardsAPI = {
   cancelBatch: async (accountId, batchId) => {
     const response = await fetch(
       `${API_URL}/credit-cards/${accountId}/batches/${batchId}`,
-      { method: "DELETE", headers: getHeaders(true) }
+      { method: "DELETE", headers: getHeaders(), credentials: "include" }
     );
     if (!response.ok) {
       const err = await response.json().catch(() => ({}));
@@ -728,7 +718,7 @@ export const creditCardsAPI = {
   addItem: async (accountId, batchId, data) => {
     const response = await fetch(
       `${API_URL}/credit-cards/${accountId}/batches/${batchId}/items`,
-      { method: "POST", headers: getHeaders(true), body: JSON.stringify(data) }
+      { method: "POST", headers: getHeaders(), credentials: "include", body: JSON.stringify(data) }
     );
     return handleResponse(response);
   },
@@ -736,7 +726,7 @@ export const creditCardsAPI = {
   updateItem: async (accountId, batchId, itemId, data) => {
     const response = await fetch(
       `${API_URL}/credit-cards/${accountId}/batches/${batchId}/items/${itemId}`,
-      { method: "PUT", headers: getHeaders(true), body: JSON.stringify(data) }
+      { method: "PUT", headers: getHeaders(), credentials: "include", body: JSON.stringify(data) }
     );
     return handleResponse(response);
   },
@@ -745,7 +735,7 @@ export const creditCardsAPI = {
   confirmBatch: async (accountId, batchId) => {
     const response = await fetch(
       `${API_URL}/credit-cards/${accountId}/batches/${batchId}/confirm`,
-      { method: "POST", headers: getHeaders(true) }
+      { method: "POST", headers: getHeaders(), credentials: "include" }
     );
     const result = await handleResponse(response);
     transactionsCache.clear();

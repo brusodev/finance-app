@@ -33,14 +33,11 @@ export default function Dashboard() {
       // OTIMIZAÇÃO: Usar endpoint /dashboard/summary
       // Reduz de 3 requisições para 1 única!
       const API_URL = import.meta.env.VITE_API_URL || "http://localhost:8000"
-      const token = localStorage.getItem("token")
 
       const response = await fetch(`${API_URL}/dashboard/summary?start_date=${startDate}&end_date=${endDate}`, {
         method: "GET",
-        headers: {
-          "Content-Type": "application/json",
-          "Authorization": `Bearer ${token}`
-        }
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
       })
 
       if (!response.ok) {

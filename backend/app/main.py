@@ -7,9 +7,8 @@ from .routes import (
     accounts, transfers, investments, credit_cards,
 )
 from .database import engine, Base, SessionLocal, get_db
-from .models import User
-from .utils import hash_password
 from sqlalchemy import text, and_
+from .models import User
 import os
 from datetime import date
 
@@ -137,29 +136,17 @@ def run_migrations():
         traceback.print_exc()
 
 
-def init_default_users():
-    """Criar usuário padrão se nenhum usuário existir no banco"""
+def check_users():
+    """Verificar se existem usuários cadastrados"""
     db = SessionLocal()
     try:
-        # Verificar se já existem usuários
         result = db.execute(text('SELECT COUNT(*) FROM users')).scalar()
         if result == 0:
-            print("Criando usuários padrão...")
-            # Criar usuário padrão
-            default_user = User(
-                username='bruno',
-                hashed_password=hash_password('123456'),
-                email='bruno@example.com',
-                full_name='Bruno'
-            )
-            db.add(default_user)
-            db.commit()
-            print("Usuario padrao 'bruno' criado com sucesso")
+            print("[AVISO] Nenhum usuário cadastrado. Crie um usuário via POST /auth/register")
         else:
-            print(f"Banco de dados contem {result} usuario(s)")
+            print(f"[INFO] Banco de dados contém {result} usuário(s)")
     except Exception as e:
-        print(f"Erro ao inicializar usuários: {e}")
-        db.rollback()
+        print(f"[ERRO] Erro ao verificar usuários: {e}")
     finally:
         db.close()
 
@@ -172,7 +159,7 @@ async def lifespan(app_instance):
     # Startup
     print("Iniciando Finance App...")
     run_migrations()
-    init_default_users()
+    check_users()
     yield
     # Shutdown
     print("Encerrando Finance App...")
@@ -185,30 +172,28 @@ app = FastAPI(
 )
 
 # Configurar CORS
-# Permitindo frontend Railway e localhost
-allowed_origins = [
-    "https://finance-app-bruno.up.railway.app",
-    "https://finance.projdev.site",
-    "http://localhost:5173",
-    "http://localhost:3000",
-    "http://127.0.0.1:5173",
-]
-
-# Verificar ambiente
+# Em produção o frontend faz proxy via nginx (mesmo domínio) — sem cross-origin.
+# Em desenvolvimento, permite localhost para facilitar o dev local.
 environment = os.getenv("ENVIRONMENT", "production")
-allow_credentials = True
 
-# Se estiver em desenvolvimento, permite todas origens para o App Mobile funcionar
-if environment != "production":
-    allowed_origins = ["*"]
-    allow_credentials = False
-
-print(f"CORS: Ambiente={environment}, Origens permitidas: {allowed_origins}")
+if environment == "production":
+    # Requisições chegam do nginx no mesmo host: origem é o próprio domínio
+    allowed_origins = [
+        "https://finance.projdev.site",
+        "http://finance-frontend",   # container interno
+    ]
+else:
+    # Dev local: Vite roda em portas separadas
+    allowed_origins = [
+        "http://localhost:5173",
+        "http://localhost:3000",
+        "http://127.0.0.1:5173",
+    ]
 
 app.add_middleware(
     CORSMiddleware,
     allow_origins=allowed_origins,
-    allow_credentials=allow_credentials,
+    allow_credentials=True,
     allow_methods=['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
     allow_headers=['*'],
 )
