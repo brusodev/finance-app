@@ -21,12 +21,13 @@ build/
 # Logs
 *.log
 
-# Environment files
+# Environment files — NUNCA commitar
 .env
-.env.local
-.env.*.local
-.env.docker
+.env.*
+!.env.example
 backend/.env
+frontend/.env
+frontend/.env.*
 
 # Backups (podem conter dados sensíveis)
 backups/
@@ -56,5 +57,13 @@ Thumbs.db
 
 # Railway
 .railway/
-.claude/settings.local.json
-/.claude
+
+# Claude Code — configurações locais
+.claude/
+*.claude/
+
+# Infra — configs com detalhes de servidor (manter local)
+frontend/nginx.conf
+
+# Skills internas (não expor estratégia/arquitetura)
+.github/skills/
