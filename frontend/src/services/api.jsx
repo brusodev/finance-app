@@ -278,7 +278,7 @@ const transactionsCache = {
 
 // Transactions API
 export const transactionsAPI = {
-  getAll: async (useCache = true) => {
+  getAll: async (useCache = true, limit = 1000) => {
     try {
       // Verificar cache
       if (useCache) {
@@ -289,7 +289,7 @@ export const transactionsAPI = {
         }
       }
 
-      const response = await fetch(`${API_URL}/transactions/?limit=50`, {
+      const response = await fetch(`${API_URL}/transactions/?limit=${limit}`, {
         method: "GET",
         headers: getHeaders(true),
       });

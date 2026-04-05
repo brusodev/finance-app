@@ -5,23 +5,24 @@ import os
 from pathlib import Path
 from dotenv import load_dotenv
 
-# Carregar variáveis de ambiente do arquivo .env
-load_dotenv()
+# Carregar variáveis de ambiente do arquivo .env apenas fora do Docker
+if os.getenv("ENVIRONMENT", "production") != "production":
+    load_dotenv()
 
 # SQLite para desenvolvimento local
 # Sem necessidade de senha ou servidor externo
 # Coloca o banco na pasta backend/ (onde este arquivo está)
 BACKEND_DIR = Path(__file__).parent.parent
+
+ENVIRONMENT = os.getenv("ENVIRONMENT", "production")
 DATABASE_URL = os.getenv("DATABASE_URL", f"sqlite:///{BACKEND_DIR}/finance.db")
 
 if "sqlite" in DATABASE_URL:
-    # Para SQLite
     engine = create_engine(
         DATABASE_URL,
         connect_args={"check_same_thread": False}
     )
 else:
-    # Para PostgreSQL — sslmode é controlado pela DATABASE_URL
     engine = create_engine(
         DATABASE_URL,
         pool_pre_ping=True,

@@ -26,6 +26,7 @@ build/
 .env.local
 .env.*.local
 .env.docker
+backend/.env
 
 # Backups (podem conter dados sensíveis)
 backups/
