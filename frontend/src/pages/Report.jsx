@@ -2,6 +2,7 @@ import React, { useState, useEffect } from "react";
 import { BarChart3, PieChart, TrendingUp, Wallet, ArrowUpCircle, ArrowDownCircle, ChevronDown, ChevronRight } from "lucide-react";
 import { formatCurrency, formatDateLocal } from '../utils/formatters'
 import { useAuth } from '../context/AuthContext'
+import { transactionsAPI } from '../services/api'
 
 const API_URL = import.meta.env.VITE_API_URL || "http://localhost:8000";
 
@@ -49,22 +50,20 @@ export default function Report() {
         endDate = `${year}-${month}-${String(lastDay).padStart(2, '0')}`;
       }
 
-      const [dashboardRes, categoryRes, periodRes, transactionsRes] = await Promise.all([
+      const [dashboardRes, categoryRes, periodRes, transactions] = await Promise.all([
         fetch(`${API_URL}/dashboard?start_date=${startDate}&end_date=${endDate}`, { headers }),
         fetch(`${API_URL}/transactions/totals/by-category?start_date=${startDate}&end_date=${endDate}`, { headers }),
         fetch(`${API_URL}/transactions/totals/by-period?start=${startDate}&end=${endDate}`, { headers }),
-        fetch(`${API_URL}/transactions/`, { headers })
+        transactionsAPI.getAll(false, 5000)
       ]);
 
-      if (!dashboardRes.ok || !categoryRes.ok || !periodRes.ok || !transactionsRes.ok) {
+      if (!dashboardRes.ok || !categoryRes.ok || !periodRes.ok) {
         throw new Error('Erro ao carregar dados dos relatórios');
       }
 
       const dashboard = await dashboardRes.json();
       const categories = await categoryRes.json();
       const period = await periodRes.json();
-      const transactions = await transactionsRes.json();
-
       // Filter transactions by selected period
       const filteredTransactions = transactions.filter(t => {
         const tDate = t.date;
