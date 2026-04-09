@@ -193,11 +193,7 @@ export default function CreditCardImport() {
       await fetchBatch(selectedBatch.id)
       setEditingItem(null)
     } catch (err) {
-      const detail = Array.isArray(err.detail)
-        ? err.detail.map(e => `${e.loc?.join('.')}: ${e.msg}`).join('\n')
-        : err.detail
-      console.error('[saveEdit] erro:', err)
-      alert(detail || 'Erro ao salvar item')
+      alert(err.detail || 'Erro ao salvar item')
     } finally {
       setSavingItem(false)
     }

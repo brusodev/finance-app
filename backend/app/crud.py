@@ -1237,7 +1237,8 @@ def update_import_item(
     if data.amount is not None:
         item.amount = data.amount
     if data.date is not None:
-        item.date = data.date
+        from datetime import date as date_type
+        item.date = date_type.fromisoformat(data.date) if isinstance(data.date, str) else data.date
     if data.category_id is not None:
         item.category_id = data.category_id
     if data.installment_current is not None:

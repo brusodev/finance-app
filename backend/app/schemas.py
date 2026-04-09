@@ -1,4 +1,4 @@
-from pydantic import BaseModel, validator
+from pydantic import BaseModel, validator, field_validator, model_validator, ConfigDict
 from typing import Optional, List
 from datetime import date, datetime
 
@@ -480,17 +480,20 @@ class ImportItemCreate(BaseModel):
 
 class ImportItemUpdate(BaseModel):
     """Edição de um item importado antes de confirmar."""
+    model_config = ConfigDict(coerce_numbers_to_str=False)
+
     description: Optional[str] = None
     amount: Optional[float] = None
-    date: Optional[date] = None
+    date: Optional[str] = None  # recebe string YYYY-MM-DD, convertida no crud
     category_id: Optional[int] = None
     installment_current: Optional[int] = None
     installment_total: Optional[int] = None
     status: Optional[str] = None  # 'pending' | 'ignored'
 
-    @validator('date', pre=True)
-    def empty_string_to_none(cls, v):
-        if v == '' or v == 'undefined' or v == 'null':
+    @field_validator('date', mode='before')
+    @classmethod
+    def normalize_date(cls, v):
+        if not v or v in ('', 'undefined', 'null'):
             return None
         return v
 

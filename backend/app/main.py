@@ -1,8 +1,6 @@
 from contextlib import asynccontextmanager
-from fastapi import FastAPI, Depends, Query, Request
+from fastapi import FastAPI, Depends, Query
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.exceptions import RequestValidationError
-from fastapi.responses import JSONResponse
 from sqlalchemy.orm import Session
 from .routes import (
     auth, users, categories, transactions,
@@ -173,11 +171,6 @@ app = FastAPI(
     lifespan=lifespan
 )
 
-
-@app.exception_handler(RequestValidationError)
-async def validation_exception_handler(request: Request, exc: RequestValidationError):
-    print(f"[422] {request.method} {request.url.path} — {exc.errors()}")
-    return JSONResponse(status_code=422, content={"detail": exc.errors()})
 
 # Configurar CORS
 # Em produção o frontend faz proxy via nginx (mesmo domínio) — sem cross-origin.
