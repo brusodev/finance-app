@@ -173,9 +173,15 @@ export default function CreditCardImport() {
   const saveEdit = async () => {
     setSavingItem(true)
     try {
+      const parsedAmount = parseFloat(editForm.amount)
+      if (!editForm.date || isNaN(parsedAmount)) {
+        alert('Preencha uma data e um valor válidos')
+        setSavingItem(false)
+        return
+      }
       const payload = {
         description: editForm.description || null,
-        amount: parseFloat(editForm.amount),
+        amount: parsedAmount,
         date: editForm.date,
         category_id: editForm.category_id ? parseInt(editForm.category_id) : null,
         installment_current: editForm.installment_current
@@ -187,7 +193,11 @@ export default function CreditCardImport() {
       await fetchBatch(selectedBatch.id)
       setEditingItem(null)
     } catch (err) {
-      alert(err.detail || 'Erro ao salvar item')
+      const detail = Array.isArray(err.detail)
+        ? err.detail.map(e => `${e.loc?.join('.')}: ${e.msg}`).join('\n')
+        : err.detail
+      console.error('[saveEdit] erro:', err)
+      alert(detail || 'Erro ao salvar item')
     } finally {
       setSavingItem(false)
     }
