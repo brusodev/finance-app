@@ -488,6 +488,12 @@ class ImportItemUpdate(BaseModel):
     installment_total: Optional[int] = None
     status: Optional[str] = None  # 'pending' | 'ignored'
 
+    @validator('date', pre=True)
+    def empty_string_to_none(cls, v):
+        if v == '' or v == 'undefined' or v == 'null':
+            return None
+        return v
+
 
 class ImportItem(BaseModel):
     id: int

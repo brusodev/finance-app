@@ -182,7 +182,7 @@ export default function CreditCardImport() {
       const payload = {
         description: editForm.description || null,
         amount: parsedAmount,
-        date: editForm.date,
+        date: editForm.date || null,
         category_id: editForm.category_id ? parseInt(editForm.category_id) : null,
         installment_current: editForm.installment_current
           ? parseInt(editForm.installment_current) : null,
