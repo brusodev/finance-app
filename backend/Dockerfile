@@ -2,10 +2,9 @@ FROM python:3.11-slim
 
 WORKDIR /app
 
-# Instalar dependências do sistema
-RUN apt-get update && apt-get install -y \
-    gcc \
-    postgresql-client \
+# Instalar dependências do sistema (apenas o necessário para psycopg2-binary)
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    libpq-dev \
     && rm -rf /var/lib/apt/lists/*
 
 # Copiar arquivos de dependências

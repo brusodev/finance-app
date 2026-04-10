@@ -450,6 +450,11 @@ def delete_transaction(db: Session, transaction_id: int):
             if account:
                 account.balance -= db_transaction.amount
 
+        # Desvincular ImportItems que referenciam esta transação (evita FK violation)
+        db.query(models.ImportItem).filter(
+            models.ImportItem.transaction_id == transaction_id
+        ).update({"transaction_id": None}, synchronize_session=False)
+
         db.delete(db_transaction)
         db.commit()
     return db_transaction

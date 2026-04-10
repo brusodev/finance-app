@@ -1,4 +1,4 @@
-FROM node:18-alpine as build
+FROM node:22-alpine AS build
 
 WORKDIR /app
 
@@ -6,12 +6,13 @@ WORKDIR /app
 COPY package*.json ./
 RUN npm ci
 
-# Receber variável de build
+# Copiar código
+COPY . .
+
+# Receber variável de build (após COPY para invalidar cache quando mudar)
 ARG VITE_API_URL
 ENV VITE_API_URL=$VITE_API_URL
 
-# Copiar código e fazer build
-COPY . .
 RUN npm run build
 
 # Estágio de produção com nginx

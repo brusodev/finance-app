@@ -67,3 +67,5 @@ frontend/nginx.conf
 
 # Skills internas (não expor estratégia/arquitetura)
 .github/skills/
+
+CLAUDE.md
