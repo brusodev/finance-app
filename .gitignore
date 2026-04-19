@@ -61,11 +61,10 @@ Thumbs.db
 # Claude Code — configurações locais
 .claude/
 *.claude/
+CLAUDE.md
 
 # Infra — configs com detalhes de servidor (manter local)
 frontend/nginx.conf
 
 # Skills internas (não expor estratégia/arquitetura)
 .github/skills/
-
-CLAUDE.md
