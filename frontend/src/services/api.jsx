@@ -1,5 +1,4 @@
 const API_URL = import.meta.env.VITE_API_URL || "http://localhost:8000";
-console.log('🌐 API URL configurada:', API_URL);
 
 const getHeaders = () => ({
   "Content-Type": "application/json",
@@ -736,6 +735,21 @@ export const creditCardsAPI = {
     const response = await fetch(
       `${API_URL}/credit-cards/${accountId}/batches/${batchId}/confirm`,
       { method: "POST", headers: getHeaders(), credentials: "include" }
+    );
+    const result = await handleResponse(response);
+    transactionsCache.clear();
+    return result;
+  },
+
+  registerPayment: async (accountId, batchId, data) => {
+    const response = await fetch(
+      `${API_URL}/credit-cards/${accountId}/batches/${batchId}/payments`,
+      {
+        method: "POST",
+        headers: getHeaders(),
+        credentials: "include",
+        body: JSON.stringify(data),
+      }
     );
     const result = await handleResponse(response);
     transactionsCache.clear();

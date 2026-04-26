@@ -159,7 +159,7 @@ class Transaction(BaseModel):
     date: date
     description: Optional[str]
     transaction_type: str
-    category: Category
+    category: Optional[Category] = None
     account: Optional[Account] = None
     user: UserBasic  # Usar UserBasic em vez de User completo
     transfer_id: Optional[str] = None
@@ -235,6 +235,7 @@ class InvestmentTransactionCreate(BaseModel):
     quantity: Optional[float] = None
     unit_price: Optional[float] = None
     notes: Optional[str] = None
+    account_id: Optional[int] = None  # Conta bancária para débito/crédito automático
 
     @validator('type')
     def validate_transaction_type(cls, v):
@@ -282,6 +283,8 @@ class InvestmentTransaction(BaseModel):
     notes: Optional[str]
     created_at: datetime
     asset: Optional[InvestmentAsset] = None
+    account_id: Optional[int] = None
+    account_transaction_id: Optional[int] = None
 
     class Config:
         from_attributes = True
@@ -468,6 +471,47 @@ class CreditCardConfig(BaseModel):
         from_attributes = True
 
 
+class CreditCardStatementPaymentCreate(BaseModel):
+    from_account_id: int
+    amount: float
+    date: date
+    description: Optional[str] = None
+
+
+class CreditCardStatementPayment(BaseModel):
+    id: int
+    statement_id: int
+    from_account_id: int
+    transfer_id: str
+    date: date
+    amount: float
+    description: Optional[str] = None
+    user_id: int
+    created_at: datetime
+    from_account: Optional[Account] = None
+
+    class Config:
+        from_attributes = True
+
+
+class CreditCardStatement(BaseModel):
+    id: int
+    batch_id: int
+    account_id: int
+    user_id: int
+    reference_month: date
+    due_date: Optional[date] = None
+    total_amount: float
+    paid_amount: float
+    status: str
+    created_at: datetime
+    updated_at: datetime
+    payments: List[CreditCardStatementPayment] = []
+
+    class Config:
+        from_attributes = True
+
+
 class ImportItemCreate(BaseModel):
     """Usado para lançamento manual de um item na fatura."""
     description: str
@@ -533,7 +577,20 @@ class ImportBatch(BaseModel):
     status: str
     created_at: datetime
     confirmed_at: Optional[datetime]
+    statement: Optional[CreditCardStatement] = None
     items: List[ImportItem] = []
+
+    class Config:
+        from_attributes = True
+
+
+class ImportBatchStatementInfo(BaseModel):
+    """Informações resumidas do statement vinculado ao batch."""
+    id: int
+    total_amount: float
+    paid_amount: float
+    status: str
+    due_date: Optional[date] = None
 
     class Config:
         from_attributes = True
@@ -550,6 +607,7 @@ class ImportBatchSummary(BaseModel):
     created_at: datetime
     item_count: int
     total_amount: float
+    statement: Optional[ImportBatchStatementInfo] = None
 
     class Config:
         from_attributes = True

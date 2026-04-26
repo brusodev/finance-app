@@ -119,8 +119,14 @@ class InvestmentTransaction(Base):
     user_id = Column(Integer, ForeignKey('users.id'), index=True)
     created_at = Column(DateTime, default=datetime.utcnow)
 
+    # Conta bancária vinculada (APORTE débita, RESGATE credita)
+    account_id = Column(Integer, ForeignKey('accounts.id'), nullable=True, index=True)
+    account_transaction_id = Column(Integer, ForeignKey('transactions.id'), nullable=True, index=True)
+
     asset = relationship("InvestmentAsset", back_populates="transactions")
     user = relationship("User")
+    account = relationship("Account", foreign_keys=[account_id])
+    account_transaction = relationship("Transaction", foreign_keys=[account_transaction_id])
 
 
 class GoalPlan(Base):
@@ -185,6 +191,13 @@ class CreditCardConfig(Base):
     account = relationship("Account")
 
 
+class CreditCardStatementStatusEnum(str, enum.Enum):
+    OPEN = "open"
+    PARTIAL = "partial"
+    PAID = "paid"
+    CANCELLED = "cancelled"
+
+
 class ImportBatch(Base):
     """Lote de importação de fatura (um arquivo por lote)."""
     __tablename__ = 'import_batches'
@@ -203,6 +216,57 @@ class ImportBatch(Base):
     account = relationship("Account")
     user = relationship("User")
     items = relationship("ImportItem", back_populates="batch", cascade="all, delete-orphan")
+    statement = relationship(
+        "CreditCardStatement",
+        back_populates="batch",
+        uselist=False,
+        cascade="all, delete-orphan",
+    )
+
+
+class CreditCardStatement(Base):
+    """Fatura consolidada de um cartão, gerada a partir de um lote confirmado."""
+    __tablename__ = 'credit_card_statements'
+
+    id = Column(Integer, primary_key=True, index=True)
+    batch_id = Column(Integer, ForeignKey('import_batches.id'), unique=True, nullable=False, index=True)
+    account_id = Column(Integer, ForeignKey('accounts.id'), nullable=False, index=True)
+    user_id = Column(Integer, ForeignKey('users.id'), nullable=False, index=True)
+    reference_month = Column(Date, nullable=False)
+    due_date = Column(Date, nullable=True)
+    total_amount = Column(Float, nullable=False, default=0.0)
+    paid_amount = Column(Float, nullable=False, default=0.0)
+    status = Column(Enum(CreditCardStatementStatusEnum), default=CreditCardStatementStatusEnum.OPEN, nullable=False)
+    created_at = Column(DateTime, default=datetime.utcnow)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+    batch = relationship("ImportBatch", back_populates="statement")
+    account = relationship("Account")
+    user = relationship("User")
+    payments = relationship(
+        "CreditCardStatementPayment",
+        back_populates="statement",
+        cascade="all, delete-orphan",
+    )
+
+
+class CreditCardStatementPayment(Base):
+    """Pagamento parcial ou total de uma fatura, vinculado a uma transferência."""
+    __tablename__ = 'credit_card_statement_payments'
+
+    id = Column(Integer, primary_key=True, index=True)
+    statement_id = Column(Integer, ForeignKey('credit_card_statements.id'), nullable=False, index=True)
+    from_account_id = Column(Integer, ForeignKey('accounts.id'), nullable=False, index=True)
+    transfer_id = Column(String, nullable=False, unique=True, index=True)
+    date = Column(Date, nullable=False, index=True)
+    amount = Column(Float, nullable=False)
+    description = Column(String, nullable=True)
+    user_id = Column(Integer, ForeignKey('users.id'), nullable=False, index=True)
+    created_at = Column(DateTime, default=datetime.utcnow)
+
+    statement = relationship("CreditCardStatement", back_populates="payments")
+    from_account = relationship("Account", foreign_keys=[from_account_id])
+    user = relationship("User")
 
 
 class ImportItem(Base):

@@ -5,7 +5,6 @@ from fastapi import (
     status, Query
 )
 from sqlalchemy.orm import Session
-from typing import Optional
 from datetime import date
 
 from .. import crud, schemas
@@ -126,6 +125,16 @@ def list_batches(
             if i.status != 'ignored'
         ]
         total = sum(abs(i.amount) for i in pending_items)
+        stmt = crud.get_credit_card_statement_by_batch(db, b.id, current_user.id)
+        statement_info = None
+        if stmt:
+            statement_info = schemas.ImportBatchStatementInfo(
+                id=stmt.id,
+                total_amount=stmt.total_amount,
+                paid_amount=stmt.paid_amount,
+                status=stmt.status.value if hasattr(stmt.status, 'value') else stmt.status,
+                due_date=stmt.due_date,
+            )
         result.append(schemas.ImportBatchSummary(
             id=b.id,
             account_id=b.account_id,
@@ -136,6 +145,7 @@ def list_batches(
             created_at=b.created_at,
             item_count=len(b.items),
             total_amount=total,
+            statement=statement_info,
         ))
     return result
 
@@ -361,6 +371,35 @@ def confirm_batch(
     try:
         result = crud.confirm_import_batch(db, batch_id, current_user.id)
         return result
+    except ValueError as e:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST, detail=str(e)
+        )
+
+
+@router.post(
+    "/{account_id}/batches/{batch_id}/payments",
+    response_model=schemas.CreditCardStatement,
+    status_code=status.HTTP_201_CREATED,
+)
+def register_payment(
+    account_id: int,
+    batch_id: int,
+    payment_in: schemas.CreditCardStatementPaymentCreate,
+    db: Session = Depends(get_db),
+    current_user: schemas.User = Depends(get_current_user),
+):
+    """Registra um pagamento total ou parcial da fatura do lote."""
+    batch = crud.get_import_batch(db, batch_id, current_user.id)
+    if not batch or batch.account_id != account_id:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Lote não encontrado",
+        )
+    try:
+        return crud.register_credit_card_statement_payment(
+            db, batch_id, payment_in, current_user.id
+        )
     except ValueError as e:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST, detail=str(e)

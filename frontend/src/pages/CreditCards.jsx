@@ -24,7 +24,9 @@ export default function CreditCards() {
   const navigate = useNavigate()
 
   const [accounts, setAccounts] = useState([])
+  const [allAccounts, setAllAccounts] = useState([])
   const [configs, setConfigs] = useState({})
+  const [latestBatches, setLatestBatches] = useState({})
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
 
@@ -33,6 +35,15 @@ export default function CreditCards() {
   const [form, setForm] = useState(EMPTY_FORM)
   const [saving, setSaving] = useState(false)
   const [formError, setFormError] = useState('')
+  const [paymentModal, setPaymentModal] = useState(null)
+  const [paymentForm, setPaymentForm] = useState({
+    from_account_id: '',
+    amount: '',
+    date: new Date().toISOString().slice(0, 10),
+    description: '',
+  })
+  const [paymentSaving, setPaymentSaving] = useState(false)
+  const [paymentError, setPaymentError] = useState('')
 
   useEffect(() => { fetchData() }, [])
 
@@ -41,6 +52,7 @@ export default function CreditCards() {
       setLoading(true)
       setError('')
       const allAccounts = await accountsAPI.getAll()
+      setAllAccounts(allAccounts)
       const creditAccounts = allAccounts.filter(
         a => a.account_type === 'credit_card' && a.is_active
       )
@@ -54,6 +66,20 @@ export default function CreditCards() {
         })
       )
       setConfigs(cfgs)
+
+      const batchEntries = await Promise.all(
+        creditAccounts.map(async (acc) => {
+          try {
+            const batches = await creditCardsAPI.listBatches(acc.id)
+            const latest = batches?.[0] ?? null
+            const confirmed = batches?.find(b => b.status === 'confirmed') ?? null
+            return [acc.id, { latest, confirmed }]
+          } catch {
+            return [acc.id, { latest: null, confirmed: null }]
+          }
+        })
+      )
+      setLatestBatches(Object.fromEntries(batchEntries))
     } catch {
       setError('Erro ao carregar cartões de crédito')
     } finally {
@@ -168,6 +194,64 @@ export default function CreditCards() {
     }
   }
 
+  const openPayModal = (account) => {
+    const confirmedBatch = latestBatches[account.id]?.confirmed ?? null
+    const outstanding = confirmedBatch?.statement
+      ? Math.max(confirmedBatch.statement.total_amount - confirmedBatch.statement.paid_amount, 0)
+      : (confirmedBatch?.total_amount ?? 0)
+    setPaymentForm({
+      from_account_id: '',
+      amount: outstanding > 0 ? String(outstanding) : '',
+      date: new Date().toISOString().slice(0, 10),
+      description: `Pagamento da fatura ${account.name}`,
+    })
+    setPaymentError('')
+    setPaymentModal({ account, batch: confirmedBatch })
+  }
+
+  const closePaymentModal = () => {
+    setPaymentModal(null)
+    setPaymentError('')
+  }
+
+  const registerPayment = async () => {
+    if (!paymentModal?.batch?.id) {
+      setPaymentError('Nenhuma fatura confirmada disponível para pagamento')
+      return
+    }
+
+    const amount = parseFloat(paymentForm.amount)
+    if (!paymentForm.from_account_id || !paymentForm.date || Number.isNaN(amount) || amount <= 0) {
+      setPaymentError('Preencha conta de origem, valor e data válidos')
+      return
+    }
+
+    setPaymentSaving(true)
+    setPaymentError('')
+    try {
+      await creditCardsAPI.registerPayment(paymentModal.account.id, paymentModal.batch.id, {
+        from_account_id: parseInt(paymentForm.from_account_id),
+        amount,
+        date: paymentForm.date,
+        description: paymentForm.description || null,
+      })
+      await fetchData()
+      closePaymentModal()
+    } catch (e) {
+      setPaymentError(e.detail || 'Erro ao registrar pagamento')
+    } finally {
+      setPaymentSaving(false)
+    }
+  }
+
+  const STATUS_LABELS = {
+    open: 'Aberta',
+    confirmed: 'Confirmada',
+    paid: 'Paga',
+    partial: 'Paga parcialmente',
+  }
+  const statusLabel = (s) => STATUS_LABELS[s] ?? s
+
   const f = (field, value) => setForm(prev => ({ ...prev, [field]: value }))
 
   const inputCls = "w-full px-3 py-2 border border-zinc-300 dark:border-zinc-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-zinc-800 text-zinc-900 dark:text-white text-sm"
@@ -220,6 +304,7 @@ export default function CreditCards() {
         <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
           {accounts.map(account => {
             const cfg = configs[account.id]
+            const latestBatch = latestBatches[account.id]?.latest ?? null
             return (
               <div
                 key={account.id}
@@ -279,8 +364,38 @@ export default function CreditCards() {
                     </div>
                   )}
 
+                  {latestBatch && (
+                    <div className="bg-zinc-50 dark:bg-zinc-800 rounded-lg p-3 space-y-2">
+                      <div className="flex items-center justify-between gap-3">
+                        <div>
+                          <p className="text-xs text-zinc-500 dark:text-zinc-400 mb-1">Última fatura</p>
+                          <p className="text-sm font-semibold text-zinc-800 dark:text-white capitalize">
+                            {statusLabel(latestBatch.statement?.status ?? latestBatch.status)}
+                          </p>
+                        </div>
+                        <div className="text-right">
+                          <p className="text-xs text-zinc-500 dark:text-zinc-400 mb-1">Total</p>
+                          <p className="text-sm font-semibold text-zinc-800 dark:text-white">
+                            {formatCurrency(latestBatch.statement?.total_amount ?? latestBatch.total_amount ?? 0, user?.currency)}
+                          </p>
+                        </div>
+                      </div>
+                      {latestBatch.statement?.paid_amount > 0 && (
+                        <div className="flex justify-between text-xs pt-1 border-t border-zinc-200 dark:border-zinc-700">
+                          <span className="text-zinc-500 dark:text-zinc-400">Pendente</span>
+                          <span className="text-red-600 dark:text-red-400 font-medium">
+                            {formatCurrency(
+                              Math.max(latestBatch.statement.total_amount - latestBatch.statement.paid_amount, 0),
+                              user?.currency
+                            )}
+                          </span>
+                        </div>
+                      )}
+                    </div>
+                  )}
+
                   {/* Actions */}
-                  <div className="flex gap-2 pt-1">
+                  <div className="flex flex-wrap gap-2 pt-1">
                     <button
                       onClick={() => deleteCard(account)}
                       className="p-2 text-zinc-400 hover:text-red-600 dark:hover:text-red-400 border border-zinc-200 dark:border-zinc-700 rounded-lg hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors"
@@ -303,6 +418,29 @@ export default function CreditCards() {
                       Importar fatura
                       <ChevronRight size={15} />
                     </button>
+                    {(() => {
+                      const batch = latestBatches[account.id]?.confirmed ?? null
+                      const pending = batch?.statement
+                        ? Math.max(batch.statement.total_amount - batch.statement.paid_amount, 0)
+                        : (batch?.total_amount ?? 0)
+                      const isFullyPaid = batch && pending === 0
+                      return (
+                        <button
+                          onClick={() => !isFullyPaid && openPayModal(account)}
+                          disabled={isFullyPaid}
+                          title={isFullyPaid ? 'Fatura já quitada' : undefined}
+                          className={`flex-1 flex items-center justify-center gap-2 px-3 py-2 text-sm rounded-lg transition-colors ${
+                            isFullyPaid
+                              ? 'border border-zinc-200 dark:border-zinc-700 text-zinc-400 dark:text-zinc-600 cursor-not-allowed'
+                              : 'border border-blue-200 dark:border-blue-800 text-blue-600 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/20'
+                          }`}
+                        >
+                          {isFullyPaid ? <Check size={15} /> : null}
+                          {isFullyPaid ? 'Fatura quitada' : 'Pagar fatura'}
+                          {!isFullyPaid && <ChevronRight size={15} />}
+                        </button>
+                      )
+                    })()}
                   </div>
                 </div>
               </div>
@@ -452,6 +590,167 @@ export default function CreditCards() {
                   : <><Check size={16} /> {modal.mode === 'new' ? 'Criar cartão' : 'Salvar'}</>
                 }
               </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {paymentModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
+          <div className="bg-white dark:bg-zinc-900 rounded-xl shadow-xl w-full max-w-md">
+            <div className="flex items-center justify-between p-5 border-b border-zinc-200 dark:border-zinc-800">
+              <h2 className="text-lg font-bold text-zinc-800 dark:text-white">
+                Pagar fatura
+              </h2>
+              <button
+                onClick={closePaymentModal}
+                className="text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-200 transition-colors"
+              >
+                <X size={20} />
+              </button>
+            </div>
+
+            <div className="p-5 space-y-4">
+              {(() => {
+                const pending = paymentModal.batch?.statement
+                  ? Math.max(paymentModal.batch.statement.total_amount - paymentModal.batch.statement.paid_amount, 0)
+                  : (paymentModal.batch?.total_amount ?? 0)
+                if (paymentModal.batch && pending === 0) {
+                  return (
+                    <div className="flex items-center gap-2 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg p-4 text-green-700 dark:text-green-400 text-sm">
+                      <Check size={18} /> Esta fatura já está totalmente quitada.
+                    </div>
+                  )
+                }
+                return null
+              })()}
+              <div className="rounded-lg bg-zinc-50 dark:bg-zinc-800 p-4 space-y-2">
+                <div className="flex items-center justify-between gap-3">
+                  <div>
+                    <p className="text-xs text-zinc-500 dark:text-zinc-400">Cartão</p>
+                    <p className="font-semibold text-zinc-900 dark:text-white">{paymentModal.account.name}</p>
+                  </div>
+                  <div className="text-right">
+                    <p className="text-xs text-zinc-500 dark:text-zinc-400">Fatura total</p>
+                    <p className="font-semibold text-zinc-900 dark:text-white">
+                      {paymentModal.batch
+                        ? formatCurrency(paymentModal.batch.statement?.total_amount ?? paymentModal.batch.total_amount ?? 0, user?.currency)
+                        : 'Sem fatura confirmada'}
+                    </p>
+                  </div>
+                </div>
+                {paymentModal.batch?.statement && paymentModal.batch.statement.paid_amount > 0 && (
+                  <div className="flex justify-between text-xs pt-1 border-t border-zinc-200 dark:border-zinc-700">
+                    <span className="text-zinc-500 dark:text-zinc-400">Já pago</span>
+                    <span className="text-green-600 dark:text-green-400 font-medium">
+                      {formatCurrency(paymentModal.batch.statement.paid_amount, user?.currency)}
+                    </span>
+                  </div>
+                )}
+                {paymentModal.batch?.statement && (
+                  <div className="flex justify-between text-xs">
+                    <span className="text-zinc-500 dark:text-zinc-400">Saldo pendente</span>
+                    <span className="text-red-600 dark:text-red-400 font-medium">
+                      {formatCurrency(
+                        Math.max(paymentModal.batch.statement.total_amount - paymentModal.batch.statement.paid_amount, 0),
+                        user?.currency
+                      )}
+                    </span>
+                  </div>
+                )}
+                <p className="text-xs text-zinc-500 dark:text-zinc-400">
+                  {paymentModal.batch
+                    ? `Status: ${statusLabel(paymentModal.batch.statement?.status ?? paymentModal.batch.status)}`
+                    : 'Confirme a fatura antes de pagar'}
+                </p>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">
+                  Conta de origem
+                </label>
+                <select
+                  value={paymentForm.from_account_id}
+                  onChange={e => setPaymentForm(prev => ({ ...prev, from_account_id: e.target.value }))}
+                  className={inputCls}
+                >
+                  <option value="">Selecione a conta</option>
+                  {allAccounts
+                    .filter(acc => acc.is_active && acc.account_type !== 'credit_card')
+                    .map(acc => (
+                      <option key={acc.id} value={acc.id}>{acc.name}</option>
+                    ))}
+                </select>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">
+                    Valor
+                  </label>
+                  <input
+                    type="number"
+                    min="0"
+                    step="0.01"
+                    value={paymentForm.amount}
+                    onChange={e => setPaymentForm(prev => ({ ...prev, amount: e.target.value }))}
+                    className={inputCls}
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">
+                    Data
+                  </label>
+                  <input
+                    type="date"
+                    value={paymentForm.date}
+                    onChange={e => setPaymentForm(prev => ({ ...prev, date: e.target.value }))}
+                    className={inputCls}
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">
+                  Descrição opcional
+                </label>
+                <input
+                  type="text"
+                  value={paymentForm.description}
+                  onChange={e => setPaymentForm(prev => ({ ...prev, description: e.target.value }))}
+                  className={inputCls}
+                />
+              </div>
+
+              {paymentError && (
+                <div className="flex items-center gap-2 text-red-600 dark:text-red-400 text-sm">
+                  <AlertCircle size={16} /> {paymentError}
+                </div>
+              )}
+
+              <div className="flex justify-end gap-3 pt-2">
+                <button
+                  onClick={closePaymentModal}
+                  className="px-4 py-2 text-sm border border-zinc-300 dark:border-zinc-700 text-zinc-600 dark:text-zinc-300 rounded-lg hover:bg-zinc-50 dark:hover:bg-zinc-800 transition-colors"
+                >
+                  Cancelar
+                </button>
+                <button
+                  onClick={registerPayment}
+                  disabled={paymentSaving || !paymentModal.batch || (() => {
+                    const pending = paymentModal.batch?.statement
+                      ? Math.max(paymentModal.batch.statement.total_amount - paymentModal.batch.statement.paid_amount, 0)
+                      : (paymentModal.batch?.total_amount ?? 0)
+                    return pending === 0
+                  })()}
+                  className="flex items-center justify-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 disabled:opacity-60 text-white rounded-lg transition-colors text-sm"
+                >
+                  {paymentSaving
+                    ? <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                    : <><Check size={16} /> Confirmar pagamento</>
+                  }
+                </button>
+              </div>
             </div>
           </div>
         </div>

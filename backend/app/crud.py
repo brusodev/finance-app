@@ -515,7 +515,7 @@ def get_transaction_description_suggestions(
 # ========================
 
 
-def create_transfer(db: Session, transfer: schemas.TransferCreate, user_id: int):
+def create_transfer(db: Session, transfer: schemas.TransferCreate, user_id: int, commit: bool = True):
     """
     Create a transfer between two accounts.
     Creates two linked transactions: one debit from source account and one credit to destination account.
@@ -593,7 +593,11 @@ def create_transfer(db: Session, transfer: schemas.TransferCreate, user_id: int)
     from_account.balance -= abs(transfer.amount)
     to_account.balance += abs(transfer.amount)
 
-    db.commit()
+    if commit:
+        db.commit()
+    else:
+        db.flush()
+
     db.refresh(from_transaction)
     db.refresh(to_transaction)
 
@@ -617,6 +621,123 @@ def get_transfer_transactions(db: Session, transfer_id: str, user_id: int):
     ).all()
 
     return transactions
+
+
+def get_credit_card_statement_by_batch(db: Session, batch_id: int, user_id: int):
+    return db.query(models.CreditCardStatement).filter(
+        models.CreditCardStatement.batch_id == batch_id,
+        models.CreditCardStatement.user_id == user_id,
+    ).first()
+
+
+def _sync_credit_card_statement_status(statement):
+    outstanding = max(statement.total_amount - statement.paid_amount, 0.0)
+    if statement.total_amount <= 0 or outstanding <= 0:
+        statement.status = models.CreditCardStatementStatusEnum.PAID
+    elif statement.paid_amount <= 0:
+        statement.status = models.CreditCardStatementStatusEnum.OPEN
+    else:
+        statement.status = models.CreditCardStatementStatusEnum.PARTIAL
+
+
+def create_or_update_credit_card_statement(
+    db: Session,
+    batch_id: int,
+    user_id: int,
+    total_amount: float,
+    due_date=None,
+):
+    batch = get_import_batch(db, batch_id, user_id)
+    if not batch:
+        raise ValueError("Lote não encontrado")
+
+    statement = get_credit_card_statement_by_batch(db, batch_id, user_id)
+    if not statement:
+        statement = models.CreditCardStatement(
+            batch_id=batch.id,
+            account_id=batch.account_id,
+            user_id=user_id,
+            reference_month=batch.reference_month,
+            due_date=due_date,
+            total_amount=abs(total_amount),
+            paid_amount=0.0,
+            status=models.CreditCardStatementStatusEnum.OPEN,
+        )
+        db.add(statement)
+    else:
+        statement.total_amount = abs(total_amount)
+        if due_date is not None:
+            statement.due_date = due_date
+
+    _sync_credit_card_statement_status(statement)
+    db.commit()
+    db.refresh(statement)
+    return statement
+
+
+def register_credit_card_statement_payment(
+    db: Session,
+    batch_id: int,
+    payment: schemas.CreditCardStatementPaymentCreate,
+    user_id: int,
+):
+    batch = get_import_batch(db, batch_id, user_id)
+    if not batch:
+        raise ValueError("Lote não encontrado")
+    if batch.status != models.ImportBatchStatusEnum.CONFIRMED:
+        raise ValueError("A fatura precisa estar confirmada antes de receber pagamentos")
+
+    statement = get_credit_card_statement_by_batch(db, batch_id, user_id)
+    if not statement:
+        statement_total = sum(
+            abs(item.amount)
+            for item in batch.items
+            if item.status != models.ImportItemStatusEnum.IGNORED
+        )
+        statement = create_or_update_credit_card_statement(
+            db, batch_id=batch_id, user_id=user_id, total_amount=statement_total
+        )
+
+    if payment.amount <= 0:
+        raise ValueError("O valor do pagamento deve ser positivo")
+
+    outstanding = max(statement.total_amount - statement.paid_amount, 0.0)
+    if payment.amount > outstanding:
+        raise ValueError("O pagamento não pode ser maior que o saldo em aberto")
+
+    from_account = get_account(db, payment.from_account_id)
+    if not from_account or from_account.user_id != user_id:
+        raise ValueError("Conta de origem não encontrada ou não pertence ao usuário")
+    if from_account.id == statement.account_id:
+        raise ValueError("A conta de origem não pode ser o próprio cartão")
+
+    payment_description = payment.description or f"Pagamento da fatura {batch.reference_month.strftime('%m/%Y')}"
+    transfer_payload = schemas.TransferCreate(
+        from_account_id=payment.from_account_id,
+        to_account_id=statement.account_id,
+        amount=payment.amount,
+        date=payment.date,
+        description=payment_description,
+    )
+    transfer_result = create_transfer(db, transfer_payload, user_id, commit=False)
+
+    statement_payment = models.CreditCardStatementPayment(
+        statement_id=statement.id,
+        from_account_id=payment.from_account_id,
+        transfer_id=transfer_result["transfer_id"],
+        date=payment.date,
+        amount=payment.amount,
+        description=payment_description,
+        user_id=user_id,
+    )
+    db.add(statement_payment)
+
+    statement.paid_amount += payment.amount
+    _sync_credit_card_statement_status(statement)
+
+    db.commit()
+    db.refresh(statement)
+    return get_credit_card_statement_by_batch(db, batch_id, user_id)
 
 
 def delete_transfer(db: Session, transfer_id: str, user_id: int):
@@ -712,12 +833,43 @@ def delete_investment_asset(db: Session, asset_id: int, user_id: int):
 
 # --- Investment Transactions ---
 
+def _get_or_create_investment_category(db: Session, user_id: int) -> int:
+    category = get_category_by_name_and_user(db, "Investimentos", user_id)
+    if not category:
+        category = models.Category(name="Investimentos", icon="📈", user_id=user_id)
+        db.add(category)
+        db.flush()
+    return category.id
+
+
 def create_investment_transaction(db: Session, transaction: schemas.InvestmentTransactionCreate, user_id: int):
-    """Create a new investment transaction"""
-    # Verify asset exists and belongs to user
     asset = get_investment_asset(db, transaction.asset_id, user_id)
     if not asset:
         raise ValueError("Ativo não encontrado ou não pertence ao usuário")
+
+    account_transaction_id = None
+    if transaction.account_id and transaction.type in ("APORTE", "RESGATE"):
+        account = get_account(db, transaction.account_id)
+        if not account or account.user_id != user_id:
+            raise ValueError("Conta bancária não encontrada ou não pertence ao usuário")
+
+        # APORTE: sai da conta (negativo). RESGATE: entra na conta (positivo).
+        tx_amount = -abs(transaction.amount_brl) if transaction.type == "APORTE" else abs(transaction.amount_brl)
+        description = f"{'Aporte' if transaction.type == 'APORTE' else 'Resgate'} — {asset.name}"
+        investment_category_id = _get_or_create_investment_category(db, user_id)
+        acc_tx = models.Transaction(
+            description=description,
+            amount=tx_amount,
+            date=transaction.date,
+            transaction_type="expense" if transaction.type == "APORTE" else "income",
+            account_id=transaction.account_id,
+            category_id=investment_category_id,
+            user_id=user_id,
+        )
+        db.add(acc_tx)
+        db.flush()
+        account.balance += tx_amount
+        account_transaction_id = acc_tx.id
 
     db_transaction = models.InvestmentTransaction(
         asset_id=transaction.asset_id,
@@ -727,7 +879,9 @@ def create_investment_transaction(db: Session, transaction: schemas.InvestmentTr
         quantity=transaction.quantity,
         unit_price=transaction.unit_price,
         notes=transaction.notes,
-        user_id=user_id
+        user_id=user_id,
+        account_id=transaction.account_id if transaction.account_id and transaction.type in ("APORTE", "RESGATE") else None,
+        account_transaction_id=account_transaction_id,
     )
     db.add(db_transaction)
     db.commit()
@@ -789,10 +943,20 @@ def update_investment_transaction(db: Session, transaction_id: int,
 
 
 def delete_investment_transaction(db: Session, transaction_id: int, user_id: int):
-    """Delete an investment transaction"""
     db_transaction = get_investment_transaction(db, transaction_id, user_id)
     if not db_transaction:
         return False
+
+    if db_transaction.account_transaction_id:
+        acc_tx = db.query(models.Transaction).filter(
+            models.Transaction.id == db_transaction.account_transaction_id,
+            models.Transaction.user_id == user_id,
+        ).first()
+        if acc_tx:
+            account = get_account(db, acc_tx.account_id)
+            if account:
+                account.balance -= acc_tx.amount
+            db.delete(acc_tx)
 
     db.delete(db_transaction)
     db.commit()
@@ -1330,6 +1494,18 @@ def confirm_import_batch(
 
     batch.status = models.ImportBatchStatusEnum.CONFIRMED
     batch.confirmed_at = dt.utcnow()
+
+    statement_total = sum(
+        abs(item.amount)
+        for item in batch.items
+        if item.status != models.ImportItemStatusEnum.IGNORED
+    )
+    create_or_update_credit_card_statement(
+        db,
+        batch_id=batch.id,
+        user_id=user_id,
+        total_amount=statement_total,
+    )
 
     db.commit()
 

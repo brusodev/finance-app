@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react'
-import { useParams, useNavigate } from 'react-router-dom'
+import { useParams, useNavigate, useLocation } from 'react-router-dom'
 import {
   Upload, Plus, Check, X, ChevronLeft, FileText,
   Pencil, Trash2, AlertCircle, CheckCircle2, Clock,
@@ -24,6 +24,20 @@ const STATUS_COLOR = {
   cancelled: 'text-zinc-500 dark:text-zinc-400 bg-zinc-100 dark:bg-zinc-800',
 }
 
+const STATEMENT_LABEL = {
+  open: 'Em aberto',
+  partial: 'Parcial',
+  paid: 'Pago',
+  cancelled: 'Cancelada',
+}
+
+const STATEMENT_COLOR = {
+  open: 'text-amber-600 dark:text-amber-400 bg-amber-50 dark:bg-amber-900/20',
+  partial: 'text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-900/20',
+  paid: 'text-green-600 dark:text-green-400 bg-green-50 dark:bg-green-900/20',
+  cancelled: 'text-zinc-500 dark:text-zinc-400 bg-zinc-100 dark:bg-zinc-800',
+}
+
 function monthOptions() {
   const opts = []
   const now = new Date()
@@ -40,10 +54,12 @@ function monthOptions() {
 export default function CreditCardImport() {
   const { accountId } = useParams()
   const navigate = useNavigate()
+  const location = useLocation()
   const { user } = useAuth()
   const fileRef = useRef(null)
 
   const [account, setAccount] = useState(null)
+  const [allAccounts, setAllAccounts] = useState([])
   const [categories, setCategories] = useState([])
   const [batches, setBatches] = useState([])
   const [selectedBatch, setSelectedBatch] = useState(null)
@@ -74,25 +90,47 @@ export default function CreditCardImport() {
   const [confirming, setConfirming] = useState(false)
   const [confirmResult, setConfirmResult] = useState(null)
 
+  // Statement payment
+  const [paymentForm, setPaymentForm] = useState({
+    from_account_id: '',
+    amount: '',
+    date: new Date().toISOString().slice(0, 10),
+    description: '',
+  })
+  const [paying, setPaying] = useState(false)
+  const [paymentError, setPaymentError] = useState('')
+  const [paymentSuccess, setPaymentSuccess] = useState('')
+
   useEffect(() => {
     fetchInitial()
   }, [accountId])
+
+  useEffect(() => {
+    if (selectedBatch || !location.state?.openLatestStatement) return
+    if (batches.length === 0) return
+
+    const latestConfirmed = batches.find(batch => batch.status === 'confirmed') ?? batches[0]
+    if (latestConfirmed) {
+      fetchBatch(latestConfirmed.id)
+    }
+  }, [location.state, batches, selectedBatch])
 
   const fetchInitial = async () => {
     try {
       setLoading(true)
       setError('')
-      const [allAccounts, cats, batchList] = await Promise.all([
+      const [accountsData, cats, batchList] = await Promise.all([
         accountsAPI.getAll(),
         categoriesAPI.getAll(),
         creditCardsAPI.listBatches(accountId),
       ])
-      const acc = allAccounts.find(a => String(a.id) === String(accountId))
+      const acc = accountsData.find(a => String(a.id) === String(accountId))
       if (!acc) {
         setError('Cartão não encontrado')
         return
       }
       setAccount(acc)
+      setAllAccounts(accountsData)
       setCategories(cats)
       setBatches(batchList)
     } catch {
@@ -258,6 +296,43 @@ export default function CreditCardImport() {
     }
   }
 
+  const registerPayment = async () => {
+    if (!selectedBatch?.statement) {
+      setPaymentError('Confirme a fatura antes de registrar pagamentos')
+      return
+    }
+
+    const amount = parseFloat(paymentForm.amount)
+    if (!paymentForm.from_account_id || !paymentForm.date || Number.isNaN(amount) || amount <= 0) {
+      setPaymentError('Preencha conta de origem, valor e data válidos')
+      return
+    }
+
+    setPaying(true)
+    setPaymentError('')
+    setPaymentSuccess('')
+
+    try {
+      await creditCardsAPI.registerPayment(accountId, selectedBatch.id, {
+        from_account_id: parseInt(paymentForm.from_account_id),
+        amount,
+        date: paymentForm.date,
+        description: paymentForm.description || null,
+      })
+      setPaymentSuccess('Pagamento registrado com sucesso')
+      setPaymentForm(prev => ({
+        ...prev,
+        amount: '',
+        description: '',
+      }))
+      await fetchBatch(selectedBatch.id)
+    } catch (err) {
+      setPaymentError(err.detail || 'Erro ao registrar pagamento')
+    } finally {
+      setPaying(false)
+    }
+  }
+
   const cancelBatch = async () => {
     if (!window.confirm('Cancelar este lote? Os itens serão descartados.')) return
     try {
@@ -274,6 +349,13 @@ export default function CreditCardImport() {
   const totalPending = selectedBatch?.items
     ?.filter(i => i.status !== 'ignored')
     .reduce((s, i) => s + Math.abs(i.amount), 0) ?? 0
+  const statement = selectedBatch?.statement ?? null
+  const statementTotal = statement?.total_amount ?? totalPending
+  const statementPaid = statement?.paid_amount ?? 0
+  const statementOutstanding = statement
+    ? Math.max(statementTotal - statementPaid, 0)
+    : 0
+  const fundingAccounts = allAccounts.filter(acc => acc.is_active && acc.account_type !== 'credit_card')
 
   const isFrozen = ['confirmed', 'cancelled'].includes(selectedBatch?.status)
 
@@ -530,6 +612,129 @@ export default function CreditCardImport() {
                   </span>
                 </div>
               )}
+
+              {/* Fatura / pagamento */}
+              {statement ? (
+                <div className="p-4 bg-zinc-50 dark:bg-zinc-800/50 border-b border-zinc-200 dark:border-zinc-800 space-y-4">
+                  <div className="flex flex-wrap items-center justify-between gap-3">
+                    <div>
+                      <p className="text-sm font-medium text-zinc-700 dark:text-zinc-300">
+                        Resumo da fatura
+                      </p>
+                      <div className="mt-1 flex flex-wrap items-center gap-2 text-xs text-zinc-500 dark:text-zinc-400">
+                        <span className={`px-2 py-0.5 rounded-full font-medium ${STATEMENT_COLOR[statement.status] ?? STATEMENT_COLOR.open}`}>
+                          {STATEMENT_LABEL[statement.status] ?? statement.status}
+                        </span>
+                        <span>Total: {formatCurrency(statementTotal, user?.currency)}</span>
+                        <span>Pago: {formatCurrency(statementPaid, user?.currency)}</span>
+                        <span>Em aberto: {formatCurrency(statementOutstanding, user?.currency)}</span>
+                      </div>
+                    </div>
+                    <button
+                      onClick={() => setPaymentForm(prev => ({
+                        ...prev,
+                        amount: statementOutstanding > 0 ? String(statementOutstanding) : prev.amount,
+                      }))}
+                      disabled={statementOutstanding <= 0}
+                      className="px-3 py-2 text-xs border border-zinc-300 dark:border-zinc-700 text-zinc-600 dark:text-zinc-300 rounded-lg hover:bg-zinc-100 dark:hover:bg-zinc-700 disabled:opacity-50 transition-colors"
+                    >
+                      Usar saldo total
+                    </button>
+                  </div>
+
+                  <div className="grid grid-cols-1 md:grid-cols-4 gap-2">
+                    <select
+                      value={paymentForm.from_account_id}
+                      onChange={e => setPaymentForm(prev => ({ ...prev, from_account_id: e.target.value }))}
+                      className="px-3 py-2 text-sm border border-zinc-300 dark:border-zinc-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-zinc-800 text-zinc-900 dark:text-white"
+                    >
+                      <option value="">Conta de origem</option>
+                      {fundingAccounts.map(acc => (
+                        <option key={acc.id} value={acc.id}>
+                          {acc.name}
+                        </option>
+                      ))}
+                    </select>
+                    <input
+                      type="number"
+                      min="0"
+                      step="0.01"
+                      value={paymentForm.amount}
+                      onChange={e => setPaymentForm(prev => ({ ...prev, amount: e.target.value }))}
+                      placeholder="Valor"
+                      className="px-3 py-2 text-sm border border-zinc-300 dark:border-zinc-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-zinc-800 text-zinc-900 dark:text-white"
+                    />
+                    <input
+                      type="date"
+                      value={paymentForm.date}
+                      onChange={e => setPaymentForm(prev => ({ ...prev, date: e.target.value }))}
+                      className="px-3 py-2 text-sm border border-zinc-300 dark:border-zinc-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-zinc-800 text-zinc-900 dark:text-white"
+                    />
+                    <input
+                      type="text"
+                      value={paymentForm.description}
+                      onChange={e => setPaymentForm(prev => ({ ...prev, description: e.target.value }))}
+                      placeholder="Descrição opcional"
+                      className="px-3 py-2 text-sm border border-zinc-300 dark:border-zinc-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-zinc-800 text-zinc-900 dark:text-white"
+                    />
+                  </div>
+
+                  <div className="flex flex-wrap items-center gap-2">
+                    <button
+                      onClick={registerPayment}
+                      disabled={paying || statementOutstanding <= 0}
+                      className="flex items-center gap-1.5 px-4 py-2 text-sm bg-blue-600 hover:bg-blue-700 disabled:opacity-60 text-white rounded-lg transition-colors"
+                    >
+                      {paying
+                        ? <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                        : <><Check size={14} /> Registrar pagamento</>
+                      }
+                    </button>
+                    {paymentError && (
+                      <span className="text-sm text-red-600 dark:text-red-400">{paymentError}</span>
+                    )}
+                    {paymentSuccess && (
+                      <span className="text-sm text-green-600 dark:text-green-400">{paymentSuccess}</span>
+                    )}
+                  </div>
+
+                  {statement.payments?.length > 0 && (
+                    <div className="space-y-2">
+                      <p className="text-xs font-medium uppercase tracking-wide text-zinc-500 dark:text-zinc-400">
+                        Pagamentos registrados
+                      </p>
+                      <div className="space-y-2">
+                        {statement.payments.map(payment => (
+                          <div
+                            key={payment.id}
+                            className="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-900 px-3 py-2 text-sm"
+                          >
+                            <div className="text-zinc-700 dark:text-zinc-300">
+                              <span className="font-medium">
+                                {payment.from_account?.name || 'Conta de origem'}
+                              </span>
+                              <span className="mx-2 text-zinc-400">•</span>
+                              <span>{formatDateLocal(payment.date)}</span>
+                            </div>
+                            <div className="flex items-center gap-3">
+                              <span className="text-zinc-500 dark:text-zinc-400">
+                                {payment.description || 'Pagamento da fatura'}
+                              </span>
+                              <span className="font-semibold text-blue-600 dark:text-blue-400">
+                                {formatCurrency(payment.amount, user?.currency)}
+                              </span>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              ) : selectedBatch.status === 'confirmed' ? (
+                <div className="p-4 bg-zinc-50 dark:bg-zinc-800/50 border-b border-zinc-200 dark:border-zinc-800 text-sm text-zinc-500 dark:text-zinc-400">
+                  Fatura confirmada, mas ainda não há resumo financeiro carregado.
+                </div>
+              ) : null}
 
               {/* Add item form */}
               {addItemOpen && (
