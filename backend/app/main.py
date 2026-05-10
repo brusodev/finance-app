@@ -56,7 +56,17 @@ def run_migrations():
                 "transfer_account_id INTEGER REFERENCES accounts(id)",
                 "transfer_account_id"
             ),
-            # Investment/credit-card tables created by create_all()
+            # Investment transaction migrations
+            (
+                "ALTER TABLE investment_transactions ADD COLUMN IF NOT EXISTS "
+                "account_id INTEGER REFERENCES accounts(id)",
+                "investment_transactions.account_id"
+            ),
+            (
+                "ALTER TABLE investment_transactions ADD COLUMN IF NOT EXISTS "
+                "account_transaction_id INTEGER REFERENCES transactions(id)",
+                "investment_transactions.account_transaction_id"
+            ),
         ]
     else:
         migrations = [
@@ -100,7 +110,17 @@ def run_migrations():
                 "transfer_account_id INTEGER REFERENCES accounts(id)",
                 "transfer_account_id"
             ),
-            # Investment/credit-card tables created by create_all()
+            # Investment transaction migrations
+            (
+                "ALTER TABLE investment_transactions ADD COLUMN "
+                "account_id INTEGER REFERENCES accounts(id)",
+                "investment_transactions.account_id"
+            ),
+            (
+                "ALTER TABLE investment_transactions ADD COLUMN "
+                "account_transaction_id INTEGER REFERENCES transactions(id)",
+                "investment_transactions.account_transaction_id"
+            ),
         ]
 
     try:
