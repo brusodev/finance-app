@@ -97,14 +97,14 @@ export default function SettingsPage() {
       </h1>
 
       {/* Preferences */}
-      <div className="bg-white dark:bg-zinc-900 rounded-xl shadow-sm border border-zinc-100 dark:border-zinc-700 overflow-hidden">
-        <div className="p-6 border-b border-zinc-100 dark:border-zinc-700">
+      <div className="rounded-2xl border border-white/[0.08] bg-white/[0.03] dark:bg-white/[0.03] backdrop-blur-sm overflow-hidden">
+        <div className="p-6 border-b border-zinc-100 dark:border-white/[0.08]">
           <h2 className="text-lg font-semibold text-zinc-800 dark:text-white">Preferências</h2>
           <p className="text-sm text-zinc-500 dark:text-zinc-400">Personalize sua experiência no aplicativo</p>
         </div>
 
         <div className="divide-y divide-zinc-100 dark:divide-zinc-700">
-          <div className="p-6 flex items-center justify-between hover:bg-zinc-50 dark:hover:bg-zinc-700 transition-colors">
+          <div className="p-6 flex items-center justify-between hover:bg-zinc-50 dark:hover:bg-white/[0.06] transition-colors">
             <div className="flex items-center gap-4">
               <div className="p-2 bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 rounded-lg">
                 <Bell size={20} />
@@ -121,11 +121,11 @@ export default function SettingsPage() {
                 onChange={() => handleSettingChange('notifications')}
                 className="sr-only peer"
               />
-              <div className="w-11 h-6 bg-zinc-200 dark:bg-zinc-600 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-100 dark:peer-focus:ring-blue-900 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-zinc-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
+              <div className="w-11 h-6 bg-zinc-200 dark:bg-[#2a2a2a] peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-100 dark:peer-focus:ring-blue-900 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-zinc-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
             </label>
           </div>
 
-          <div className="p-6 flex items-center justify-between hover:bg-zinc-50 dark:hover:bg-zinc-700 transition-colors">
+          <div className="p-6 flex items-center justify-between hover:bg-zinc-50 dark:hover:bg-white/[0.06] transition-colors">
             <div className="flex items-center gap-4">
               <div className="p-2 bg-purple-50 dark:bg-purple-900/30 text-purple-600 dark:text-purple-400 rounded-lg">
                 <Moon size={20} />
@@ -142,11 +142,11 @@ export default function SettingsPage() {
                 onChange={toggleTheme}
                 className="sr-only peer"
               />
-              <div className="w-11 h-6 bg-zinc-200 dark:bg-zinc-600 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-purple-100 dark:peer-focus:ring-purple-900 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-zinc-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-purple-600"></div>
+              <div className="w-11 h-6 bg-zinc-200 dark:bg-[#2a2a2a] peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-purple-100 dark:peer-focus:ring-purple-900 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-zinc-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-purple-600"></div>
             </label>
           </div>
 
-          <div className="p-6 flex items-center justify-between hover:bg-zinc-50 dark:hover:bg-zinc-700 transition-colors">
+          <div className="p-6 flex items-center justify-between hover:bg-zinc-50 dark:hover:bg-white/[0.06] transition-colors">
             <div className="flex items-center gap-4">
               <div className="p-2 bg-green-50 dark:bg-green-900/30 text-green-600 dark:text-green-400 rounded-lg">
                 <Globe size={20} />
@@ -159,7 +159,7 @@ export default function SettingsPage() {
             <select
               value={settings.currency}
               onChange={(e) => handleSettingSelect('currency', e.target.value)}
-              className="bg-zinc-50 dark:bg-zinc-700 border border-zinc-200 dark:border-zinc-600 text-zinc-800 dark:text-white text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block p-2.5"
+              className="bg-zinc-50 dark:bg-[#1a1a1a] border border-zinc-200 dark:border-white/[0.08] text-zinc-800 dark:text-white text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block p-2.5"
             >
               {currencies.map(curr => (
                 <option key={curr} value={curr}>{curr}</option>
@@ -170,8 +170,8 @@ export default function SettingsPage() {
       </div>
 
       {/* Security */}
-      <div className="bg-white dark:bg-zinc-900 rounded-xl shadow-sm border border-zinc-100 dark:border-zinc-700 overflow-hidden">
-        <div className="p-6 border-b border-zinc-100 dark:border-zinc-700">
+      <div className="rounded-2xl border border-white/[0.08] bg-white/[0.03] dark:bg-white/[0.03] backdrop-blur-sm overflow-hidden">
+        <div className="p-6 border-b border-zinc-100 dark:border-white/[0.08]">
           <h2 className="text-lg font-semibold text-zinc-800 dark:text-white">Segurança</h2>
           <p className="text-sm text-zinc-500 dark:text-zinc-400">Gerencie sua senha e autenticação</p>
         </div>
@@ -190,7 +190,7 @@ export default function SettingsPage() {
                   name="currentPassword"
                   value={password.currentPassword}
                   onChange={handlePasswordChange}
-                  className="w-full pl-10 pr-4 py-2 border border-zinc-200 dark:border-zinc-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-zinc-50 dark:bg-zinc-700 focus:bg-white dark:focus:bg-zinc-600 text-zinc-900 dark:text-white transition-colors"
+                  className="w-full pl-10 pr-4 py-2 border border-zinc-200 dark:border-white/[0.08] rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-zinc-50 dark:bg-[#1a1a1a] focus:bg-white dark:focus:bg-zinc-600 text-zinc-900 dark:text-white transition-colors"
                   placeholder="••••••••"
                 />
               </div>
@@ -205,7 +205,7 @@ export default function SettingsPage() {
                   name="newPassword"
                   value={password.newPassword}
                   onChange={handlePasswordChange}
-                  className="w-full pl-10 pr-4 py-2 border border-zinc-200 dark:border-zinc-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-zinc-50 dark:bg-zinc-700 focus:bg-white dark:focus:bg-zinc-600 text-zinc-900 dark:text-white transition-colors"
+                  className="w-full pl-10 pr-4 py-2 border border-zinc-200 dark:border-white/[0.08] rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-zinc-50 dark:bg-[#1a1a1a] focus:bg-white dark:focus:bg-zinc-600 text-zinc-900 dark:text-white transition-colors"
                   placeholder="••••••••"
                 />
               </div>
@@ -220,7 +220,7 @@ export default function SettingsPage() {
                   name="confirmPassword"
                   value={password.confirmPassword}
                   onChange={handlePasswordChange}
-                  className="w-full pl-10 pr-4 py-2 border border-zinc-200 dark:border-zinc-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-zinc-50 dark:bg-zinc-700 focus:bg-white dark:focus:bg-zinc-600 text-zinc-900 dark:text-white transition-colors"
+                  className="w-full pl-10 pr-4 py-2 border border-zinc-200 dark:border-white/[0.08] rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-zinc-50 dark:bg-[#1a1a1a] focus:bg-white dark:focus:bg-zinc-600 text-zinc-900 dark:text-white transition-colors"
                   placeholder="••••••••"
                 />
               </div>

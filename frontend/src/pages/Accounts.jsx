@@ -137,8 +137,8 @@ export default function Accounts() {
       {/* Form Modal */}
       {showForm && (
         <div className='fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4'>
-          <div className='bg-white dark:bg-zinc-900 rounded-xl shadow-xl w-full max-w-md overflow-hidden'>
-            <div className='flex justify-between items-center p-6 border-b border-zinc-100 dark:border-zinc-700'>
+          <div className='bg-white dark:bg-[#111111] rounded-xl shadow-xl w-full max-w-md overflow-hidden'>
+            <div className='flex justify-between items-center p-6 border-b border-zinc-100 dark:border-white/[0.08]'>
               <h2 className='text-xl font-semibold text-zinc-800 dark:text-white'>
                 {editingId ? 'Editar Conta' : 'Nova Conta'}
               </h2>
@@ -159,7 +159,7 @@ export default function Accounts() {
                   type='text'
                   required
                   list="account-suggestions"
-                  className='w-full px-4 py-2 border border-zinc-200 dark:border-zinc-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-zinc-700 text-zinc-900 dark:text-white'
+                  className='w-full px-4 py-2 border border-zinc-200 dark:border-white/[0.08] rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-[#1a1a1a] text-zinc-900 dark:text-white'
                   value={formData.name}
                   onChange={(e) => setFormData({ ...formData, name: e.target.value })}
                   placeholder="Digite ou selecione uma sugestão"
@@ -176,7 +176,7 @@ export default function Accounts() {
               <div>
                 <label className='block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1'>Tipo</label>
                 <select
-                  className='w-full px-4 py-2 border border-zinc-200 dark:border-zinc-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-zinc-700 text-zinc-900 dark:text-white'
+                  className='w-full px-4 py-2 border border-zinc-200 dark:border-white/[0.08] rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-[#1a1a1a] text-zinc-900 dark:text-white'
                   value={formData.account_type}
                   onChange={(e) => setFormData({ ...formData, account_type: e.target.value })}
                 >
@@ -192,7 +192,7 @@ export default function Accounts() {
                   type='number'
                   step='0.01'
                   required
-                  className='w-full px-4 py-2 border border-zinc-200 dark:border-zinc-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-zinc-700 text-zinc-900 dark:text-white'
+                  className='w-full px-4 py-2 border border-zinc-200 dark:border-white/[0.08] rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-[#1a1a1a] text-zinc-900 dark:text-white'
                   value={formData.balance}
                   onChange={(e) => setFormData({ ...formData, balance: e.target.value })}
                 />
@@ -213,7 +213,7 @@ export default function Accounts() {
       {/* Accounts Grid */}
       <div className='grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6'>
         {accounts.map((account) => (
-          <div key={account.id} className='bg-white dark:bg-zinc-900 p-6 rounded-xl shadow-sm border border-zinc-100 dark:border-zinc-700 hover:shadow-md transition-shadow'>
+          <div key={account.id} className='rounded-2xl border border-white/[0.08] bg-white/[0.03] dark:bg-white/[0.03] backdrop-blur-sm hover:bg-white/[0.07] hover:border-white/[0.15] transition-all duration-200 p-6'>
             <div className='flex justify-between items-start mb-4'>
               <div className='p-3 bg-blue-50 dark:bg-blue-900/30 rounded-lg text-blue-600 dark:text-blue-400'>
                 <Wallet size={24} />

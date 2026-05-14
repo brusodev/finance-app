@@ -75,7 +75,7 @@ export default function Investments() {
       {/* Summary Cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
         {/* Total Invested */}
-        <div className="bg-white dark:bg-zinc-900 p-6 rounded-xl shadow-sm border border-zinc-200 dark:border-zinc-800">
+        <div className="rounded-2xl border border-white/[0.08] bg-white/[0.03] dark:bg-white/[0.03] backdrop-blur-sm p-6">
           <div className="flex items-center justify-between mb-4">
             <p className="text-zinc-500 dark:text-zinc-400 text-sm font-medium">
               Patrimônio Investido
@@ -88,7 +88,7 @@ export default function Investments() {
         </div>
 
         {/* This Month Contributions */}
-        <div className="bg-white dark:bg-zinc-900 p-6 rounded-xl shadow-sm border border-zinc-200 dark:border-zinc-800">
+        <div className="rounded-2xl border border-white/[0.08] bg-white/[0.03] dark:bg-white/[0.03] backdrop-blur-sm p-6">
           <div className="flex items-center justify-between mb-4">
             <p className="text-zinc-500 dark:text-zinc-400 text-sm font-medium">
               Aportes do Mês
@@ -101,7 +101,7 @@ export default function Investments() {
         </div>
 
         {/* Goal Progress */}
-        <div className="bg-white dark:bg-zinc-900 p-6 rounded-xl shadow-sm border border-zinc-200 dark:border-zinc-800">
+        <div className="rounded-2xl border border-white/[0.08] bg-white/[0.03] dark:bg-white/[0.03] backdrop-blur-sm p-6">
           <div className="flex items-center justify-between mb-4">
             <p className="text-zinc-500 dark:text-zinc-400 text-sm font-medium">
               Progresso da Meta
@@ -125,7 +125,7 @@ export default function Investments() {
         </div>
 
         {/* Projected Final Value */}
-        <div className="bg-white dark:bg-zinc-900 p-6 rounded-xl shadow-sm border border-zinc-200 dark:border-zinc-800">
+        <div className="rounded-2xl border border-white/[0.08] bg-white/[0.03] dark:bg-white/[0.03] backdrop-blur-sm p-6">
           <div className="flex items-center justify-between mb-4">
             <p className="text-zinc-500 dark:text-zinc-400 text-sm font-medium">
               Projeção Final
@@ -151,7 +151,7 @@ export default function Investments() {
 
       {/* Goal Details */}
       {goal && progress && (
-        <div className="bg-white dark:bg-zinc-900 p-6 rounded-xl shadow-sm border border-zinc-200 dark:border-zinc-800">
+        <div className="rounded-2xl border border-white/[0.08] bg-white/[0.03] dark:bg-white/[0.03] backdrop-blur-sm p-6">
           <h3 className="text-lg font-semibold text-zinc-800 dark:text-white mb-4">
             {goal.goal_name}
           </h3>
@@ -162,7 +162,7 @@ export default function Investments() {
                 <span>Progresso</span>
                 <span>{progress.progress_percentage.toFixed(1)}%</span>
               </div>
-              <div className="w-full bg-zinc-200 dark:bg-zinc-800 rounded-full h-3">
+              <div className="w-full bg-zinc-200 dark:bg-[#1a1a1a] rounded-full h-3">
                 <div
                   className="bg-blue-600 h-3 rounded-full transition-all duration-300"
                   style={{ width: `${Math.min(progress.progress_percentage, 100)}%` }}
@@ -171,7 +171,7 @@ export default function Investments() {
             </div>
 
             {/* Details Grid */}
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 pt-4 border-t border-zinc-200 dark:border-zinc-800">
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 pt-4 border-t border-zinc-200 dark:border-white/[0.06]">
               <div>
                 <p className="text-xs text-zinc-500 dark:text-zinc-400">Valor Atual</p>
                 <p className="text-sm font-semibold text-zinc-900 dark:text-white">
@@ -203,13 +203,13 @@ export default function Investments() {
 
       {/* Assets Breakdown */}
       {summary && summary.by_asset && summary.by_asset.length > 0 && (
-        <div className="bg-white dark:bg-zinc-900 p-6 rounded-xl shadow-sm border border-zinc-200 dark:border-zinc-800">
+        <div className="rounded-2xl border border-white/[0.08] bg-white/[0.03] dark:bg-white/[0.03] backdrop-blur-sm p-6">
           <h3 className="text-lg font-semibold text-zinc-800 dark:text-white mb-4">
             Distribuição por Ativo
           </h3>
           <div className="space-y-3">
             {summary.by_asset.map((asset) => (
-              <div key={asset.asset_id} className="flex items-center justify-between p-3 bg-zinc-50 dark:bg-zinc-800 rounded-lg">
+              <div key={asset.asset_id} className="flex items-center justify-between p-3 bg-zinc-50 dark:bg-[#1a1a1a] rounded-lg">
                 <div className="flex-1">
                   <p className="font-medium text-zinc-900 dark:text-white">
                     {asset.asset_name}
@@ -229,7 +229,7 @@ export default function Investments() {
 
       {/* Last 12 Months Chart */}
       {summary && summary.last_12_months && summary.last_12_months.length > 0 && (
-        <div className="bg-white dark:bg-zinc-900 p-6 rounded-xl shadow-sm border border-zinc-200 dark:border-zinc-800">
+        <div className="rounded-2xl border border-white/[0.08] bg-white/[0.03] dark:bg-white/[0.03] backdrop-blur-sm p-6">
           <h3 className="text-lg font-semibold text-zinc-800 dark:text-white mb-4">
             Aportes Últimos 12 Meses
           </h3>
@@ -243,7 +243,7 @@ export default function Investments() {
                   <span className="text-xs text-zinc-500 dark:text-zinc-400 w-16">
                     {month.month}
                   </span>
-                  <div className="flex-1 bg-zinc-200 dark:bg-zinc-800 rounded-full h-6 relative overflow-hidden">
+                  <div className="flex-1 bg-zinc-200 dark:bg-[#1a1a1a] rounded-full h-6 relative overflow-hidden">
                     <div
                       className="bg-gradient-to-r from-blue-500 to-blue-600 h-full rounded-full flex items-center px-2"
                       style={{ width: `${percentage}%` }}
@@ -264,7 +264,7 @@ export default function Investments() {
 
       {/* Empty State */}
       {(!summary || summary.total_invested === 0) && (
-        <div className="bg-white dark:bg-zinc-900 p-12 rounded-xl shadow-sm border border-zinc-200 dark:border-zinc-800 text-center">
+        <div className="rounded-2xl border border-white/[0.08] bg-white/[0.03] dark:bg-white/[0.03] backdrop-blur-sm p-12 text-center">
           <DollarSign className="mx-auto h-12 w-12 text-zinc-400 mb-4" />
           <h3 className="text-lg font-semibold text-zinc-800 dark:text-white mb-2">
             Comece a Investir

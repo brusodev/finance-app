@@ -100,7 +100,7 @@ export default function Transfers() {
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Formulário de Transferência */}
-        <div className="bg-white dark:bg-zinc-900 rounded-lg shadow dark:shadow-zinc-800 p-6 border border-zinc-200 dark:border-zinc-800">
+        <div className="bg-white dark:bg-[#111111] rounded-lg shadow dark:shadow-zinc-800 p-6 border border-zinc-200 dark:border-white/[0.06]">
           <h2 className="text-xl font-semibold mb-4 text-zinc-900 dark:text-white">Nova Transferência</h2>
           <TransferForm
             accounts={accounts}
@@ -109,7 +109,7 @@ export default function Transfers() {
         </div>
 
         {/* Lista de Contas */}
-        <div className="bg-white dark:bg-zinc-900 rounded-lg shadow dark:shadow-zinc-800 p-6 border border-zinc-200 dark:border-zinc-800">
+        <div className="bg-white dark:bg-[#111111] rounded-lg shadow dark:shadow-zinc-800 p-6 border border-zinc-200 dark:border-white/[0.06]">
           <h2 className="text-xl font-semibold mb-4 text-zinc-900 dark:text-white">Suas Contas</h2>
           <div className="space-y-3">
             {accounts.filter(acc => acc.is_active).length === 0 ? (
@@ -122,7 +122,7 @@ export default function Transfers() {
                 .map((account) => (
                   <div
                     key={account.id}
-                    className="flex justify-between items-center p-3 border border-zinc-200 dark:border-zinc-800 rounded-lg hover:bg-gray-50 dark:hover:bg-zinc-800"
+                    className="flex justify-between items-center p-3 border border-zinc-200 dark:border-white/[0.06] rounded-lg hover:bg-gray-50 dark:hover:bg-white/[0.06]"
                   >
                     <div>
                       <p className="font-medium text-zinc-900 dark:text-white">{account.name}</p>
@@ -142,13 +142,13 @@ export default function Transfers() {
 
       {/* Histórico de Transferências */}
       {recentTransfers.length > 0 && (
-        <div className="mt-6 bg-white dark:bg-zinc-900 rounded-lg shadow dark:shadow-zinc-800 p-6 border border-zinc-200 dark:border-zinc-800">
+        <div className="mt-6 bg-white dark:bg-[#111111] rounded-lg shadow dark:shadow-zinc-800 p-6 border border-zinc-200 dark:border-white/[0.06]">
           <h2 className="text-xl font-semibold mb-4 text-zinc-900 dark:text-white">Transferências Recentes</h2>
           <div className="space-y-3">
             {recentTransfers.map((transfer) => (
               <div
                 key={transfer.id}
-                className="flex justify-between items-center p-4 border border-zinc-200 dark:border-zinc-800 rounded-lg hover:bg-gray-50 dark:hover:bg-zinc-800"
+                className="flex justify-between items-center p-4 border border-zinc-200 dark:border-white/[0.06] rounded-lg hover:bg-gray-50 dark:hover:bg-white/[0.06]"
               >
                 <div className="flex-1">
                   <div className="flex items-center gap-2 mb-1">

@@ -2,6 +2,24 @@
 @tailwind components;
 @tailwind utilities;
 
+@layer base {
+  /* Garante fundo preto em todo overscroll/rubber-band do mobile e desktop */
+  html {
+    background-color: #000000;
+  }
+
+  /* Dark mode: body preto para cobrir qualquer área exposta */
+  .dark body {
+    background-color: #000000;
+    color-scheme: dark;
+  }
+
+  /* Light mode */
+  body {
+    background-color: #f4f4f5;
+  }
+}
+
 @layer utilities {
   /* Custom Scrollbar Styles */
   .custom-scrollbar::-webkit-scrollbar {
@@ -23,11 +41,11 @@
   }
 
   .dark .custom-scrollbar::-webkit-scrollbar-thumb {
-    background: rgb(82 82 91 / 0.5);
+    background: rgb(255 255 255 / 0.12);
   }
 
   .dark .custom-scrollbar::-webkit-scrollbar-thumb:hover {
-    background: rgb(113 113 122 / 0.7);
+    background: rgb(255 255 255 / 0.2);
   }
 
   /* Firefox */
@@ -37,6 +55,6 @@
   }
 
   .dark .custom-scrollbar {
-    scrollbar-color: rgb(82 82 91 / 0.5) transparent;
+    scrollbar-color: rgb(255 255 255 / 0.12) transparent;
   }
 }

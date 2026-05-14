@@ -112,7 +112,7 @@ export default function InvestmentAssets() {
       )}
 
       {showForm && (
-        <div className="bg-white dark:bg-zinc-900 p-6 rounded-xl shadow-sm border border-zinc-200 dark:border-zinc-800">
+        <div className="rounded-2xl border border-white/[0.08] bg-white/[0.03] dark:bg-white/[0.03] backdrop-blur-sm p-6">
           <h3 className="text-lg font-semibold text-zinc-800 dark:text-white mb-4">
             {editingAsset ? "Editar Ativo" : "Novo Ativo"}
           </h3>
@@ -127,7 +127,7 @@ export default function InvestmentAssets() {
                   required
                   value={formData.name}
                   onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                  className="w-full px-3 py-2 border border-zinc-300 dark:border-zinc-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-zinc-800 text-zinc-900 dark:text-white"
+                  className="w-full px-3 py-2 border border-zinc-300 dark:border-white/[0.08] rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-[#1a1a1a] text-zinc-900 dark:text-white"
                   placeholder="Ex: Tesouro Selic 2029"
                 />
               </div>
@@ -138,7 +138,7 @@ export default function InvestmentAssets() {
                 <select
                   value={formData.type}
                   onChange={(e) => setFormData({ ...formData, type: e.target.value })}
-                  className="w-full px-3 py-2 border border-zinc-300 dark:border-zinc-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-zinc-800 text-zinc-900 dark:text-white"
+                  className="w-full px-3 py-2 border border-zinc-300 dark:border-white/[0.08] rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-[#1a1a1a] text-zinc-900 dark:text-white"
                 >
                   {ASSET_TYPES.map((type) => (
                     <option key={type.value} value={type.value}>
@@ -155,7 +155,7 @@ export default function InvestmentAssets() {
                   type="text"
                   value={formData.broker}
                   onChange={(e) => setFormData({ ...formData, broker: e.target.value })}
-                  className="w-full px-3 py-2 border border-zinc-300 dark:border-zinc-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-zinc-800 text-zinc-900 dark:text-white"
+                  className="w-full px-3 py-2 border border-zinc-300 dark:border-white/[0.08] rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-[#1a1a1a] text-zinc-900 dark:text-white"
                   placeholder="Ex: Clear, XP, Rico"
                 />
               </div>
@@ -170,7 +170,7 @@ export default function InvestmentAssets() {
               <button
                 type="button"
                 onClick={resetForm}
-                className="px-4 py-2 bg-zinc-200 dark:bg-zinc-700 text-zinc-800 dark:text-white rounded-lg hover:bg-zinc-300 dark:hover:bg-zinc-600 transition-colors"
+                className="px-4 py-2 bg-zinc-200 dark:bg-[#1a1a1a] text-zinc-800 dark:text-white rounded-lg hover:bg-zinc-300 dark:hover:bg-white/[0.06] transition-colors"
               >
                 Cancelar
               </button>
@@ -180,7 +180,7 @@ export default function InvestmentAssets() {
       )}
 
       {assets.length === 0 ? (
-        <div className="bg-white dark:bg-zinc-900 p-12 rounded-xl shadow-sm border border-zinc-200 dark:border-zinc-800 text-center">
+        <div className="rounded-2xl border border-white/[0.08] bg-white/[0.03] dark:bg-white/[0.03] backdrop-blur-sm p-12 text-center">
           <Building2 className="mx-auto h-12 w-12 text-zinc-400 mb-4" />
           <h3 className="text-lg font-semibold text-zinc-800 dark:text-white mb-2">
             Nenhum ativo cadastrado
@@ -194,7 +194,7 @@ export default function InvestmentAssets() {
           {assets.map((asset) => (
             <div
               key={asset.id}
-              className="bg-white dark:bg-zinc-900 p-6 rounded-xl shadow-sm border border-zinc-200 dark:border-zinc-800 hover:shadow-md transition-shadow"
+              className="rounded-2xl border border-white/[0.08] bg-white/[0.03] dark:bg-white/[0.03] backdrop-blur-sm hover:bg-white/[0.07] hover:border-white/[0.15] transition-all duration-200 p-6"
             >
               <div className="flex justify-between items-start mb-3">
                 <div>

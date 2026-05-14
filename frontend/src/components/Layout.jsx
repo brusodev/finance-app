@@ -17,7 +17,7 @@ export default function Layout({ children }) {
 
   return (
     <SidebarContext.Provider value={{ isCollapsed, setIsCollapsed }}>
-      <div className="min-h-screen bg-zinc-50 dark:bg-zinc-950 transition-colors duration-300">
+      <div className="min-h-screen bg-zinc-50 dark:bg-black transition-colors duration-300">
         <Sidebar />
         <main className={`min-h-screen transition-all duration-300 ${
           isCollapsed ? 'lg:pl-20' : 'lg:pl-64'

@@ -151,13 +151,13 @@ export default function Transactions() {
       </div>
 
       {/* Search and Filter */}
-      <div className="bg-white dark:bg-zinc-900 p-4 rounded-xl shadow-sm border border-zinc-200 dark:border-zinc-800 flex flex-col sm:flex-row gap-4">
+      <div className="rounded-2xl border border-white/[0.08] bg-white/[0.03] dark:bg-white/[0.03] backdrop-blur-sm p-4 flex flex-col sm:flex-row gap-4">
         <div className="relative flex-1">
           <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-zinc-400" size={20} />
           <input
             type="text"
             placeholder="Buscar transações..."
-            className="w-full pl-10 pr-4 py-2 border border-zinc-300 dark:border-zinc-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-zinc-800 text-zinc-900 dark:text-white placeholder-zinc-400"
+            className="w-full pl-10 pr-4 py-2 border border-zinc-300 dark:border-white/[0.08] rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-[#1a1a1a] text-zinc-900 dark:text-white placeholder-zinc-400"
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
           />
@@ -166,7 +166,7 @@ export default function Transactions() {
           <select
             value={selectedMonth}
             onChange={(e) => setSelectedMonth(e.target.value)}
-            className="w-full px-4 py-2 border border-zinc-300 dark:border-zinc-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-zinc-800 text-zinc-900 dark:text-white"
+            className="w-full px-4 py-2 border border-zinc-300 dark:border-white/[0.08] rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-[#1a1a1a] text-zinc-900 dark:text-white"
           >
             <option value="current">Mês Atual</option>
             <option value="all">Todos os Meses</option>
@@ -185,7 +185,7 @@ export default function Transactions() {
 
       {/* Transações em Cards */}
       {filteredTransactions.length === 0 ? (
-        <div className="bg-white dark:bg-zinc-900 rounded-xl shadow-sm border border-zinc-200 dark:border-zinc-800 p-12 text-center">
+        <div className="rounded-2xl border border-white/[0.08] bg-white/[0.03] dark:bg-white/[0.03] backdrop-blur-sm p-12 text-center">
           <p className="text-zinc-500 dark:text-zinc-400">Nenhuma transação encontrada.</p>
         </div>
       ) : (
@@ -197,7 +197,7 @@ export default function Transactions() {
             return (
               <div
                 key={t.id}
-                className="bg-white dark:bg-zinc-900 rounded-xl shadow-sm border border-zinc-200 dark:border-zinc-800 p-4 hover:shadow-md dark:hover:shadow-zinc-800 transition-all"
+                className="rounded-2xl border border-white/[0.08] bg-white/[0.03] dark:bg-white/[0.03] backdrop-blur-sm hover:bg-white/[0.07] hover:border-white/[0.15] transition-all duration-200 p-4"
               >
                 <div className="flex items-center gap-4">
                   {/* Ícone */}
@@ -243,7 +243,7 @@ export default function Transactions() {
                     </div>
 
                     {/* Ações */}
-                    <div className="flex items-center gap-3 mt-3 pt-3 border-t border-zinc-100 dark:border-zinc-800">
+                    <div className="flex items-center gap-3 mt-3 pt-3 border-t border-zinc-100 dark:border-white/[0.06]">
                       <button
                         onClick={() => handleEdit(t)}
                         className="text-sm text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 flex items-center gap-1 transition-colors"

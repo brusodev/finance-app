@@ -89,7 +89,7 @@ export default function InvestmentTransactions() {
     }
   };
 
-  const inputCls = "w-full px-3 py-2 border border-zinc-300 dark:border-zinc-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-zinc-800 text-zinc-900 dark:text-white text-sm";
+  const inputCls = "w-full px-3 py-2 border border-zinc-300 dark:border-white/[0.08] rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-[#1a1a1a] text-zinc-900 dark:text-white text-sm";
 
   if (loading) {
     return (
@@ -113,7 +113,7 @@ export default function InvestmentTransactions() {
       </div>
 
       {showForm && (
-        <div className="bg-white dark:bg-zinc-900 p-6 rounded-xl shadow-sm border border-zinc-200 dark:border-zinc-800">
+        <div className="rounded-2xl border border-white/[0.08] bg-white/[0.03] dark:bg-white/[0.03] backdrop-blur-sm p-6">
           <form onSubmit={handleSubmit} className="space-y-4">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
@@ -221,7 +221,7 @@ export default function InvestmentTransactions() {
               <button
                 type="button"
                 onClick={() => { setShowForm(false); setFormError(""); }}
-                className="px-4 py-2 bg-zinc-200 dark:bg-zinc-700 text-zinc-800 dark:text-white rounded-lg hover:bg-zinc-300 dark:hover:bg-zinc-600 transition-colors"
+                className="px-4 py-2 bg-zinc-200 dark:bg-[#1a1a1a] text-zinc-800 dark:text-white rounded-lg hover:bg-zinc-300 dark:hover:bg-white/[0.06] transition-colors"
               >
                 Cancelar
               </button>
@@ -241,7 +241,7 @@ export default function InvestmentTransactions() {
           return (
             <div
               key={transaction.id}
-              className="bg-white dark:bg-zinc-900 p-4 rounded-xl shadow-sm border border-zinc-200 dark:border-zinc-800 hover:shadow-md transition-shadow"
+              className="rounded-2xl border border-white/[0.08] bg-white/[0.03] dark:bg-white/[0.03] backdrop-blur-sm hover:bg-white/[0.07] hover:border-white/[0.15] transition-all duration-200 p-4"
             >
               <div className="flex justify-between items-start gap-3">
                 <div className="flex-1 min-w-0">
@@ -283,7 +283,7 @@ export default function InvestmentTransactions() {
       </div>
 
       {transactions.length === 0 && (
-        <div className="bg-white dark:bg-zinc-900 p-12 rounded-xl shadow-sm border border-zinc-200 dark:border-zinc-800 text-center">
+        <div className="rounded-2xl border border-white/[0.08] bg-white/[0.03] dark:bg-white/[0.03] backdrop-blur-sm p-12 text-center">
           <p className="text-zinc-500 dark:text-zinc-400">Nenhuma movimentação registrada</p>
         </div>
       )}

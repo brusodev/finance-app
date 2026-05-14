@@ -48,14 +48,14 @@ export default function Sidebar() {
   const isActive = (path) => {
     const isMatch = location.pathname === path
     return isMatch
-      ? 'bg-blue-600 dark:bg-blue-700 text-white'
-      : 'text-zinc-600 dark:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-zinc-800'
+      ? 'bg-blue-600 text-white'
+      : 'text-zinc-600 dark:text-zinc-400 hover:bg-zinc-100 dark:hover:bg-white/[0.06]'
   }
 
   const isInvestmentActive = () => {
     return location.pathname.startsWith('/investimentos')
-      ? 'bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400'
-      : 'text-zinc-600 dark:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-zinc-800'
+      ? 'bg-blue-600/10 text-blue-600 dark:text-blue-400'
+      : 'text-zinc-600 dark:text-zinc-400 hover:bg-zinc-100 dark:hover:bg-white/[0.06]'
   }
 
   const menuItems = [
@@ -119,7 +119,7 @@ export default function Sidebar() {
 
       {/* Sidebar */}
       <aside
-        className={`fixed left-0 top-0 h-screen bg-white dark:bg-zinc-900 text-zinc-800 dark:text-white shadow-lg transform transition-all duration-300 ease-in-out z-40 border-r border-zinc-200 dark:border-zinc-800 flex flex-col ${
+        className={`fixed left-0 top-0 h-screen bg-white dark:bg-[#111111] text-zinc-800 dark:text-white shadow-lg transform transition-all duration-300 ease-in-out z-40 border-r border-zinc-200 dark:border-white/[0.06] flex flex-col ${
           // Mobile
           isMobileOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'
         } ${
@@ -128,7 +128,7 @@ export default function Sidebar() {
         } w-64`}
       >
         {/* Logo/Header */}
-        <div className="flex-shrink-0 p-4 border-b border-zinc-200 dark:border-zinc-800 flex justify-between items-center overflow-hidden">
+        <div className="flex-shrink-0 p-4 border-b border-zinc-200 dark:border-white/[0.06] flex justify-between items-center overflow-hidden">
           {!isCollapsed && (
             <h1 className="text-xl font-bold text-blue-600 dark:text-blue-400 whitespace-nowrap">
               📈 Prospera
@@ -139,7 +139,7 @@ export default function Sidebar() {
           )}
           <button
             onClick={() => setIsMobileOpen(false)}
-            className="lg:hidden p-2 text-zinc-500 hover:text-zinc-700 dark:text-zinc-400 dark:hover:text-zinc-200 rounded-lg hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors"
+            className="lg:hidden p-2 text-zinc-500 hover:text-zinc-700 dark:text-zinc-400 dark:hover:text-zinc-200 rounded-lg hover:bg-zinc-100 dark:hover:bg-white/[0.06] transition-colors"
             aria-label="Fechar menu"
           >
             <X size={24} />
@@ -151,7 +151,7 @@ export default function Sidebar() {
           <Link
             to="/profile"
             onClick={() => setIsMobileOpen(false)}
-            className="flex-shrink-0 block p-4 border-b border-zinc-200 dark:border-zinc-800 hover:bg-zinc-50 dark:hover:bg-zinc-800 transition-colors overflow-hidden"
+            className="flex-shrink-0 block p-4 border-b border-zinc-200 dark:border-white/[0.06] hover:bg-zinc-50 dark:hover:bg-white/[0.04] transition-colors overflow-hidden"
             title={isCollapsed ? user.full_name || user.username : ''}
           >
             <div className={`flex items-center ${isCollapsed ? 'justify-center' : 'space-x-3'}`}>
@@ -193,7 +193,7 @@ export default function Sidebar() {
             if (item.type === 'divider') {
               if (isCollapsed) {
                 return (
-                  <div key={item.id} className="my-2 border-t border-zinc-200 dark:border-zinc-800" />
+                  <div key={item.id} className="my-2 border-t border-zinc-200 dark:border-white/[0.06]" />
                 )
               }
               return (
@@ -238,7 +238,7 @@ export default function Sidebar() {
                 className={`flex items-center justify-center px-2 py-3 rounded-lg transition-colors ${
                   location.pathname.startsWith('/investimentos')
                     ? 'bg-blue-600 dark:bg-blue-700 text-white'
-                    : 'text-zinc-600 dark:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-zinc-800'
+                    : 'text-zinc-600 dark:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-white/[0.06]'
                 }`}
                 title="Investimentos"
               >
@@ -262,7 +262,7 @@ export default function Sidebar() {
                 </button>
 
                 {investmentsExpanded && (
-                  <div className="ml-4 mt-1 space-y-1 border-l-2 border-zinc-200 dark:border-zinc-800 pl-2">
+                  <div className="ml-4 mt-1 space-y-1 border-l-2 border-zinc-200 dark:border-white/[0.08] pl-2">
                     {investmentSubItems.map((subItem) => (
                       <Link
                         key={subItem.id}
@@ -282,7 +282,7 @@ export default function Sidebar() {
         </nav>
 
         {/* Bottom Section - Logout */}
-        <div className="flex-shrink-0 p-3 border-t border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900">
+        <div className="flex-shrink-0 p-3 border-t border-zinc-200 dark:border-white/[0.06] bg-white dark:bg-[#111111]">
           <button
             onClick={handleLogout}
             className={`w-full flex items-center ${isCollapsed ? 'justify-center px-2' : 'space-x-3 px-4'} py-3 rounded-lg bg-red-50 dark:bg-red-900/20 hover:bg-red-100 dark:hover:bg-red-900/40 text-red-600 dark:text-red-400 transition-colors`}

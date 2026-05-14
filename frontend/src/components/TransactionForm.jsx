@@ -128,7 +128,7 @@ export default function TransactionForm({ categories, initialData, onSubmit, onC
   }
 
   return (
-    <div className="bg-white dark:bg-zinc-900 rounded-lg shadow-md p-6 border border-zinc-200 dark:border-zinc-700">
+    <div className="bg-white dark:bg-[#111111] rounded-lg shadow-md p-6 border border-zinc-200 dark:border-white/[0.08]">
       <h2 className="text-xl font-bold text-zinc-900 dark:text-white mb-6">
         {initialData ? 'Editar Transação' : 'Adicionar Nova Transação'}
       </h2>
@@ -152,7 +152,7 @@ export default function TransactionForm({ categories, initialData, onSubmit, onC
               required
               value={transactionType}
               onChange={(e) => setTransactionType(e.target.value)}
-              className="w-full px-4 py-2 border border-zinc-300 dark:border-zinc-600 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none bg-white dark:bg-zinc-700 text-zinc-900 dark:text-white"
+              className="w-full px-4 py-2 border border-zinc-300 dark:border-white/[0.08] rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none bg-white dark:bg-[#1a1a1a] text-zinc-900 dark:text-white"
               disabled={loading}
             >
               <option value="income">Receita (Entrada)</option>
@@ -172,7 +172,7 @@ export default function TransactionForm({ categories, initialData, onSubmit, onC
               required
               value={amount}
               onChange={(e) => setAmount(e.target.value)}
-              className="w-full px-4 py-2 border border-zinc-300 dark:border-zinc-600 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none bg-white dark:bg-zinc-700 text-zinc-900 dark:text-white"
+              className="w-full px-4 py-2 border border-zinc-300 dark:border-white/[0.08] rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none bg-white dark:bg-[#1a1a1a] text-zinc-900 dark:text-white"
               placeholder="0.00"
               disabled={loading}
             />
@@ -190,7 +190,7 @@ export default function TransactionForm({ categories, initialData, onSubmit, onC
               required
               value={date}
               onChange={(e) => setDate(e.target.value)}
-              className="w-full px-4 py-2 border border-zinc-300 dark:border-zinc-600 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none bg-white dark:bg-zinc-700 text-zinc-900 dark:text-white"
+              className="w-full px-4 py-2 border border-zinc-300 dark:border-white/[0.08] rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none bg-white dark:bg-[#1a1a1a] text-zinc-900 dark:text-white"
               disabled={loading}
             />
           </div>
@@ -205,7 +205,7 @@ export default function TransactionForm({ categories, initialData, onSubmit, onC
               required
               value={categoryId}
               onChange={(e) => setCategoryId(e.target.value)}
-              className="w-full px-4 py-2 border border-zinc-300 dark:border-zinc-600 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none bg-white dark:bg-zinc-700 text-zinc-900 dark:text-white"
+              className="w-full px-4 py-2 border border-zinc-300 dark:border-white/[0.08] rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none bg-white dark:bg-[#1a1a1a] text-zinc-900 dark:text-white"
               disabled={loading}
             >
               <option value="">Selecione uma categoria</option>
@@ -234,7 +234,7 @@ export default function TransactionForm({ categories, initialData, onSubmit, onC
               list="description-suggestions"
               value={description}
               onChange={(e) => setDescription(e.target.value)}
-              className="w-full px-4 py-2 border border-zinc-300 dark:border-zinc-600 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none bg-white dark:bg-zinc-700 text-zinc-900 dark:text-white"
+              className="w-full px-4 py-2 border border-zinc-300 dark:border-white/[0.08] rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none bg-white dark:bg-[#1a1a1a] text-zinc-900 dark:text-white"
               placeholder="Digite ou selecione uma sugestão..."
               disabled={loading}
             />
@@ -259,7 +259,7 @@ export default function TransactionForm({ categories, initialData, onSubmit, onC
             type="button"
             onClick={onCancel}
             disabled={loading}
-            className="flex-1 bg-zinc-200 dark:bg-zinc-700 text-zinc-700 dark:text-zinc-300 font-medium py-2 rounded-md hover:bg-zinc-300 dark:hover:bg-zinc-600 disabled:cursor-not-allowed transition-colors"
+            className="flex-1 bg-zinc-200 dark:bg-[#1a1a1a] text-zinc-700 dark:text-zinc-300 font-medium py-2 rounded-md hover:bg-zinc-300 dark:hover:bg-white/[0.06] disabled:cursor-not-allowed transition-colors"
           >
             Cancelar
           </button>

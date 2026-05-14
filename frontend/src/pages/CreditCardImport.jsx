@@ -21,7 +21,7 @@ const STATUS_COLOR = {
   pending: 'text-amber-600 dark:text-amber-400 bg-amber-50 dark:bg-amber-900/20',
   reviewed: 'text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-900/20',
   confirmed: 'text-green-600 dark:text-green-400 bg-green-50 dark:bg-green-900/20',
-  cancelled: 'text-zinc-500 dark:text-zinc-400 bg-zinc-100 dark:bg-zinc-800',
+  cancelled: 'text-zinc-500 dark:text-zinc-400 bg-zinc-100 dark:bg-[#1a1a1a]',
 }
 
 const STATEMENT_LABEL = {
@@ -35,7 +35,7 @@ const STATEMENT_COLOR = {
   open: 'text-amber-600 dark:text-amber-400 bg-amber-50 dark:bg-amber-900/20',
   partial: 'text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-900/20',
   paid: 'text-green-600 dark:text-green-400 bg-green-50 dark:bg-green-900/20',
-  cancelled: 'text-zinc-500 dark:text-zinc-400 bg-zinc-100 dark:bg-zinc-800',
+  cancelled: 'text-zinc-500 dark:text-zinc-400 bg-zinc-100 dark:bg-[#1a1a1a]',
 }
 
 function monthOptions() {
@@ -420,7 +420,7 @@ export default function CreditCardImport() {
                 </button>
                 <button
                   onClick={() => { setNewBatchMode('manual'); setCreateError('') }}
-                  className="flex items-center gap-1 px-3 py-1.5 text-xs border border-zinc-300 dark:border-zinc-700 text-zinc-600 dark:text-zinc-300 rounded-lg hover:bg-zinc-50 dark:hover:bg-zinc-800 transition-colors"
+                  className="flex items-center gap-1 px-3 py-1.5 text-xs border border-zinc-300 dark:border-white/[0.08] text-zinc-600 dark:text-zinc-300 rounded-lg hover:bg-zinc-50 dark:hover:bg-white/[0.06] transition-colors"
                 >
                   <Plus size={13} /> Manual
                 </button>
@@ -430,7 +430,7 @@ export default function CreditCardImport() {
 
           {/* New batch form */}
           {newBatchMode && (
-            <div className="bg-white dark:bg-zinc-900 rounded-xl border border-zinc-200 dark:border-zinc-800 p-4 space-y-3">
+            <div className="rounded-2xl border border-white/[0.08] bg-white/[0.03] dark:bg-white/[0.03] backdrop-blur-sm p-4 space-y-3">
               <p className="text-sm font-medium text-zinc-700 dark:text-zinc-300">
                 {newBatchMode === 'upload' ? 'Upload de arquivo' : 'Lançamento manual'}
               </p>
@@ -442,7 +442,7 @@ export default function CreditCardImport() {
                 <select
                   value={refMonth}
                   onChange={e => setRefMonth(e.target.value)}
-                  className="w-full px-3 py-2 text-sm border border-zinc-300 dark:border-zinc-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-zinc-800 text-zinc-900 dark:text-white"
+                  className="w-full px-3 py-2 text-sm border border-zinc-300 dark:border-white/[0.08] rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-[#1a1a1a] text-zinc-900 dark:text-white"
                 >
                   {monthOptions().map(o => (
                     <option key={o.val} value={o.val}>{o.label}</option>
@@ -457,7 +457,7 @@ export default function CreditCardImport() {
                   </label>
                   <div
                     onClick={() => fileRef.current?.click()}
-                    className="border-2 border-dashed border-zinc-300 dark:border-zinc-700 rounded-lg p-4 text-center cursor-pointer hover:border-blue-400 transition-colors"
+                    className="border-2 border-dashed border-zinc-300 dark:border-white/[0.08] rounded-lg p-4 text-center cursor-pointer hover:border-blue-400 transition-colors"
                   >
                     {uploadFile ? (
                       <div className="flex items-center justify-center gap-2 text-blue-600 dark:text-blue-400">
@@ -489,7 +489,7 @@ export default function CreditCardImport() {
               <div className="flex gap-2">
                 <button
                   onClick={() => { setNewBatchMode(null); setUploadFile(null); setCreateError('') }}
-                  className="flex-1 px-3 py-2 text-sm border border-zinc-300 dark:border-zinc-700 text-zinc-600 dark:text-zinc-300 rounded-lg hover:bg-zinc-50 dark:hover:bg-zinc-800 transition-colors"
+                  className="flex-1 px-3 py-2 text-sm border border-zinc-300 dark:border-white/[0.08] text-zinc-600 dark:text-zinc-300 rounded-lg hover:bg-zinc-50 dark:hover:bg-white/[0.06] transition-colors"
                 >
                   Cancelar
                 </button>
@@ -509,7 +509,7 @@ export default function CreditCardImport() {
 
           {/* Batch list */}
           {batches.length === 0 && !newBatchMode ? (
-            <div className="bg-white dark:bg-zinc-900 rounded-xl border border-zinc-200 dark:border-zinc-800 p-6 text-center text-zinc-400 dark:text-zinc-500 text-sm">
+            <div className="rounded-2xl border border-white/[0.08] bg-white/[0.03] dark:bg-white/[0.03] backdrop-blur-sm p-6 text-center text-zinc-400 dark:text-zinc-500 text-sm">
               Nenhuma fatura ainda
             </div>
           ) : (
@@ -517,10 +517,10 @@ export default function CreditCardImport() {
               <button
                 key={b.id}
                 onClick={() => fetchBatch(b.id)}
-                className={`w-full text-left bg-white dark:bg-zinc-900 rounded-xl border p-4 transition-colors hover:border-blue-400 dark:hover:border-blue-500 ${
+                className={`w-full text-left rounded-2xl border p-4 transition-all duration-200 hover:border-blue-400 dark:hover:border-blue-500 ${
                   selectedBatch?.id === b.id
-                    ? 'border-blue-500 dark:border-blue-500'
-                    : 'border-zinc-200 dark:border-zinc-800'
+                    ? 'border-blue-500 dark:border-blue-500 bg-white/[0.06] dark:bg-white/[0.06]'
+                    : 'border-white/[0.08] bg-white/[0.03] dark:bg-white/[0.03] backdrop-blur-sm hover:bg-white/[0.07]'
                 }`}
               >
                 <div className="flex items-start justify-between mb-2">
@@ -554,14 +554,14 @@ export default function CreditCardImport() {
         {/* ─── Right: Batch detail ────────────────────────── */}
         <div className="lg:col-span-2">
           {!selectedBatch ? (
-            <div className="bg-white dark:bg-zinc-900 rounded-xl border border-zinc-200 dark:border-zinc-800 p-12 text-center text-zinc-400 dark:text-zinc-500">
+            <div className="rounded-2xl border border-white/[0.08] bg-white/[0.03] dark:bg-white/[0.03] backdrop-blur-sm p-12 text-center text-zinc-400 dark:text-zinc-500">
               <Calendar size={40} className="mx-auto mb-3 opacity-40" />
               <p>Selecione uma fatura para revisar</p>
             </div>
           ) : (
-            <div className="bg-white dark:bg-zinc-900 rounded-xl border border-zinc-200 dark:border-zinc-800 overflow-hidden">
+            <div className="rounded-2xl border border-white/[0.08] bg-white/[0.03] dark:bg-white/[0.03] backdrop-blur-sm overflow-hidden">
               {/* Batch header */}
-              <div className="p-5 border-b border-zinc-200 dark:border-zinc-800 flex flex-wrap items-center justify-between gap-3">
+              <div className="p-5 border-b border-zinc-200 dark:border-white/[0.06] flex flex-wrap items-center justify-between gap-3">
                 <div>
                   <h3 className="font-bold text-zinc-800 dark:text-white">
                     {new Date(selectedBatch.reference_month + 'T12:00:00').toLocaleDateString('pt-BR', {
@@ -583,7 +583,7 @@ export default function CreditCardImport() {
                   <div className="flex items-center gap-2">
                     <button
                       onClick={() => setAddItemOpen(true)}
-                      className="flex items-center gap-1.5 px-3 py-2 text-sm border border-zinc-300 dark:border-zinc-700 text-zinc-600 dark:text-zinc-300 rounded-lg hover:bg-zinc-50 dark:hover:bg-zinc-800 transition-colors"
+                      className="flex items-center gap-1.5 px-3 py-2 text-sm border border-zinc-300 dark:border-white/[0.08] text-zinc-600 dark:text-zinc-300 rounded-lg hover:bg-zinc-50 dark:hover:bg-white/[0.06] transition-colors"
                     >
                       <Plus size={15} /> Item
                     </button>
@@ -620,7 +620,7 @@ export default function CreditCardImport() {
 
               {/* Fatura / pagamento */}
               {statement ? (
-                <div className="p-4 bg-zinc-50 dark:bg-zinc-800/50 border-b border-zinc-200 dark:border-zinc-800 space-y-4">
+                <div className="p-4 bg-zinc-50 dark:bg-[#1a1a1a]/50 border-b border-zinc-200 dark:border-white/[0.06] space-y-4">
                   <div className="flex flex-wrap items-center justify-between gap-3">
                     <div>
                       <p className="text-sm font-medium text-zinc-700 dark:text-zinc-300">
@@ -641,7 +641,7 @@ export default function CreditCardImport() {
                         amount: statementOutstanding > 0 ? String(statementOutstanding) : prev.amount,
                       }))}
                       disabled={statementOutstanding <= 0}
-                      className="px-3 py-2 text-xs border border-zinc-300 dark:border-zinc-700 text-zinc-600 dark:text-zinc-300 rounded-lg hover:bg-zinc-100 dark:hover:bg-zinc-700 disabled:opacity-50 transition-colors"
+                      className="px-3 py-2 text-xs border border-zinc-300 dark:border-white/[0.08] text-zinc-600 dark:text-zinc-300 rounded-lg hover:bg-zinc-100 dark:hover:bg-white/[0.06] disabled:opacity-50 transition-colors"
                     >
                       Usar saldo total
                     </button>
@@ -651,7 +651,7 @@ export default function CreditCardImport() {
                     <select
                       value={paymentForm.from_account_id}
                       onChange={e => setPaymentForm(prev => ({ ...prev, from_account_id: e.target.value }))}
-                      className="px-3 py-2 text-sm border border-zinc-300 dark:border-zinc-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-zinc-800 text-zinc-900 dark:text-white"
+                      className="px-3 py-2 text-sm border border-zinc-300 dark:border-white/[0.08] rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-[#1a1a1a] text-zinc-900 dark:text-white"
                     >
                       <option value="">Conta de origem</option>
                       {fundingAccounts.map(acc => (
@@ -667,20 +667,20 @@ export default function CreditCardImport() {
                       value={paymentForm.amount}
                       onChange={e => setPaymentForm(prev => ({ ...prev, amount: e.target.value }))}
                       placeholder="Valor"
-                      className="px-3 py-2 text-sm border border-zinc-300 dark:border-zinc-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-zinc-800 text-zinc-900 dark:text-white"
+                      className="px-3 py-2 text-sm border border-zinc-300 dark:border-white/[0.08] rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-[#1a1a1a] text-zinc-900 dark:text-white"
                     />
                     <input
                       type="date"
                       value={paymentForm.date}
                       onChange={e => setPaymentForm(prev => ({ ...prev, date: e.target.value }))}
-                      className="px-3 py-2 text-sm border border-zinc-300 dark:border-zinc-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-zinc-800 text-zinc-900 dark:text-white"
+                      className="px-3 py-2 text-sm border border-zinc-300 dark:border-white/[0.08] rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-[#1a1a1a] text-zinc-900 dark:text-white"
                     />
                     <input
                       type="text"
                       value={paymentForm.description}
                       onChange={e => setPaymentForm(prev => ({ ...prev, description: e.target.value }))}
                       placeholder="Descrição opcional"
-                      className="px-3 py-2 text-sm border border-zinc-300 dark:border-zinc-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-zinc-800 text-zinc-900 dark:text-white"
+                      className="px-3 py-2 text-sm border border-zinc-300 dark:border-white/[0.08] rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-[#1a1a1a] text-zinc-900 dark:text-white"
                     />
                   </div>
 
@@ -712,7 +712,7 @@ export default function CreditCardImport() {
                         {statement.payments.map(payment => (
                           <div
                             key={payment.id}
-                            className="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-900 px-3 py-2 text-sm"
+                            className="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-zinc-200 dark:border-white/[0.08] bg-white dark:bg-[#111111] px-3 py-2 text-sm"
                           >
                             <div className="text-zinc-700 dark:text-zinc-300">
                               <span className="font-medium">
@@ -736,14 +736,14 @@ export default function CreditCardImport() {
                   )}
                 </div>
               ) : selectedBatch.status === 'confirmed' ? (
-                <div className="p-4 bg-zinc-50 dark:bg-zinc-800/50 border-b border-zinc-200 dark:border-zinc-800 text-sm text-zinc-500 dark:text-zinc-400">
+                <div className="p-4 bg-zinc-50 dark:bg-[#1a1a1a]/50 border-b border-zinc-200 dark:border-white/[0.06] text-sm text-zinc-500 dark:text-zinc-400">
                   Fatura confirmada, mas ainda não há resumo financeiro carregado.
                 </div>
               ) : null}
 
               {/* Add item form */}
               {addItemOpen && (
-                <div className="p-4 bg-zinc-50 dark:bg-zinc-800/50 border-b border-zinc-200 dark:border-zinc-800 space-y-3">
+                <div className="p-4 bg-zinc-50 dark:bg-[#1a1a1a]/50 border-b border-zinc-200 dark:border-white/[0.06] space-y-3">
                   <p className="text-sm font-medium text-zinc-700 dark:text-zinc-300">
                     Novo item manual
                   </p>
@@ -753,7 +753,7 @@ export default function CreditCardImport() {
                       placeholder="Descrição *"
                       value={newItem.description}
                       onChange={e => setNewItem(f => ({ ...f, description: e.target.value }))}
-                      className="col-span-2 sm:col-span-2 px-3 py-2 text-sm border border-zinc-300 dark:border-zinc-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-zinc-800 text-zinc-900 dark:text-white"
+                      className="col-span-2 sm:col-span-2 px-3 py-2 text-sm border border-zinc-300 dark:border-white/[0.08] rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-[#1a1a1a] text-zinc-900 dark:text-white"
                     />
                     <input
                       type="number"
@@ -762,18 +762,18 @@ export default function CreditCardImport() {
                       step="0.01"
                       value={newItem.amount}
                       onChange={e => setNewItem(f => ({ ...f, amount: e.target.value }))}
-                      className="px-3 py-2 text-sm border border-zinc-300 dark:border-zinc-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-zinc-800 text-zinc-900 dark:text-white"
+                      className="px-3 py-2 text-sm border border-zinc-300 dark:border-white/[0.08] rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-[#1a1a1a] text-zinc-900 dark:text-white"
                     />
                     <input
                       type="date"
                       value={newItem.date}
                       onChange={e => setNewItem(f => ({ ...f, date: e.target.value }))}
-                      className="px-3 py-2 text-sm border border-zinc-300 dark:border-zinc-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-zinc-800 text-zinc-900 dark:text-white"
+                      className="px-3 py-2 text-sm border border-zinc-300 dark:border-white/[0.08] rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-[#1a1a1a] text-zinc-900 dark:text-white"
                     />
                     <select
                       value={newItem.category_id}
                       onChange={e => setNewItem(f => ({ ...f, category_id: e.target.value }))}
-                      className="col-span-2 sm:col-span-1 px-3 py-2 text-sm border border-zinc-300 dark:border-zinc-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-zinc-800 text-zinc-900 dark:text-white"
+                      className="col-span-2 sm:col-span-1 px-3 py-2 text-sm border border-zinc-300 dark:border-white/[0.08] rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-[#1a1a1a] text-zinc-900 dark:text-white"
                     >
                       <option value="">Sem categoria</option>
                       {categories.map(c => (
@@ -787,7 +787,7 @@ export default function CreditCardImport() {
                         min="1"
                         value={newItem.installment_current}
                         onChange={e => setNewItem(f => ({ ...f, installment_current: e.target.value }))}
-                        className="w-full px-3 py-2 text-sm border border-zinc-300 dark:border-zinc-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-zinc-800 text-zinc-900 dark:text-white"
+                        className="w-full px-3 py-2 text-sm border border-zinc-300 dark:border-white/[0.08] rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-[#1a1a1a] text-zinc-900 dark:text-white"
                       />
                       <span className="text-zinc-400">/</span>
                       <input
@@ -796,14 +796,14 @@ export default function CreditCardImport() {
                         min="1"
                         value={newItem.installment_total}
                         onChange={e => setNewItem(f => ({ ...f, installment_total: e.target.value }))}
-                        className="w-full px-3 py-2 text-sm border border-zinc-300 dark:border-zinc-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-zinc-800 text-zinc-900 dark:text-white"
+                        className="w-full px-3 py-2 text-sm border border-zinc-300 dark:border-white/[0.08] rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-[#1a1a1a] text-zinc-900 dark:text-white"
                       />
                     </div>
                   </div>
                   <div className="flex gap-2">
                     <button
                       onClick={() => setAddItemOpen(false)}
-                      className="px-4 py-2 text-sm border border-zinc-300 dark:border-zinc-700 text-zinc-600 dark:text-zinc-300 rounded-lg hover:bg-zinc-100 dark:hover:bg-zinc-700 transition-colors"
+                      className="px-4 py-2 text-sm border border-zinc-300 dark:border-white/[0.08] text-zinc-600 dark:text-zinc-300 rounded-lg hover:bg-zinc-100 dark:hover:bg-white/[0.06] transition-colors"
                     >
                       Cancelar
                     </button>
@@ -834,7 +834,7 @@ export default function CreditCardImport() {
                       className={`p-4 transition-colors ${
                         item.status === 'ignored'
                           ? 'opacity-40'
-                          : 'hover:bg-zinc-50 dark:hover:bg-zinc-800/50'
+                          : 'hover:bg-zinc-50 dark:hover:bg-white/[0.06]/50'
                       }`}
                     >
                       {editingItem?.id === item.id ? (
@@ -846,7 +846,7 @@ export default function CreditCardImport() {
                               value={editForm.description}
                               onChange={e => setEditForm(f => ({ ...f, description: e.target.value }))}
                               placeholder="Descrição"
-                              className="col-span-2 px-3 py-2 text-sm border border-blue-400 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-zinc-800 text-zinc-900 dark:text-white"
+                              className="col-span-2 px-3 py-2 text-sm border border-blue-400 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-[#1a1a1a] text-zinc-900 dark:text-white"
                             />
                             <input
                               type="number"
@@ -854,18 +854,18 @@ export default function CreditCardImport() {
                               step="0.01"
                               value={editForm.amount}
                               onChange={e => setEditForm(f => ({ ...f, amount: e.target.value }))}
-                              className="px-3 py-2 text-sm border border-blue-400 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-zinc-800 text-zinc-900 dark:text-white"
+                              className="px-3 py-2 text-sm border border-blue-400 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-[#1a1a1a] text-zinc-900 dark:text-white"
                             />
                             <input
                               type="date"
                               value={editForm.date}
                               onChange={e => setEditForm(f => ({ ...f, date: e.target.value }))}
-                              className="px-3 py-2 text-sm border border-blue-400 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-zinc-800 text-zinc-900 dark:text-white"
+                              className="px-3 py-2 text-sm border border-blue-400 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-[#1a1a1a] text-zinc-900 dark:text-white"
                             />
                             <select
                               value={editForm.category_id}
                               onChange={e => setEditForm(f => ({ ...f, category_id: e.target.value }))}
-                              className="col-span-2 sm:col-span-1 px-3 py-2 text-sm border border-blue-400 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-zinc-800 text-zinc-900 dark:text-white"
+                              className="col-span-2 sm:col-span-1 px-3 py-2 text-sm border border-blue-400 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-[#1a1a1a] text-zinc-900 dark:text-white"
                             >
                               <option value="">Sem categoria</option>
                               {categories.map(c => (
@@ -879,7 +879,7 @@ export default function CreditCardImport() {
                                 min="1"
                                 value={editForm.installment_current}
                                 onChange={e => setEditForm(f => ({ ...f, installment_current: e.target.value }))}
-                                className="w-full px-3 py-2 text-sm border border-blue-400 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-zinc-800 text-zinc-900 dark:text-white"
+                                className="w-full px-3 py-2 text-sm border border-blue-400 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-[#1a1a1a] text-zinc-900 dark:text-white"
                               />
                               <span className="text-zinc-400 flex-shrink-0">/</span>
                               <input
@@ -888,14 +888,14 @@ export default function CreditCardImport() {
                                 min="1"
                                 value={editForm.installment_total}
                                 onChange={e => setEditForm(f => ({ ...f, installment_total: e.target.value }))}
-                                className="w-full px-3 py-2 text-sm border border-blue-400 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-zinc-800 text-zinc-900 dark:text-white"
+                                className="w-full px-3 py-2 text-sm border border-blue-400 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-[#1a1a1a] text-zinc-900 dark:text-white"
                               />
                             </div>
                           </div>
                           <div className="flex gap-2">
                             <button
                               onClick={() => setEditingItem(null)}
-                              className="px-3 py-1.5 text-sm border border-zinc-300 dark:border-zinc-700 text-zinc-600 dark:text-zinc-300 rounded-lg hover:bg-zinc-100 dark:hover:bg-zinc-700 transition-colors"
+                              className="px-3 py-1.5 text-sm border border-zinc-300 dark:border-white/[0.08] text-zinc-600 dark:text-zinc-300 rounded-lg hover:bg-zinc-100 dark:hover:bg-white/[0.06] transition-colors"
                             >
                               Cancelar
                             </button>
@@ -955,7 +955,7 @@ export default function CreditCardImport() {
                             <div className="flex items-center gap-1 flex-shrink-0">
                               <button
                                 onClick={() => startEdit(item)}
-                                className="p-1.5 text-zinc-400 hover:text-blue-600 dark:hover:text-blue-400 rounded-md hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors"
+                                className="p-1.5 text-zinc-400 hover:text-blue-600 dark:hover:text-blue-400 rounded-md hover:bg-zinc-100 dark:hover:bg-white/[0.06] transition-colors"
                                 title="Editar"
                               >
                                 <Pencil size={14} />
@@ -965,7 +965,7 @@ export default function CreditCardImport() {
                                 className={`p-1.5 rounded-md transition-colors ${
                                   item.status === 'ignored'
                                     ? 'text-blue-600 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/20'
-                                    : 'text-zinc-400 hover:text-red-600 dark:hover:text-red-400 hover:bg-zinc-100 dark:hover:bg-zinc-800'
+                                    : 'text-zinc-400 hover:text-red-600 dark:hover:text-red-400 hover:bg-zinc-100 dark:hover:bg-white/[0.06]'
                                 }`}
                                 title={item.status === 'ignored' ? 'Restaurar' : 'Ignorar'}
                               >

@@ -273,7 +273,7 @@ export default function CreditCards() {
 
   const f = (field, value) => setForm(prev => ({ ...prev, [field]: value }))
 
-  const inputCls = "w-full px-3 py-2 border border-zinc-300 dark:border-zinc-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-zinc-800 text-zinc-900 dark:text-white text-sm"
+  const inputCls = "w-full px-3 py-2 border border-zinc-300 dark:border-white/[0.08] rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-[#1a1a1a] text-zinc-900 dark:text-white text-sm"
 
   if (loading) {
     return (
@@ -307,7 +307,7 @@ export default function CreditCards() {
 
       {/* Empty state */}
       {accounts.length === 0 ? (
-        <div className="bg-white dark:bg-zinc-900 rounded-xl shadow-sm border border-zinc-200 dark:border-zinc-800 p-12 text-center">
+        <div className="rounded-2xl border border-white/[0.08] bg-white/[0.03] dark:bg-white/[0.03] backdrop-blur-sm p-12 text-center">
           <CreditCard size={48} className="mx-auto text-zinc-300 dark:text-zinc-600 mb-4" />
           <p className="text-zinc-500 dark:text-zinc-400 mb-4">
             Nenhum cartão de crédito cadastrado
@@ -327,7 +327,7 @@ export default function CreditCards() {
             return (
               <div
                 key={account.id}
-                className="bg-white dark:bg-zinc-900 rounded-xl shadow-sm border border-zinc-200 dark:border-zinc-800 overflow-hidden"
+                className="rounded-2xl border border-white/[0.08] bg-white/[0.03] dark:bg-white/[0.03] backdrop-blur-sm overflow-hidden"
               >
                 {/* Card visual */}
                 <div className="bg-gradient-to-r from-blue-600 to-blue-700 p-5 text-white">
@@ -352,14 +352,14 @@ export default function CreditCards() {
                 <div className="p-4 space-y-3">
                   {cfg ? (
                     <div className="grid grid-cols-2 gap-3">
-                      <div className="bg-zinc-50 dark:bg-zinc-800 rounded-lg p-3">
+                      <div className="bg-zinc-50 dark:bg-[#1a1a1a] rounded-lg p-3">
                         <p className="text-xs text-zinc-500 dark:text-zinc-400 mb-1">Fechamento</p>
                         <p className="font-semibold text-zinc-800 dark:text-white flex items-center gap-1">
                           <Calendar size={14} className="text-blue-500" />
                           Dia {cfg.closing_day}
                         </p>
                       </div>
-                      <div className="bg-zinc-50 dark:bg-zinc-800 rounded-lg p-3">
+                      <div className="bg-zinc-50 dark:bg-[#1a1a1a] rounded-lg p-3">
                         <p className="text-xs text-zinc-500 dark:text-zinc-400 mb-1">Vencimento</p>
                         <p className="font-semibold text-zinc-800 dark:text-white flex items-center gap-1">
                           <Calendar size={14} className="text-red-500" />
@@ -367,7 +367,7 @@ export default function CreditCards() {
                         </p>
                       </div>
                       {cfg.credit_limit && (
-                        <div className="col-span-2 bg-zinc-50 dark:bg-zinc-800 rounded-lg p-3">
+                        <div className="col-span-2 bg-zinc-50 dark:bg-[#1a1a1a] rounded-lg p-3">
                           <p className="text-xs text-zinc-500 dark:text-zinc-400 mb-1">Limite</p>
                           <p className="font-semibold text-zinc-800 dark:text-white flex items-center gap-1">
                             <DollarSign size={14} className="text-green-500" />
@@ -384,7 +384,7 @@ export default function CreditCards() {
                   )}
 
                   {latestBatch && (
-                    <div className="bg-zinc-50 dark:bg-zinc-800 rounded-lg p-3 space-y-2">
+                    <div className="bg-zinc-50 dark:bg-[#1a1a1a] rounded-lg p-3 space-y-2">
                       <div className="flex items-center justify-between gap-3">
                         <div>
                           <p className="text-xs text-zinc-500 dark:text-zinc-400 mb-1">Última fatura</p>
@@ -400,7 +400,7 @@ export default function CreditCards() {
                         </div>
                       </div>
                       {latestBatch.statement?.paid_amount > 0 && (
-                        <div className="flex justify-between text-xs pt-1 border-t border-zinc-200 dark:border-zinc-700">
+                        <div className="flex justify-between text-xs pt-1 border-t border-zinc-200 dark:border-white/[0.08]">
                           <span className="text-zinc-500 dark:text-zinc-400">Pendente</span>
                           <span className="text-red-600 dark:text-red-400 font-medium">
                             {formatCurrency(
@@ -417,21 +417,21 @@ export default function CreditCards() {
                   <div className="flex flex-wrap gap-2 pt-1">
                     <button
                       onClick={() => deleteCard(account)}
-                      className="p-2 text-zinc-400 hover:text-red-600 dark:hover:text-red-400 border border-zinc-200 dark:border-zinc-700 rounded-lg hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors"
+                      className="p-2 text-zinc-400 hover:text-red-600 dark:hover:text-red-400 border border-zinc-200 dark:border-white/[0.08] rounded-lg hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors"
                       title="Excluir cartão"
                     >
                       <Trash2 size={15} />
                     </button>
                     <button
                       onClick={() => openEdit(account)}
-                      className="flex items-center gap-2 px-3 py-2 text-sm text-zinc-600 dark:text-zinc-300 border border-zinc-200 dark:border-zinc-700 rounded-lg hover:bg-zinc-50 dark:hover:bg-zinc-800 transition-colors"
+                      className="flex items-center gap-2 px-3 py-2 text-sm text-zinc-600 dark:text-zinc-300 border border-zinc-200 dark:border-white/[0.08] rounded-lg hover:bg-zinc-50 dark:hover:bg-white/[0.06] transition-colors"
                     >
                       <Settings size={15} />
                       Editar
                     </button>
                     <button
                       onClick={() => openHistory(account)}
-                      className="flex items-center gap-2 px-3 py-2 text-sm text-zinc-600 dark:text-zinc-300 border border-zinc-200 dark:border-zinc-700 rounded-lg hover:bg-zinc-50 dark:hover:bg-zinc-800 transition-colors"
+                      className="flex items-center gap-2 px-3 py-2 text-sm text-zinc-600 dark:text-zinc-300 border border-zinc-200 dark:border-white/[0.08] rounded-lg hover:bg-zinc-50 dark:hover:bg-white/[0.06] transition-colors"
                     >
                       <History size={15} />
                       Histórico
@@ -457,7 +457,7 @@ export default function CreditCards() {
                           title={isFullyPaid ? 'Fatura já quitada' : undefined}
                           className={`flex-1 flex items-center justify-center gap-2 px-3 py-2 text-sm rounded-lg transition-colors ${
                             isFullyPaid
-                              ? 'border border-zinc-200 dark:border-zinc-700 text-zinc-400 dark:text-zinc-600 cursor-not-allowed'
+                              ? 'border border-zinc-200 dark:border-white/[0.08] text-zinc-400 dark:text-zinc-600 cursor-not-allowed'
                               : 'border border-blue-200 dark:border-blue-800 text-blue-600 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/20'
                           }`}
                         >
@@ -478,9 +478,9 @@ export default function CreditCards() {
       {/* ── Modal unificado (novo / editar) ── */}
       {modal && (
         <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
-          <div className="bg-white dark:bg-zinc-900 rounded-xl shadow-xl w-full max-w-md">
+          <div className="bg-white dark:bg-[#111111] rounded-xl shadow-xl w-full max-w-md">
             {/* Header */}
-            <div className="flex items-center justify-between p-5 border-b border-zinc-200 dark:border-zinc-800">
+            <div className="flex items-center justify-between p-5 border-b border-zinc-200 dark:border-white/[0.06]">
               <h2 className="text-lg font-bold text-zinc-800 dark:text-white">
                 {modal.mode === 'new' ? 'Novo cartão de crédito' : 'Editar cartão'}
               </h2>
@@ -599,10 +599,10 @@ export default function CreditCards() {
             </div>
 
             {/* Footer */}
-            <div className="flex gap-3 p-5 border-t border-zinc-200 dark:border-zinc-800">
+            <div className="flex gap-3 p-5 border-t border-zinc-200 dark:border-white/[0.06]">
               <button
                 onClick={() => setModal(null)}
-                className="flex-1 px-4 py-2 border border-zinc-300 dark:border-zinc-700 text-zinc-700 dark:text-zinc-300 rounded-lg hover:bg-zinc-50 dark:hover:bg-zinc-800 transition-colors text-sm"
+                className="flex-1 px-4 py-2 border border-zinc-300 dark:border-white/[0.08] text-zinc-700 dark:text-zinc-300 rounded-lg hover:bg-zinc-50 dark:hover:bg-white/[0.06] transition-colors text-sm"
               >
                 Cancelar
               </button>
@@ -623,8 +623,8 @@ export default function CreditCards() {
 
       {historyModal && (
         <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
-          <div className="bg-white dark:bg-zinc-900 rounded-xl shadow-xl w-full max-w-lg max-h-[80vh] flex flex-col">
-            <div className="flex items-center justify-between p-5 border-b border-zinc-200 dark:border-zinc-800 flex-shrink-0">
+          <div className="bg-white dark:bg-[#111111] rounded-xl shadow-xl w-full max-w-lg max-h-[80vh] flex flex-col">
+            <div className="flex items-center justify-between p-5 border-b border-zinc-200 dark:border-white/[0.06] flex-shrink-0">
               <div>
                 <h2 className="text-lg font-bold text-zinc-800 dark:text-white">Histórico de faturas</h2>
                 <p className="text-sm text-zinc-500 dark:text-zinc-400">{historyModal.account.name}</p>
@@ -651,7 +651,7 @@ export default function CreditCards() {
                     const monthLabel = refDate.toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' })
                     const stmt = batch.statement
                     const statusMap = {
-                      open: { label: 'Aberta', cls: 'bg-zinc-100 dark:bg-zinc-700 text-zinc-600 dark:text-zinc-300' },
+                      open: { label: 'Aberta', cls: 'bg-zinc-100 dark:bg-[#1a1a1a] text-zinc-600 dark:text-zinc-300' },
                       confirmed: { label: 'Confirmada', cls: 'bg-blue-100 dark:bg-blue-900/40 text-blue-700 dark:text-blue-300' },
                       paid: { label: 'Paga', cls: 'bg-green-100 dark:bg-green-900/40 text-green-700 dark:text-green-300' },
                       partial: { label: 'Parcial', cls: 'bg-amber-100 dark:bg-amber-900/40 text-amber-700 dark:text-amber-300' },
@@ -667,7 +667,7 @@ export default function CreditCards() {
                       <button
                         key={batch.id}
                         onClick={() => goToBatch(historyModal.account.id, batch.id)}
-                        className="w-full flex items-center justify-between gap-3 p-3 rounded-lg border border-zinc-200 dark:border-zinc-700 hover:border-blue-400 dark:hover:border-blue-500 hover:bg-zinc-50 dark:hover:bg-zinc-800 transition-colors text-left"
+                        className="w-full flex items-center justify-between gap-3 p-3 rounded-lg border border-zinc-200 dark:border-white/[0.08] hover:border-blue-400 dark:hover:border-blue-500 hover:bg-zinc-50 dark:hover:bg-white/[0.06] transition-colors text-left"
                       >
                         <div className="flex-1 min-w-0">
                           <div className="flex items-center gap-2 flex-wrap">
@@ -710,8 +710,8 @@ export default function CreditCards() {
 
       {paymentModal && (
         <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
-          <div className="bg-white dark:bg-zinc-900 rounded-xl shadow-xl w-full max-w-md">
-            <div className="flex items-center justify-between p-5 border-b border-zinc-200 dark:border-zinc-800">
+          <div className="bg-white dark:bg-[#111111] rounded-xl shadow-xl w-full max-w-md">
+            <div className="flex items-center justify-between p-5 border-b border-zinc-200 dark:border-white/[0.06]">
               <h2 className="text-lg font-bold text-zinc-800 dark:text-white">
                 Pagar fatura
               </h2>
@@ -737,7 +737,7 @@ export default function CreditCards() {
                 }
                 return null
               })()}
-              <div className="rounded-lg bg-zinc-50 dark:bg-zinc-800 p-4 space-y-2">
+              <div className="rounded-lg bg-zinc-50 dark:bg-[#1a1a1a] p-4 space-y-2">
                 <div className="flex items-center justify-between gap-3">
                   <div>
                     <p className="text-xs text-zinc-500 dark:text-zinc-400">Cartão</p>
@@ -753,7 +753,7 @@ export default function CreditCards() {
                   </div>
                 </div>
                 {paymentModal.batch?.statement && paymentModal.batch.statement.paid_amount > 0 && (
-                  <div className="flex justify-between text-xs pt-1 border-t border-zinc-200 dark:border-zinc-700">
+                  <div className="flex justify-between text-xs pt-1 border-t border-zinc-200 dark:border-white/[0.08]">
                     <span className="text-zinc-500 dark:text-zinc-400">Já pago</span>
                     <span className="text-green-600 dark:text-green-400 font-medium">
                       {formatCurrency(paymentModal.batch.statement.paid_amount, user?.currency)}
@@ -844,7 +844,7 @@ export default function CreditCards() {
               <div className="flex justify-end gap-3 pt-2">
                 <button
                   onClick={closePaymentModal}
-                  className="px-4 py-2 text-sm border border-zinc-300 dark:border-zinc-700 text-zinc-600 dark:text-zinc-300 rounded-lg hover:bg-zinc-50 dark:hover:bg-zinc-800 transition-colors"
+                  className="px-4 py-2 text-sm border border-zinc-300 dark:border-white/[0.08] text-zinc-600 dark:text-zinc-300 rounded-lg hover:bg-zinc-50 dark:hover:bg-white/[0.06] transition-colors"
                 >
                   Cancelar
                 </button>

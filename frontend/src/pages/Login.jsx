@@ -43,7 +43,7 @@ export default function Login() {
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 to-indigo-100 dark:from-zinc-900 dark:to-zinc-800 px-4">
-      <div className="max-w-md w-full bg-white dark:bg-zinc-900 rounded-lg shadow-xl p-8">
+      <div className="max-w-md w-full bg-white dark:bg-[#111111] rounded-lg shadow-xl p-8">
         {/* Cabeçalho */}
         <div className="text-center mb-8">
           <h1 className="text-3xl font-bold text-zinc-900 dark:text-white mb-2">
@@ -71,7 +71,7 @@ export default function Login() {
               required
               value={username}
               onChange={(e) => setUsername(e.target.value)}
-              className="w-full px-4 py-2 border border-zinc-300 dark:border-zinc-600 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none bg-white dark:bg-zinc-700 text-zinc-900 dark:text-white"
+              className="w-full px-4 py-2 border border-zinc-300 dark:border-white/[0.08] rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none bg-white dark:bg-[#1a1a1a] text-zinc-900 dark:text-white"
               placeholder="seu username"
               disabled={loading}
             />
@@ -87,7 +87,7 @@ export default function Login() {
               required
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              className="w-full px-4 py-2 border border-zinc-300 dark:border-zinc-600 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none bg-white dark:bg-zinc-700 text-zinc-900 dark:text-white"
+              className="w-full px-4 py-2 border border-zinc-300 dark:border-white/[0.08] rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none bg-white dark:bg-[#1a1a1a] text-zinc-900 dark:text-white"
               placeholder="sua senha"
               disabled={loading}
             />

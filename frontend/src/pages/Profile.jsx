@@ -136,11 +136,11 @@ export default function Profile() {
     <div className="max-w-2xl mx-auto space-y-6">
       <h1 className="text-2xl font-bold text-zinc-800 dark:text-white">Meu Perfil</h1>
 
-      <div className="bg-white dark:bg-zinc-900 rounded-xl shadow-sm border border-zinc-100 dark:border-zinc-700 p-8">
+      <div className="rounded-2xl border border-white/[0.08] bg-white/[0.03] dark:bg-white/[0.03] backdrop-blur-sm p-8">
         {/* Avatar Section */}
         <div className="flex flex-col items-center mb-8">
           <div className="relative">
-            <div className="w-32 h-32 rounded-full overflow-hidden border-4 border-zinc-100 dark:border-zinc-700 bg-zinc-50 dark:bg-zinc-700">
+            <div className="w-32 h-32 rounded-full overflow-hidden border-4 border-zinc-100 dark:border-white/[0.08] bg-zinc-50 dark:bg-[#1a1a1a]">
               {formData.avatar ? (
                 <img 
                   src={formData.avatar} 
@@ -182,7 +182,7 @@ export default function Profile() {
                 name="fullName"
                 value={formData.fullName}
                 onChange={handleInputChange}
-                className="w-full px-4 py-2 border border-zinc-200 dark:border-zinc-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-zinc-50 dark:bg-zinc-700 focus:bg-white dark:focus:bg-zinc-600 text-zinc-900 dark:text-white transition-colors"
+                className="w-full px-4 py-2 border border-zinc-200 dark:border-white/[0.08] rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-zinc-50 dark:bg-[#1a1a1a] focus:bg-white dark:focus:bg-zinc-600 text-zinc-900 dark:text-white transition-colors"
                 placeholder="Seu nome completo"
               />
             </div>
@@ -194,7 +194,7 @@ export default function Profile() {
                 name="email"
                 value={formData.email}
                 onChange={handleInputChange}
-                className="w-full px-4 py-2 border border-zinc-200 dark:border-zinc-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-zinc-50 dark:bg-zinc-700 focus:bg-white dark:focus:bg-zinc-600 text-zinc-900 dark:text-white transition-colors"
+                className="w-full px-4 py-2 border border-zinc-200 dark:border-white/[0.08] rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-zinc-50 dark:bg-[#1a1a1a] focus:bg-white dark:focus:bg-zinc-600 text-zinc-900 dark:text-white transition-colors"
                 placeholder="seu@email.com"
               />
             </div>
@@ -207,7 +207,7 @@ export default function Profile() {
                 value={formData.cpf}
                 onChange={handleInputChange}
                 maxLength={14}
-                className="w-full px-4 py-2 border border-zinc-200 dark:border-zinc-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-zinc-50 dark:bg-zinc-700 focus:bg-white dark:focus:bg-zinc-600 text-zinc-900 dark:text-white transition-colors"
+                className="w-full px-4 py-2 border border-zinc-200 dark:border-white/[0.08] rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-zinc-50 dark:bg-[#1a1a1a] focus:bg-white dark:focus:bg-zinc-600 text-zinc-900 dark:text-white transition-colors"
                 placeholder="000.000.000-00"
               />
             </div>
@@ -220,7 +220,7 @@ export default function Profile() {
                 value={formData.phone}
                 onChange={handleInputChange}
                 maxLength={15}
-                className="w-full px-4 py-2 border border-zinc-200 dark:border-zinc-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-zinc-50 dark:bg-zinc-700 focus:bg-white dark:focus:bg-zinc-600 text-zinc-900 dark:text-white transition-colors"
+                className="w-full px-4 py-2 border border-zinc-200 dark:border-white/[0.08] rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-zinc-50 dark:bg-[#1a1a1a] focus:bg-white dark:focus:bg-zinc-600 text-zinc-900 dark:text-white transition-colors"
                 placeholder="(00) 00000-0000"
               />
             </div>
@@ -232,7 +232,7 @@ export default function Profile() {
                 name="birthDate"
                 value={formData.birthDate}
                 onChange={handleInputChange}
-                className="w-full px-4 py-2 border border-zinc-200 dark:border-zinc-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-zinc-50 dark:bg-zinc-700 focus:bg-white dark:focus:bg-zinc-600 text-zinc-900 dark:text-white transition-colors"
+                className="w-full px-4 py-2 border border-zinc-200 dark:border-white/[0.08] rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-zinc-50 dark:bg-[#1a1a1a] focus:bg-white dark:focus:bg-zinc-600 text-zinc-900 dark:text-white transition-colors"
               />
             </div>
           </div>
@@ -244,12 +244,12 @@ export default function Profile() {
               value={formData.address}
               onChange={handleInputChange}
               rows="3"
-              className="w-full px-4 py-2 border border-zinc-200 dark:border-zinc-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-zinc-50 dark:bg-zinc-700 focus:bg-white dark:focus:bg-zinc-600 text-zinc-900 dark:text-white transition-colors resize-none"
+              className="w-full px-4 py-2 border border-zinc-200 dark:border-white/[0.08] rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-zinc-50 dark:bg-[#1a1a1a] focus:bg-white dark:focus:bg-zinc-600 text-zinc-900 dark:text-white transition-colors resize-none"
               placeholder="Seu endereço completo"
             />
           </div>
 
-          <div className="pt-4 border-t border-zinc-100 dark:border-zinc-700 flex justify-end">
+          <div className="pt-4 border-t border-zinc-100 dark:border-white/[0.08] flex justify-end">
             <button
               type="submit"
               disabled={loading}

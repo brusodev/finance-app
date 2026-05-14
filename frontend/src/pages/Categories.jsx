@@ -131,8 +131,8 @@ export default function Categories() {
       {/* Form Modal */}
       {showForm && (
         <div className='fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4'>
-          <div className='bg-white dark:bg-zinc-900 rounded-xl shadow-xl w-full max-w-md overflow-hidden'>
-            <div className='flex justify-between items-center p-6 border-b border-zinc-100 dark:border-zinc-700'>
+          <div className='bg-white dark:bg-[#111111] rounded-xl shadow-xl w-full max-w-md overflow-hidden'>
+            <div className='flex justify-between items-center p-6 border-b border-zinc-100 dark:border-white/[0.08]'>
               <h2 className='text-xl font-semibold text-zinc-800 dark:text-white'>
                 {editingId ? 'Editar Categoria' : 'Nova Categoria'}
               </h2>
@@ -153,7 +153,7 @@ export default function Categories() {
                   type='text'
                   required
                   list="category-suggestions"
-                  className='w-full px-4 py-2 border border-zinc-200 dark:border-zinc-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-zinc-700 text-zinc-900 dark:text-white'
+                  className='w-full px-4 py-2 border border-zinc-200 dark:border-white/[0.08] rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-[#1a1a1a] text-zinc-900 dark:text-white'
                   value={formData.name}
                   onChange={(e) => setFormData({ ...formData, name: e.target.value })}
                   placeholder="Digite ou selecione uma sugestão"
@@ -184,7 +184,7 @@ export default function Categories() {
                         setFormData({ ...formData, icon: e.target.value })
                       }
                     }}
-                    className='w-full px-4 py-2 border border-zinc-200 dark:border-zinc-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-zinc-700 text-zinc-900 dark:text-white'
+                    className='w-full px-4 py-2 border border-zinc-200 dark:border-white/[0.08] rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-[#1a1a1a] text-zinc-900 dark:text-white'
                   />
                   <p className='text-xs text-zinc-500 dark:text-zinc-400 mt-1 text-center'>
                     Ou escolha entre as sugestões abaixo
@@ -195,7 +195,7 @@ export default function Categories() {
                 {iconSuggestions.length > 0 ? (
                   <div className='space-y-3 max-h-60 overflow-y-auto'>
                     {iconSuggestions.map((iconGroup, idx) => (
-                      <div key={idx} className='border-b border-zinc-100 dark:border-zinc-700 pb-2 last:border-0'>
+                      <div key={idx} className='border-b border-zinc-100 dark:border-white/[0.08] pb-2 last:border-0'>
                         <p className='text-xs font-medium text-zinc-600 dark:text-zinc-400 mb-1'>
                           {iconGroup.category}
                         </p>
@@ -206,7 +206,7 @@ export default function Categories() {
                               setFormData({ ...formData, icon: iconGroup.icon })
                               setCustomIcon('')
                             }}
-                            className={`text-xl p-1.5 rounded-lg hover:bg-zinc-100 dark:hover:bg-zinc-600 transition-colors ${
+                            className={`text-xl p-1.5 rounded-lg hover:bg-zinc-100 dark:hover:bg-white/[0.06] transition-colors ${
                               formData.icon === iconGroup.icon ? 'bg-blue-50 dark:bg-blue-900/30 ring-2 ring-blue-500' : ''
                             }`}
                           >
@@ -220,7 +220,7 @@ export default function Categories() {
                                 setFormData({ ...formData, icon })
                                 setCustomIcon('')
                               }}
-                              className={`text-xl p-1.5 rounded-lg hover:bg-zinc-100 dark:hover:bg-zinc-600 transition-colors ${
+                              className={`text-xl p-1.5 rounded-lg hover:bg-zinc-100 dark:hover:bg-white/[0.06] transition-colors ${
                                 formData.icon === icon ? 'bg-blue-50 dark:bg-blue-900/30 ring-2 ring-blue-500' : ''
                               }`}
                             >
@@ -251,26 +251,38 @@ export default function Categories() {
       )}
 
       {/* Categories Grid */}
-      <div className='grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6'>
+      <div className='grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4'>
         {categories.map((category) => (
-          <div key={category.id} className='bg-white dark:bg-zinc-900 p-6 rounded-xl shadow-sm border border-zinc-100 dark:border-zinc-700 hover:shadow-md transition-shadow flex flex-col items-center text-center'>
-            <div className='text-4xl mb-4'>{category.icon || '📁'}</div>
-            <h3 className='text-lg font-semibold text-zinc-800 dark:text-white mb-4'>{category.name}</h3>
-            
-            <div className='flex gap-2 w-full justify-center'>
-              <button 
-                onClick={() => handleEdit(category)} 
-                className='p-2 text-zinc-400 hover:text-blue-600 dark:hover:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/30 rounded-lg transition-colors'
+          <div
+            key={category.id}
+            className='group relative flex flex-col items-center text-center p-5 rounded-2xl border border-white/[0.08] bg-white/[0.03] dark:bg-white/[0.03] backdrop-blur-sm hover:bg-white/[0.07] hover:border-white/[0.15] transition-all duration-200 cursor-default'
+          >
+            {/* Ações — aparecem no hover */}
+            <div className='absolute top-2.5 right-2.5 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity duration-150'>
+              <button
+                onClick={() => handleEdit(category)}
+                className='p-1.5 rounded-lg text-zinc-400 hover:text-blue-400 hover:bg-blue-500/10 transition-colors'
+                title='Editar'
               >
-                <Edit2 size={18} />
+                <Edit2 size={14} />
               </button>
-              <button 
-                onClick={() => handleDelete(category.id)} 
-                className='p-2 text-zinc-400 hover:text-red-600 dark:hover:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/30 rounded-lg transition-colors'
+              <button
+                onClick={() => handleDelete(category.id)}
+                className='p-1.5 rounded-lg text-zinc-400 hover:text-red-400 hover:bg-red-500/10 transition-colors'
+                title='Excluir'
               >
-                <Trash2 size={18} />
+                <Trash2 size={14} />
               </button>
             </div>
+
+            {/* Ícone com halo */}
+            <div className='w-14 h-14 flex items-center justify-center rounded-2xl bg-white/[0.06] group-hover:bg-white/[0.1] mb-3 transition-colors duration-200'>
+              <span className='text-3xl'>{category.icon || '📁'}</span>
+            </div>
+
+            <h3 className='text-sm font-semibold text-zinc-700 dark:text-zinc-200 leading-tight'>
+              {category.name}
+            </h3>
           </div>
         ))}
       </div>

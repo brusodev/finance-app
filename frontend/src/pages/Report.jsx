@@ -18,7 +18,7 @@ const CATEGORY_COLORS = [
 function SpendingBar({ value, max, color }) {
   const pct = max > 0 ? Math.min((value / max) * 100, 100) : 0;
   return (
-    <div className="w-full bg-zinc-100 dark:bg-zinc-800 rounded-full h-2 mt-2">
+    <div className="w-full bg-zinc-100 dark:bg-[#1a1a1a] rounded-full h-2 mt-2">
       <div
         className="h-2 rounded-full transition-all duration-500"
         style={{ width: `${pct}%`, backgroundColor: color }}
@@ -45,7 +45,7 @@ function CategoryBarChart({ categories, maxExpense, currency }) {
             </div>
             <div className="flex-1 min-w-0">
               <div className="flex items-center gap-2">
-                <div className="flex-1 bg-zinc-100 dark:bg-zinc-800 rounded-full h-5 relative overflow-hidden">
+                <div className="flex-1 bg-zinc-100 dark:bg-[#1a1a1a] rounded-full h-5 relative overflow-hidden">
                   <div
                     className="h-5 rounded-full transition-all duration-500 flex items-center justify-end pr-2"
                     style={{ width: `${barWidth}%`, backgroundColor: color }}
@@ -209,6 +209,14 @@ export default function Report() {
   const maxExpense = onlyExpenses.length > 0 ? Math.abs(onlyExpenses[0].total_expense) : 0;
   const totalExpense = onlyExpenses.reduce((s, c) => s + Math.abs(c.total_expense), 0);
 
+  // Pagamentos de fatura de cartão no período: transfers negativos saindo de contas não-cartão
+  const creditCardPayments = allTransactions.filter(t =>
+    t.transaction_type === 'transfer' &&
+    t.amount < 0 &&
+    t.account?.account_type !== 'credit_card'
+  );
+  const totalCreditCardPayments = creditCardPayments.reduce((s, t) => s + Math.abs(t.amount), 0);
+
   if (loading) {
     return (
       <div className="flex items-center justify-center h-64">
@@ -236,7 +244,7 @@ export default function Report() {
         <select
           value={selectedMonth}
           onChange={(e) => setSelectedMonth(e.target.value)}
-          className="w-full sm:w-56 px-3 py-2 border border-zinc-300 dark:border-zinc-700 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-zinc-800 text-zinc-900 dark:text-white"
+          className="w-full sm:w-56 px-3 py-2 border border-zinc-300 dark:border-white/[0.08] rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-[#1a1a1a] text-zinc-900 dark:text-white"
         >
           <option value="current">Mês Atual</option>
           {availableMonths.length > 0 && <option disabled>─────────────</option>}
@@ -249,7 +257,7 @@ export default function Report() {
       {/* Summary Cards */}
       {dashboardData && (
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
-          <div className="bg-white dark:bg-zinc-900 p-4 rounded-xl shadow-sm border border-zinc-200 dark:border-zinc-800">
+          <div className="rounded-2xl border border-white/[0.08] bg-white/[0.03] dark:bg-white/[0.03] backdrop-blur-sm p-4">
             <div className="flex items-center justify-between mb-2">
               <p className="text-zinc-500 dark:text-zinc-400 text-xs font-medium">Saldo Total</p>
               <Wallet className="text-blue-500" size={16} />
@@ -259,7 +267,7 @@ export default function Report() {
             </p>
           </div>
 
-          <div className="bg-white dark:bg-zinc-900 p-4 rounded-xl shadow-sm border border-zinc-200 dark:border-zinc-800">
+          <div className="rounded-2xl border border-white/[0.08] bg-white/[0.03] dark:bg-white/[0.03] backdrop-blur-sm p-4">
             <div className="flex items-center justify-between mb-2">
               <p className="text-zinc-500 dark:text-zinc-400 text-xs font-medium">Saldo do Mês</p>
               {periodData?.balance >= 0
@@ -271,7 +279,7 @@ export default function Report() {
             </p>
           </div>
 
-          <div className="bg-white dark:bg-zinc-900 p-4 rounded-xl shadow-sm border border-zinc-200 dark:border-zinc-800">
+          <div className="rounded-2xl border border-white/[0.08] bg-white/[0.03] dark:bg-white/[0.03] backdrop-blur-sm p-4">
             <div className="flex items-center justify-between mb-2">
               <p className="text-zinc-500 dark:text-zinc-400 text-xs font-medium">Receitas</p>
               <ArrowUpCircle className="text-green-500" size={16} />
@@ -281,7 +289,7 @@ export default function Report() {
             </p>
           </div>
 
-          <div className="bg-white dark:bg-zinc-900 p-4 rounded-xl shadow-sm border border-zinc-200 dark:border-zinc-800">
+          <div className="rounded-2xl border border-white/[0.08] bg-white/[0.03] dark:bg-white/[0.03] backdrop-blur-sm p-4">
             <div className="flex items-center justify-between mb-2">
               <p className="text-zinc-500 dark:text-zinc-400 text-xs font-medium">Despesas</p>
               <ArrowDownCircle className="text-red-500" size={16} />
@@ -289,13 +297,18 @@ export default function Report() {
             <p className="text-xl font-bold text-red-600 dark:text-red-400">
               {formatCurrency(Math.abs(dashboardData.total_expense), user?.currency)}
             </p>
+            {totalCreditCardPayments > 0 && (
+              <p className="text-xs text-zinc-500 dark:text-zinc-400 mt-1">
+                + {formatCurrency(totalCreditCardPayments, user?.currency)} em faturas
+              </p>
+            )}
           </div>
         </div>
       )}
 
       {/* Income vs Expense visual */}
       {periodData && (periodData.total_income > 0 || Math.abs(periodData.total_expense) > 0) && (
-        <div className="bg-white dark:bg-zinc-900 p-4 sm:p-6 rounded-xl shadow-sm border border-zinc-200 dark:border-zinc-800">
+        <div className="rounded-2xl border border-white/[0.08] bg-white/[0.03] dark:bg-white/[0.03] backdrop-blur-sm p-4 sm:p-6">
           <h3 className="font-semibold text-zinc-800 dark:text-white mb-4 text-sm sm:text-base">Receitas vs Despesas</h3>
           <div className="flex flex-col sm:flex-row items-center gap-4 sm:gap-8">
             <div className="shrink-0">
@@ -340,10 +353,42 @@ export default function Report() {
         </div>
       )}
 
+      {/* Pagamentos de fatura de cartão */}
+      {creditCardPayments.length > 0 && (
+        <div className="rounded-2xl border border-white/[0.08] bg-white/[0.03] dark:bg-white/[0.03] backdrop-blur-sm p-4 sm:p-6">
+          <div className="flex items-center justify-between mb-3">
+            <h3 className="font-semibold text-zinc-800 dark:text-white text-sm sm:text-base">
+              Pagamentos de Fatura
+            </h3>
+            <span className="text-xs font-semibold text-orange-500 dark:text-orange-400">
+              {formatCurrency(totalCreditCardPayments, user?.currency)}
+            </span>
+          </div>
+          <div className="space-y-2">
+            {creditCardPayments.map(t => (
+              <div key={t.id} className="flex items-center justify-between gap-3 text-sm py-1.5 border-t border-white/[0.04] first:border-0">
+                <div className="flex-1 min-w-0">
+                  <p className="text-zinc-700 dark:text-zinc-300 truncate">{t.description}</p>
+                  <p className="text-xs text-zinc-500 dark:text-zinc-400">
+                    {formatDateLocal(t.date)}{t.account?.name ? ` · ${t.account.name}` : ''}
+                  </p>
+                </div>
+                <span className="font-semibold text-orange-600 dark:text-orange-400 shrink-0">
+                  -{formatCurrency(Math.abs(t.amount), user?.currency)}
+                </span>
+              </div>
+            ))}
+          </div>
+          <p className="text-xs text-zinc-500 dark:text-zinc-400 mt-3 pt-2 border-t border-white/[0.04]">
+            Pagamentos de fatura são transferências e não contam como despesa para evitar dupla contagem com os gastos do cartão.
+          </p>
+        </div>
+      )}
+
       {/* Category breakdown with tabs */}
-      <div className="bg-white dark:bg-zinc-900 rounded-xl shadow-sm border border-zinc-200 dark:border-zinc-800 overflow-hidden">
+      <div className="rounded-2xl border border-white/[0.08] bg-white/[0.03] dark:bg-white/[0.03] backdrop-blur-sm overflow-hidden">
         {/* Tab bar */}
-        <div className="flex border-b border-zinc-200 dark:border-zinc-800">
+        <div className="flex border-b border-zinc-200 dark:border-white/[0.06]">
           <button
             onClick={() => setActiveTab('grafico')}
             className={`flex-1 py-3 text-sm font-medium transition-colors ${activeTab === 'grafico'
@@ -375,7 +420,7 @@ export default function Report() {
           </div>
 
           {onlyExpenses.length === 0 ? (
-            <div className="h-32 flex items-center justify-center bg-zinc-50 dark:bg-zinc-800 rounded-lg text-zinc-400 dark:text-zinc-500 text-sm">
+            <div className="h-32 flex items-center justify-center bg-zinc-50 dark:bg-[#1a1a1a] rounded-lg text-zinc-400 dark:text-zinc-500 text-sm">
               Nenhuma despesa neste período
             </div>
           ) : activeTab === 'grafico' ? (
@@ -398,10 +443,10 @@ export default function Report() {
                   : null;
 
                 return (
-                  <div key={category.category_id} className="border border-zinc-200 dark:border-zinc-800 rounded-lg overflow-hidden">
+                  <div key={category.category_id} className="border border-zinc-200 dark:border-white/[0.06] rounded-lg overflow-hidden">
                     <button
                       onClick={() => toggleCategory(category.category_id)}
-                      className="w-full p-3 sm:p-4 hover:bg-zinc-50 dark:hover:bg-zinc-800 transition-colors text-left"
+                      className="w-full p-3 sm:p-4 hover:bg-zinc-50 dark:hover:bg-white/[0.06] transition-colors text-left"
                     >
                       <div className="flex items-center gap-2">
                         {isExpanded
@@ -441,7 +486,7 @@ export default function Report() {
                     </button>
 
                     {isExpanded && (
-                      <div className="border-t border-zinc-200 dark:border-zinc-800 bg-zinc-50 dark:bg-zinc-800/50">
+                      <div className="border-t border-zinc-200 dark:border-white/[0.06] bg-zinc-50 dark:bg-[#1a1a1a]/50">
                         {categoryTransactions.length > 0 ? (
                           <div className="divide-y divide-zinc-200 dark:divide-zinc-700">
                             {categoryTransactions.map((t) => (

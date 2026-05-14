@@ -100,7 +100,7 @@ export default function TransferForm({ accounts, onSubmit, onCancel }) {
         <select
           value={fromAccountId}
           onChange={(e) => setFromAccountId(e.target.value)}
-          className="w-full px-3 py-2 border border-zinc-300 dark:border-zinc-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-zinc-800 text-zinc-900 dark:text-white"
+          className="w-full px-3 py-2 border border-zinc-300 dark:border-white/[0.08] rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-[#1a1a1a] text-zinc-900 dark:text-white"
           required
         >
           <option value="">Selecione a conta de origem</option>
@@ -120,7 +120,7 @@ export default function TransferForm({ accounts, onSubmit, onCancel }) {
         <select
           value={toAccountId}
           onChange={(e) => setToAccountId(e.target.value)}
-          className="w-full px-3 py-2 border border-zinc-300 dark:border-zinc-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-zinc-800 text-zinc-900 dark:text-white"
+          className="w-full px-3 py-2 border border-zinc-300 dark:border-white/[0.08] rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-[#1a1a1a] text-zinc-900 dark:text-white"
           required
         >
           <option value="">Selecione a conta de destino</option>
@@ -151,7 +151,7 @@ export default function TransferForm({ accounts, onSubmit, onCancel }) {
             min="0.01"
             value={amount}
             onChange={(e) => setAmount(e.target.value)}
-            className="w-full pl-10 pr-3 py-2 border border-zinc-300 dark:border-zinc-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-zinc-800 text-zinc-900 dark:text-white"
+            className="w-full pl-10 pr-3 py-2 border border-zinc-300 dark:border-white/[0.08] rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-[#1a1a1a] text-zinc-900 dark:text-white"
             placeholder="0.00"
             required
           />
@@ -172,7 +172,7 @@ export default function TransferForm({ accounts, onSubmit, onCancel }) {
           type="date"
           value={date}
           onChange={(e) => setDate(e.target.value)}
-          className="w-full px-3 py-2 border border-zinc-300 dark:border-zinc-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-zinc-800 text-zinc-900 dark:text-white"
+          className="w-full px-3 py-2 border border-zinc-300 dark:border-white/[0.08] rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-[#1a1a1a] text-zinc-900 dark:text-white"
           required
         />
       </div>
@@ -186,7 +186,7 @@ export default function TransferForm({ accounts, onSubmit, onCancel }) {
           type="text"
           value={description}
           onChange={(e) => setDescription(e.target.value)}
-          className="w-full px-3 py-2 border border-zinc-300 dark:border-zinc-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-zinc-800 text-zinc-900 dark:text-white"
+          className="w-full px-3 py-2 border border-zinc-300 dark:border-white/[0.08] rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-[#1a1a1a] text-zinc-900 dark:text-white"
           placeholder="Descrição da transferência"
         />
       </div>
@@ -232,7 +232,7 @@ export default function TransferForm({ accounts, onSubmit, onCancel }) {
           <button
             type="button"
             onClick={onCancel}
-            className="px-4 py-2 border border-zinc-300 dark:border-zinc-700 rounded-lg hover:bg-gray-50 dark:hover:bg-zinc-800 text-zinc-900 dark:text-white"
+            className="px-4 py-2 border border-zinc-300 dark:border-white/[0.08] rounded-lg hover:bg-gray-50 dark:hover:bg-white/[0.06] text-zinc-900 dark:text-white"
           >
             Cancelar
           </button>

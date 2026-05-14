@@ -178,7 +178,7 @@ export default function InvestmentGoal() {
 
       {/* Goal Form */}
       {showForm && (
-        <div className="bg-white dark:bg-zinc-900 p-6 rounded-xl shadow-sm border border-zinc-200 dark:border-zinc-800">
+        <div className="rounded-2xl border border-white/[0.08] bg-white/[0.03] dark:bg-white/[0.03] backdrop-blur-sm p-6">
           <div className="flex justify-between items-center mb-6">
             <h3 className="text-lg font-semibold text-zinc-800 dark:text-white">
               {goal ? "Editar Meta" : "Criar Nova Meta"}
@@ -206,7 +206,7 @@ export default function InvestmentGoal() {
                   required
                   value={formData.goal_name}
                   onChange={(e) => setFormData({ ...formData, goal_name: e.target.value })}
-                  className="w-full px-3 py-2 border border-zinc-300 dark:border-zinc-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-zinc-800 text-zinc-900 dark:text-white"
+                  className="w-full px-3 py-2 border border-zinc-300 dark:border-white/[0.08] rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-[#1a1a1a] text-zinc-900 dark:text-white"
                   placeholder="Ex: Aposentadoria, Casa própria..."
                 />
               </div>
@@ -221,7 +221,7 @@ export default function InvestmentGoal() {
                   step="0.01"
                   value={formData.target_value_brl}
                   onChange={(e) => setFormData({ ...formData, target_value_brl: e.target.value })}
-                  className="w-full px-3 py-2 border border-zinc-300 dark:border-zinc-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-zinc-800 text-zinc-900 dark:text-white"
+                  className="w-full px-3 py-2 border border-zinc-300 dark:border-white/[0.08] rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-[#1a1a1a] text-zinc-900 dark:text-white"
                   placeholder="500000"
                 />
               </div>
@@ -235,7 +235,7 @@ export default function InvestmentGoal() {
                   required
                   value={formData.start_date}
                   onChange={(e) => setFormData({ ...formData, start_date: e.target.value })}
-                  className="w-full px-3 py-2 border border-zinc-300 dark:border-zinc-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-zinc-800 text-zinc-900 dark:text-white"
+                  className="w-full px-3 py-2 border border-zinc-300 dark:border-white/[0.08] rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-[#1a1a1a] text-zinc-900 dark:text-white"
                 />
               </div>
 
@@ -248,7 +248,7 @@ export default function InvestmentGoal() {
                   required
                   value={formData.months}
                   onChange={(e) => setFormData({ ...formData, months: e.target.value })}
-                  className="w-full px-3 py-2 border border-zinc-300 dark:border-zinc-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-zinc-800 text-zinc-900 dark:text-white"
+                  className="w-full px-3 py-2 border border-zinc-300 dark:border-white/[0.08] rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-[#1a1a1a] text-zinc-900 dark:text-white"
                   placeholder="120"
                 />
                 <p className="text-xs text-zinc-500 dark:text-zinc-400 mt-1">
@@ -266,7 +266,7 @@ export default function InvestmentGoal() {
                   step="0.01"
                   value={(formData.default_monthly_rate * 100).toFixed(2)}
                   onChange={(e) => setFormData({ ...formData, default_monthly_rate: parseFloat(e.target.value) / 100 })}
-                  className="w-full px-3 py-2 border border-zinc-300 dark:border-zinc-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-zinc-800 text-zinc-900 dark:text-white"
+                  className="w-full px-3 py-2 border border-zinc-300 dark:border-white/[0.08] rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-[#1a1a1a] text-zinc-900 dark:text-white"
                   placeholder="0.9"
                 />
               </div>
@@ -301,7 +301,7 @@ export default function InvestmentGoal() {
                           required
                           value={step.start_month}
                           onChange={(e) => updateStep(index, 'start_month', e.target.value)}
-                          className="w-full px-3 py-2 border border-zinc-300 dark:border-zinc-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-zinc-800 text-zinc-900 dark:text-white"
+                          className="w-full px-3 py-2 border border-zinc-300 dark:border-white/[0.08] rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-[#1a1a1a] text-zinc-900 dark:text-white"
                         />
                       </div>
                       <div>
@@ -313,7 +313,7 @@ export default function InvestmentGoal() {
                           required
                           value={step.end_month}
                           onChange={(e) => updateStep(index, 'end_month', e.target.value)}
-                          className="w-full px-3 py-2 border border-zinc-300 dark:border-zinc-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-zinc-800 text-zinc-900 dark:text-white"
+                          className="w-full px-3 py-2 border border-zinc-300 dark:border-white/[0.08] rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-[#1a1a1a] text-zinc-900 dark:text-white"
                         />
                       </div>
                       <div>
@@ -326,7 +326,7 @@ export default function InvestmentGoal() {
                           step="0.01"
                           value={step.monthly_contribution_brl}
                           onChange={(e) => updateStep(index, 'monthly_contribution_brl', e.target.value)}
-                          className="w-full px-3 py-2 border border-zinc-300 dark:border-zinc-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-zinc-800 text-zinc-900 dark:text-white"
+                          className="w-full px-3 py-2 border border-zinc-300 dark:border-white/[0.08] rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-[#1a1a1a] text-zinc-900 dark:text-white"
                         />
                       </div>
                     </div>
@@ -354,7 +354,7 @@ export default function InvestmentGoal() {
                 <button
                   type="button"
                   onClick={() => setShowForm(false)}
-                  className="px-6 py-3 bg-zinc-200 dark:bg-zinc-700 text-zinc-800 dark:text-white rounded-lg hover:bg-zinc-300 dark:hover:bg-zinc-600 transition-colors"
+                  className="px-6 py-3 bg-zinc-200 dark:bg-[#1a1a1a] text-zinc-800 dark:text-white rounded-lg hover:bg-zinc-300 dark:hover:bg-white/[0.06] transition-colors"
                 >
                   Cancelar
                 </button>
@@ -367,7 +367,7 @@ export default function InvestmentGoal() {
       {/* Goal Display (when not editing) */}
       {goal && !showForm && (
         <>
-          <div className="bg-white dark:bg-zinc-900 p-6 rounded-xl shadow-sm border border-zinc-200 dark:border-zinc-800">
+          <div className="rounded-2xl border border-white/[0.08] bg-white/[0.03] dark:bg-white/[0.03] backdrop-blur-sm p-6">
             <h3 className="text-lg font-semibold text-zinc-800 dark:text-white mb-4">
               {goal.goal_name}
             </h3>
@@ -392,7 +392,7 @@ export default function InvestmentGoal() {
               </div>
             </div>
 
-            <div className="mt-6 pt-6 border-t border-zinc-200 dark:border-zinc-800">
+            <div className="mt-6 pt-6 border-t border-zinc-200 dark:border-white/[0.06]">
               <h4 className="font-semibold text-zinc-800 dark:text-white mb-3">
                 Plano de Aportes
               </h4>
@@ -400,7 +400,7 @@ export default function InvestmentGoal() {
                 {goal.steps.map((step, index) => (
                   <div
                     key={step.id}
-                    className="flex items-center justify-between p-3 bg-zinc-50 dark:bg-zinc-800 rounded-lg"
+                    className="flex items-center justify-between p-3 bg-zinc-50 dark:bg-[#1a1a1a] rounded-lg"
                   >
                     <span className="text-sm text-zinc-600 dark:text-zinc-400">
                       Meses {step.start_month} - {step.end_month}
@@ -415,7 +415,7 @@ export default function InvestmentGoal() {
           </div>
 
           {/* Simulation */}
-          <div className="bg-white dark:bg-zinc-900 p-6 rounded-xl shadow-sm border border-zinc-200 dark:border-zinc-800">
+          <div className="rounded-2xl border border-white/[0.08] bg-white/[0.03] dark:bg-white/[0.03] backdrop-blur-sm p-6">
             <div className="flex items-center gap-2 mb-4">
               <Calculator size={20} className="text-purple-500" />
               <h3 className="text-lg font-semibold text-zinc-800 dark:text-white">
@@ -435,7 +435,7 @@ export default function InvestmentGoal() {
                     const rate = parseFloat(e.target.value) / 100;
                     setSimulationParams({ ...simulationParams, rate_monthly: rate });
                   }}
-                  className="w-full px-3 py-2 border border-zinc-300 dark:border-zinc-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-zinc-800 text-zinc-900 dark:text-white"
+                  className="w-full px-3 py-2 border border-zinc-300 dark:border-white/[0.08] rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-[#1a1a1a] text-zinc-900 dark:text-white"
                 />
               </div>
               <div>
@@ -446,7 +446,7 @@ export default function InvestmentGoal() {
                   type="number"
                   value={simulationParams.months}
                   onChange={(e) => setSimulationParams({ ...simulationParams, months: parseInt(e.target.value) })}
-                  className="w-full px-3 py-2 border border-zinc-300 dark:border-zinc-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-zinc-800 text-zinc-900 dark:text-white"
+                  className="w-full px-3 py-2 border border-zinc-300 dark:border-white/[0.08] rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-[#1a1a1a] text-zinc-900 dark:text-white"
                 />
               </div>
             </div>
@@ -459,7 +459,7 @@ export default function InvestmentGoal() {
           </div>
 
           {simulation && (
-            <div className="bg-white dark:bg-zinc-900 p-6 rounded-xl shadow-sm border border-zinc-200 dark:border-zinc-800">
+            <div className="rounded-2xl border border-white/[0.08] bg-white/[0.03] dark:bg-white/[0.03] backdrop-blur-sm p-6">
               <div className="flex items-center gap-2 mb-4">
                 <TrendingUp size={20} className="text-green-500" />
                 <h3 className="text-lg font-semibold text-zinc-800 dark:text-white">
@@ -500,7 +500,7 @@ export default function InvestmentGoal() {
                       <span className="text-xs text-zinc-500 dark:text-zinc-400 w-12">
                         M{month.month}
                       </span>
-                      <div className="flex-1 bg-zinc-200 dark:bg-zinc-800 rounded-full h-6 relative overflow-hidden">
+                      <div className="flex-1 bg-zinc-200 dark:bg-[#1a1a1a] rounded-full h-6 relative overflow-hidden">
                         <div
                           className="bg-gradient-to-r from-green-500 to-blue-600 h-full rounded-full flex items-center px-2"
                           style={{ width: `${percentage}%` }}
