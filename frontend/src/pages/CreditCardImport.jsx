@@ -106,12 +106,17 @@ export default function CreditCardImport() {
   }, [accountId])
 
   useEffect(() => {
-    if (selectedBatch || !location.state?.openLatestStatement) return
-    if (batches.length === 0) return
+    if (selectedBatch || batches.length === 0) return
 
-    const latestConfirmed = batches.find(batch => batch.status === 'confirmed') ?? batches[0]
-    if (latestConfirmed) {
-      fetchBatch(latestConfirmed.id)
+    if (location.state?.batchId) {
+      const target = batches.find(b => b.id === location.state.batchId)
+      if (target) fetchBatch(target.id)
+      return
+    }
+
+    if (location.state?.openLatestStatement) {
+      const latestConfirmed = batches.find(batch => batch.status === 'confirmed') ?? batches[0]
+      if (latestConfirmed) fetchBatch(latestConfirmed.id)
     }
   }, [location.state, batches, selectedBatch])
 

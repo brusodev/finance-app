@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import {
   CreditCard, Plus, Settings, ChevronRight, Calendar,
-  DollarSign, X, Check, AlertCircle, Trash2
+  DollarSign, X, Check, AlertCircle, Trash2, History
 } from 'lucide-react'
 import { accountsAPI, creditCardsAPI } from '../services/api'
 import { formatCurrency } from '../utils/formatters'
@@ -44,6 +44,9 @@ export default function CreditCards() {
   })
   const [paymentSaving, setPaymentSaving] = useState(false)
   const [paymentError, setPaymentError] = useState('')
+  const [historyModal, setHistoryModal] = useState(null) // { account, batches }
+  const [historyLoading, setHistoryLoading] = useState(false)
+  const [allBatches, setAllBatches] = useState({})
 
   useEffect(() => { fetchData() }, [])
 
@@ -212,6 +215,22 @@ export default function CreditCards() {
   const closePaymentModal = () => {
     setPaymentModal(null)
     setPaymentError('')
+  }
+
+  const openHistory = async (account) => {
+    setHistoryLoading(true)
+    setHistoryModal({ account, batches: [] })
+    try {
+      const batches = await creditCardsAPI.listBatches(account.id)
+      setHistoryModal({ account, batches })
+      setAllBatches(prev => ({ ...prev, [account.id]: batches }))
+    } finally {
+      setHistoryLoading(false)
+    }
+  }
+
+  const goToBatch = (accountId, batchId) => {
+    navigate(`/cartoes/${accountId}/importar`, { state: { batchId } })
   }
 
   const registerPayment = async () => {
@@ -411,6 +430,13 @@ export default function CreditCards() {
                       Editar
                     </button>
                     <button
+                      onClick={() => openHistory(account)}
+                      className="flex items-center gap-2 px-3 py-2 text-sm text-zinc-600 dark:text-zinc-300 border border-zinc-200 dark:border-zinc-700 rounded-lg hover:bg-zinc-50 dark:hover:bg-zinc-800 transition-colors"
+                    >
+                      <History size={15} />
+                      Histórico
+                    </button>
+                    <button
                       onClick={() => navigate(`/cartoes/${account.id}/importar`)}
                       className="flex-1 flex items-center justify-center gap-2 px-3 py-2 text-sm bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors"
                     >
@@ -590,6 +616,93 @@ export default function CreditCards() {
                   : <><Check size={16} /> {modal.mode === 'new' ? 'Criar cartão' : 'Salvar'}</>
                 }
               </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {historyModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
+          <div className="bg-white dark:bg-zinc-900 rounded-xl shadow-xl w-full max-w-lg max-h-[80vh] flex flex-col">
+            <div className="flex items-center justify-between p-5 border-b border-zinc-200 dark:border-zinc-800 flex-shrink-0">
+              <div>
+                <h2 className="text-lg font-bold text-zinc-800 dark:text-white">Histórico de faturas</h2>
+                <p className="text-sm text-zinc-500 dark:text-zinc-400">{historyModal.account.name}</p>
+              </div>
+              <button
+                onClick={() => setHistoryModal(null)}
+                className="text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-200 transition-colors"
+              >
+                <X size={20} />
+              </button>
+            </div>
+
+            <div className="overflow-y-auto flex-1 p-5">
+              {historyLoading ? (
+                <div className="flex justify-center py-8">
+                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600" />
+                </div>
+              ) : historyModal.batches.length === 0 ? (
+                <p className="text-center text-zinc-500 dark:text-zinc-400 py-8">Nenhuma fatura encontrada</p>
+              ) : (
+                <div className="space-y-2">
+                  {historyModal.batches.map(batch => {
+                    const refDate = new Date(batch.reference_month + 'T12:00:00')
+                    const monthLabel = refDate.toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' })
+                    const stmt = batch.statement
+                    const statusMap = {
+                      open: { label: 'Aberta', cls: 'bg-zinc-100 dark:bg-zinc-700 text-zinc-600 dark:text-zinc-300' },
+                      confirmed: { label: 'Confirmada', cls: 'bg-blue-100 dark:bg-blue-900/40 text-blue-700 dark:text-blue-300' },
+                      paid: { label: 'Paga', cls: 'bg-green-100 dark:bg-green-900/40 text-green-700 dark:text-green-300' },
+                      partial: { label: 'Parcial', cls: 'bg-amber-100 dark:bg-amber-900/40 text-amber-700 dark:text-amber-300' },
+                      cancelled: { label: 'Cancelada', cls: 'bg-red-100 dark:bg-red-900/40 text-red-600 dark:text-red-400' },
+                    }
+                    const statusKey = stmt?.status ?? batch.status
+                    const { label: statusLabel, cls: statusCls } = statusMap[statusKey] ?? statusMap.open
+                    const total = stmt?.total_amount ?? batch.total_amount ?? 0
+                    const paid = stmt?.paid_amount ?? 0
+                    const pending = Math.max(total - paid, 0)
+
+                    return (
+                      <button
+                        key={batch.id}
+                        onClick={() => goToBatch(historyModal.account.id, batch.id)}
+                        className="w-full flex items-center justify-between gap-3 p-3 rounded-lg border border-zinc-200 dark:border-zinc-700 hover:border-blue-400 dark:hover:border-blue-500 hover:bg-zinc-50 dark:hover:bg-zinc-800 transition-colors text-left"
+                      >
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-2 flex-wrap">
+                            <span className="font-medium text-zinc-800 dark:text-white capitalize">{monthLabel}</span>
+                            <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${statusCls}`}>{statusLabel}</span>
+                          </div>
+                          {stmt?.due_date && (
+                            <p className="text-xs text-zinc-500 dark:text-zinc-400 mt-0.5">
+                              Venc. {new Date(stmt.due_date + 'T12:00:00').toLocaleDateString('pt-BR')}
+                            </p>
+                          )}
+                          {paid > 0 && pending > 0 && (
+                            <p className="text-xs text-amber-600 dark:text-amber-400 mt-0.5">
+                              Pendente: {formatCurrency(pending, user?.currency)}
+                            </p>
+                          )}
+                        </div>
+                        <div className="flex items-center gap-3 flex-shrink-0">
+                          <div className="text-right">
+                            <p className="font-semibold text-zinc-800 dark:text-white">
+                              {formatCurrency(total, user?.currency)}
+                            </p>
+                            {paid > 0 && (
+                              <p className="text-xs text-green-600 dark:text-green-400">
+                                Pago: {formatCurrency(paid, user?.currency)}
+                              </p>
+                            )}
+                          </div>
+                          <ChevronRight size={16} className="text-zinc-400" />
+                        </div>
+                      </button>
+                    )
+                  })}
+                </div>
+              )}
             </div>
           </div>
         </div>
