@@ -200,7 +200,7 @@ environment = os.getenv("ENVIRONMENT", "production")
 if environment == "production":
     # Requisições chegam do nginx no mesmo host: origem é o próprio domínio
     allowed_origins = [
-        "https://finance.projdev.site",
+        "https://prospera.projtdev.site",
         "http://finance-frontend",   # container interno
     ]
 else:
