@@ -37,6 +37,8 @@ services:
       - ENVIRONMENT=production
       - FRONTEND_URL=${FRONTEND_URL}
       - ALLOWED_ORIGINS=${ALLOWED_ORIGINS}
+      - GROQ_API_KEY=${GROQ_API_KEY}
+      - GROQ_MODEL=${GROQ_MODEL}
     ports:
       - "8000:8000"
     depends_on:

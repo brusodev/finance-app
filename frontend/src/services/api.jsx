@@ -730,6 +730,15 @@ export const creditCardsAPI = {
     return handleResponse(response);
   },
 
+  // ---- Classify (IA) ----
+  classifyBatch: async (accountId, batchId) => {
+    const response = await fetch(
+      `${API_URL}/credit-cards/${accountId}/batches/${batchId}/classify`,
+      { method: "POST", headers: getHeaders(), credentials: "include" }
+    );
+    return handleResponse(response);
+  },
+
   // ---- Confirm ----
   confirmBatch: async (accountId, batchId) => {
     const response = await fetch(

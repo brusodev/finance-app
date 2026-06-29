@@ -1,11 +1,13 @@
 import React, { useState, useEffect } from 'react'
-import { Plus, Edit2, Trash2, X, Wallet } from 'lucide-react'
+import { useNavigate } from 'react-router-dom'
+import { Plus, Edit2, Trash2, X, Wallet, Upload } from 'lucide-react'
 import { accountsAPI } from '../services/api'
 import { formatCurrency } from '../utils/formatters'
 import { useAuth } from '../context/AuthContext'
 
 export default function Accounts() {
   const { user } = useAuth()
+  const navigate = useNavigate()
   const [accounts, setAccounts] = useState([])
   const [loading, setLoading] = useState(false)
   const [showForm, setShowForm] = useState(false)
@@ -244,6 +246,15 @@ export default function Accounts() {
             <p className={`text-2xl font-bold ${account.balance >= 0 ? 'text-zinc-900 dark:text-white' : 'text-red-600 dark:text-red-400'}`}>
               {formatCurrency(account.balance, user?.currency)}
             </p>
+
+            {account.account_type !== 'credit_card' && (
+              <button
+                onClick={() => navigate(`/contas/${account.id}/importar`)}
+                className='mt-4 w-full flex items-center justify-center gap-1.5 px-3 py-2 text-sm border border-zinc-300 dark:border-white/[0.08] text-zinc-600 dark:text-zinc-300 rounded-lg hover:bg-zinc-50 dark:hover:bg-white/[0.06] transition-colors'
+              >
+                <Upload size={15} /> Importar extrato
+              </button>
+            )}
           </div>
         ))}
       </div>

@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, String, Float, Date, ForeignKey, Text, Boolean, DateTime, Enum
+from sqlalchemy import Column, Integer, String, Float, Date, ForeignKey, Text, Boolean, DateTime, Enum, UniqueConstraint
 from sqlalchemy.orm import relationship
 from datetime import datetime
 from .database import Base
@@ -50,6 +50,7 @@ class Transaction(Base):
     amount = Column(Float)
     date = Column(Date, index=True)  # Índice para ordenação e filtros
     description = Column(String, index=True)  # Índice para sugestões
+    raw_description = Column(String, nullable=True)  # Memo íntegro do extrato (origem)
     transaction_type = Column(String, index=True)  # Índice para filtros ('income', 'expense', 'transfer')
     category_id = Column(Integer, ForeignKey('categories.id'), index=True)
     account_id = Column(Integer, ForeignKey('accounts.id'), nullable=True, index=True)
@@ -287,6 +288,8 @@ class ImportItem(Base):
     amount = Column(Float, nullable=False)           # Pode ser corrigido
     date = Column(Date, nullable=False)
     category_id = Column(Integer, ForeignKey('categories.id'), nullable=True, index=True)
+    # Tipo do lançamento: 'income' ou 'expense' (preenchido pela IA, editável)
+    transaction_type = Column(String, nullable=True)
 
     # Informações de parcelamento (ex: "3/10")
     installment_current = Column(Integer, nullable=True)
@@ -299,3 +302,35 @@ class ImportItem(Base):
     batch = relationship("ImportBatch", back_populates="items")
     category = relationship("Category")
     transaction = relationship("Transaction")
+
+
+class MerchantAlias(Base):
+    """
+    Memória de classificação por usuário: associa o memo íntegro do
+    banco (normalizado) a um nome amigável + categoria + tipo.
+
+    Alimentada a cada confirmação de lote. Serve como cache (acerta
+    sem chamar a IA) e como contexto/few-shot mais preciso.
+    """
+    __tablename__ = 'merchant_aliases'
+
+    id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(Integer, ForeignKey('users.id'), nullable=False, index=True)
+    # Chave de busca: raw_description normalizado (lower, sem parcela)
+    raw_key = Column(String, nullable=False, index=True)
+    # Texto bruto original (referência humana)
+    raw_description = Column(String, nullable=True)
+    # Nome amigável aprendido
+    friendly_name = Column(String, nullable=True)
+    category_id = Column(Integer, ForeignKey('categories.id', ondelete='SET NULL'), nullable=True)
+    transaction_type = Column(String, nullable=True)  # 'income' | 'expense'
+    # Quantas vezes foi confirmado assim (desempate por frequência)
+    hits = Column(Integer, nullable=False, default=1)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+    __table_args__ = (
+        UniqueConstraint('user_id', 'raw_key', name='uq_merchant_alias_user_key'),
+    )
+
+    user = relationship("User")
+    category = relationship("Category")

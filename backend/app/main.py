@@ -67,6 +67,18 @@ def run_migrations():
                 "account_transaction_id INTEGER REFERENCES transactions(id)",
                 "investment_transactions.account_transaction_id"
             ),
+            # Import item migrations
+            (
+                "ALTER TABLE import_items ADD COLUMN IF NOT EXISTS "
+                "transaction_type VARCHAR",
+                "import_items.transaction_type"
+            ),
+            # Transaction: memo íntegro do extrato
+            (
+                "ALTER TABLE transactions ADD COLUMN IF NOT EXISTS "
+                "raw_description VARCHAR",
+                "transactions.raw_description"
+            ),
         ]
     else:
         migrations = [
@@ -120,6 +132,16 @@ def run_migrations():
                 "ALTER TABLE investment_transactions ADD COLUMN "
                 "account_transaction_id INTEGER REFERENCES transactions(id)",
                 "investment_transactions.account_transaction_id"
+            ),
+            # Import item migrations
+            (
+                "ALTER TABLE import_items ADD COLUMN transaction_type VARCHAR",
+                "import_items.transaction_type"
+            ),
+            # Transaction: memo íntegro do extrato
+            (
+                "ALTER TABLE transactions ADD COLUMN raw_description VARCHAR",
+                "transactions.raw_description"
             ),
         ]
 

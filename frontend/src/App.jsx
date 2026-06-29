@@ -159,6 +159,14 @@ function App() {
                 </ProtectedRoute>
               } />
 
+              <Route path="/contas/:accountId/importar" element={
+                <ProtectedRoute>
+                  <Layout>
+                    <CreditCardImport />
+                  </Layout>
+                </ProtectedRoute>
+              } />
+
             </Routes>
           </TransactionProvider>
         </AuthProvider>

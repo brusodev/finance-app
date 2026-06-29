@@ -3,7 +3,7 @@ import { useParams, useNavigate, useLocation } from 'react-router-dom'
 import {
   Upload, Plus, Check, X, ChevronLeft, FileText,
   Pencil, Trash2, AlertCircle, CheckCircle2, Clock,
-  CreditCard, Calendar
+  CreditCard, Calendar, Sparkles, Wallet
 } from 'lucide-react'
 import { creditCardsAPI, accountsAPI, categoriesAPI } from '../services/api'
 import { formatCurrency, formatDateLocal } from '../utils/formatters'
@@ -90,6 +90,10 @@ export default function CreditCardImport() {
   const [confirming, setConfirming] = useState(false)
   const [confirmResult, setConfirmResult] = useState(null)
 
+  // Classify (IA)
+  const [classifying, setClassifying] = useState(false)
+  const [classifyResult, setClassifyResult] = useState(null)
+
   // Statement payment
   const [paymentForm, setPaymentForm] = useState({
     from_account_id: '',
@@ -131,7 +135,7 @@ export default function CreditCardImport() {
       ])
       const acc = accountsData.find(a => String(a.id) === String(accountId))
       if (!acc) {
-        setError('Cartão não encontrado')
+        setError('Conta não encontrada')
         return
       }
       setAccount(acc)
@@ -208,6 +212,8 @@ export default function CreditCardImport() {
       amount: String(Math.abs(item.amount)),
       date: item.date,
       category_id: item.category_id ?? '',
+      transaction_type: item.transaction_type
+        ?? (item.amount > 0 ? 'income' : 'expense'),
       installment_current: item.installment_current ?? '',
       installment_total: item.installment_total ?? '',
     })
@@ -231,6 +237,9 @@ export default function CreditCardImport() {
           ? parseInt(editForm.installment_current) : null,
         installment_total: editForm.installment_total
           ? parseInt(editForm.installment_total) : null,
+      }
+      if (!isCreditCard && editForm.transaction_type) {
+        payload.transaction_type = editForm.transaction_type
       }
       await creditCardsAPI.updateItem(accountId, selectedBatch.id, editingItem.id, payload)
       await fetchBatch(selectedBatch.id)
@@ -301,6 +310,21 @@ export default function CreditCardImport() {
     }
   }
 
+  // ── Classify (IA) ─────────────────────────────────────────
+  const classifyBatch = async () => {
+    setClassifying(true)
+    setClassifyResult(null)
+    try {
+      const result = await creditCardsAPI.classifyBatch(accountId, selectedBatch.id)
+      setClassifyResult(result)
+      await fetchBatch(selectedBatch.id)
+    } catch (err) {
+      alert(err.detail || 'Erro ao classificar com IA')
+    } finally {
+      setClassifying(false)
+    }
+  }
+
   const registerPayment = async () => {
     if (!selectedBatch?.statement) {
       setPaymentError('Confirme a fatura antes de registrar pagamentos')
@@ -362,6 +386,7 @@ export default function CreditCardImport() {
     : 0
   const fundingAccounts = allAccounts.filter(acc => acc.is_active && acc.account_type !== 'credit_card')
 
+  const isCreditCard = account?.account_type === 'credit_card'
   const isFrozen = ['confirmed', 'cancelled'].includes(selectedBatch?.status)
 
   if (loading) {
@@ -375,7 +400,7 @@ export default function CreditCardImport() {
   if (error) {
     return (
       <div className="space-y-4">
-        <button onClick={() => navigate('/cartoes')}
+        <button onClick={() => navigate(-1)}
           className="flex items-center gap-2 text-zinc-500 hover:text-zinc-700 dark:text-zinc-400 dark:hover:text-zinc-200">
           <ChevronLeft size={18} /> Voltar
         </button>
@@ -390,17 +415,21 @@ export default function CreditCardImport() {
     <div className="space-y-6">
       {/* Header */}
       <div className="flex items-center gap-4">
-        <button onClick={() => navigate('/cartoes')}
+        <button onClick={() => navigate(isCreditCard ? '/cartoes' : -1)}
           className="flex items-center gap-1 text-zinc-500 hover:text-zinc-700 dark:text-zinc-400 dark:hover:text-zinc-200 transition-colors">
           <ChevronLeft size={18} />
         </button>
         <div>
           <h1 className="text-2xl font-bold text-zinc-800 dark:text-white flex items-center gap-2">
-            <CreditCard size={24} className="text-blue-600" />
+            {isCreditCard
+              ? <CreditCard size={24} className="text-blue-600" />
+              : <Wallet size={24} className="text-blue-600" />}
             {account?.name}
           </h1>
           <p className="text-sm text-zinc-500 dark:text-zinc-400">
-            Importação e revisão de faturas
+            {isCreditCard
+              ? 'Importação e revisão de faturas'
+              : 'Importação e revisão de lançamentos'}
           </p>
         </div>
       </div>
@@ -409,7 +438,9 @@ export default function CreditCardImport() {
         {/* ─── Left: Batches list ─────────────────────────── */}
         <div className="lg:col-span-1 space-y-3">
           <div className="flex items-center justify-between">
-            <h2 className="font-semibold text-zinc-800 dark:text-white">Faturas</h2>
+            <h2 className="font-semibold text-zinc-800 dark:text-white">
+              {isCreditCard ? 'Faturas' : 'Importações'}
+            </h2>
             {!newBatchMode && (
               <div className="flex gap-2">
                 <button
@@ -510,7 +541,7 @@ export default function CreditCardImport() {
           {/* Batch list */}
           {batches.length === 0 && !newBatchMode ? (
             <div className="rounded-2xl border border-white/[0.08] bg-white/[0.03] dark:bg-white/[0.03] backdrop-blur-sm p-6 text-center text-zinc-400 dark:text-zinc-500 text-sm">
-              Nenhuma fatura ainda
+              {isCreditCard ? 'Nenhuma fatura ainda' : 'Nenhuma importação ainda'}
             </div>
           ) : (
             batches.map(b => (
@@ -588,6 +619,17 @@ export default function CreditCardImport() {
                       <Plus size={15} /> Item
                     </button>
                     <button
+                      onClick={classifyBatch}
+                      disabled={classifying || pendingCount === 0}
+                      className="flex items-center gap-1.5 px-3 py-2 text-sm border border-purple-300 dark:border-purple-700 text-purple-600 dark:text-purple-400 rounded-lg hover:bg-purple-50 dark:hover:bg-purple-900/20 disabled:opacity-50 transition-colors"
+                      title="Pré-preenche categoria e tipo com base no histórico"
+                    >
+                      {classifying
+                        ? <div className="w-4 h-4 border-2 border-purple-500 border-t-transparent rounded-full animate-spin" />
+                        : <><Sparkles size={15} /> Classificar com IA</>
+                      }
+                    </button>
+                    <button
                       onClick={cancelBatch}
                       className="flex items-center gap-1.5 px-3 py-2 text-sm border border-red-300 dark:border-red-800 text-red-600 dark:text-red-400 rounded-lg hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors"
                     >
@@ -606,6 +648,27 @@ export default function CreditCardImport() {
                   </div>
                 )}
               </div>
+
+              {/* Classify result banner */}
+              {classifyResult && (
+                <div className="p-4 bg-purple-50 dark:bg-purple-900/20 border-b border-purple-200 dark:border-purple-800 flex items-center gap-2 text-purple-700 dark:text-purple-400 text-sm">
+                  <Sparkles size={18} />
+                  {classifyResult.ai_skipped ? (
+                    <span>
+                      A IA não respondeu agora (verifique a configuração do
+                      servidor). Você pode classificar manualmente.
+                    </span>
+                  ) : (
+                    <span>
+                      {classifyResult.classified} classificados
+                      {classifyResult.classified_by_cache > 0
+                        && ` (${classifyResult.classified_by_cache} pelo histórico)`}
+                      {classifyResult.unmatched > 0 && `, ${classifyResult.unmatched} sem sugestão`}.
+                      Revise antes de confirmar.
+                    </span>
+                  )}
+                </div>
+              )}
 
               {/* Confirm result banner */}
               {confirmResult && (
@@ -735,7 +798,7 @@ export default function CreditCardImport() {
                     </div>
                   )}
                 </div>
-              ) : selectedBatch.status === 'confirmed' ? (
+              ) : (isCreditCard && selectedBatch.status === 'confirmed') ? (
                 <div className="p-4 bg-zinc-50 dark:bg-[#1a1a1a]/50 border-b border-zinc-200 dark:border-white/[0.06] text-sm text-zinc-500 dark:text-zinc-400">
                   Fatura confirmada, mas ainda não há resumo financeiro carregado.
                 </div>
@@ -834,7 +897,7 @@ export default function CreditCardImport() {
                       className={`p-4 transition-colors ${
                         item.status === 'ignored'
                           ? 'opacity-40'
-                          : 'hover:bg-zinc-50 dark:hover:bg-white/[0.06]/50'
+                          : 'hover:bg-zinc-50 dark:hover:bg-white/[0.04]'
                       }`}
                     >
                       {editingItem?.id === item.id ? (
@@ -872,6 +935,16 @@ export default function CreditCardImport() {
                                 <option key={c.id} value={c.id}>{c.name}</option>
                               ))}
                             </select>
+                            {!isCreditCard && (
+                              <select
+                                value={editForm.transaction_type}
+                                onChange={e => setEditForm(f => ({ ...f, transaction_type: e.target.value }))}
+                                className="col-span-2 sm:col-span-1 px-3 py-2 text-sm border border-blue-400 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-[#1a1a1a] text-zinc-900 dark:text-white"
+                              >
+                                <option value="expense">Despesa</option>
+                                <option value="income">Receita</option>
+                              </select>
+                            )}
                             <div className="flex items-center gap-1 col-span-2 sm:col-span-1">
                               <input
                                 type="number"
@@ -919,7 +992,7 @@ export default function CreditCardImport() {
                               <p className="font-medium text-zinc-900 dark:text-white text-sm truncate">
                                 {item.description || item.raw_description || '—'}
                               </p>
-                              {item.installment_current && item.installment_total && (
+                              {!!item.installment_current && !!item.installment_total && (
                                 <span className="text-xs text-zinc-400 dark:text-zinc-500 flex-shrink-0">
                                   {item.installment_current}/{item.installment_total}
                                 </span>
@@ -928,6 +1001,13 @@ export default function CreditCardImport() {
                                 <CheckCircle2 size={14} className="text-green-500 flex-shrink-0" />
                               )}
                             </div>
+                            {item.raw_description
+                              && item.raw_description !== item.description && (
+                              <p className="text-[11px] text-zinc-400 dark:text-zinc-600 truncate mt-0.5"
+                                title={item.raw_description}>
+                                {item.raw_description}
+                              </p>
+                            )}
                             <div className="flex items-center gap-3 mt-0.5 text-xs text-zinc-500 dark:text-zinc-400">
                               <span>{formatDateLocal(item.date)}</span>
                               {item.category && (
@@ -947,9 +1027,21 @@ export default function CreditCardImport() {
                             </div>
                           </div>
 
-                          <span className="font-semibold text-red-600 dark:text-red-400 text-sm flex-shrink-0">
-                            {formatCurrency(Math.abs(item.amount), user?.currency)}
-                          </span>
+                          {(() => {
+                            const isIncome = !isCreditCard
+                              && (item.transaction_type === 'income'
+                                || (!item.transaction_type && item.amount > 0))
+                            return (
+                              <span className={`font-semibold text-sm flex-shrink-0 ${
+                                isIncome
+                                  ? 'text-green-600 dark:text-green-400'
+                                  : 'text-red-600 dark:text-red-400'
+                              }`}>
+                                {isIncome ? '+' : '-'}
+                                {formatCurrency(Math.abs(item.amount), user?.currency)}
+                              </span>
+                            )
+                          })()}
 
                           {!isFrozen && (
                             <div className="flex items-center gap-1 flex-shrink-0">

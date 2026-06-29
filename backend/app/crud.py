@@ -1339,6 +1339,9 @@ def add_import_items(
             description=data.get('raw_description'),
             amount=data['raw_amount'],
             date=data['raw_date'],
+            transaction_type=(
+                'income' if data['raw_amount'] > 0 else 'expense'
+            ),
             installment_current=data.get('installment_current'),
             installment_total=data.get('installment_total'),
             status=models.ImportItemStatusEnum.PENDING,
@@ -1375,6 +1378,10 @@ def add_manual_import_item(
         amount=item.amount,
         date=item.date,
         category_id=item.category_id,
+        transaction_type=(
+            item.transaction_type
+            or ('income' if item.amount > 0 else 'expense')
+        ),
         installment_current=item.installment_current,
         installment_total=item.installment_total,
         status=models.ImportItemStatusEnum.PENDING,
@@ -1410,6 +1417,12 @@ def update_import_item(
         item.date = date_type.fromisoformat(data.date) if isinstance(data.date, str) else data.date
     if data.category_id is not None:
         item.category_id = data.category_id
+    if data.transaction_type is not None:
+        if data.transaction_type not in ('income', 'expense'):
+            raise ValueError(
+                "transaction_type inválido: use 'income' ou 'expense'"
+            )
+        item.transaction_type = data.transaction_type
     if data.installment_current is not None:
         item.installment_current = data.installment_current
     if data.installment_total is not None:
@@ -1430,6 +1443,256 @@ def update_import_item(
     db.commit()
     db.refresh(item)
     return item
+
+
+def _normalize_description(text: str) -> str:
+    """Normaliza descrição para agrupar o mesmo merchant: lower, strip,
+    remove sufixo de parcela (ex: '3/10') e espaços repetidos."""
+    import re
+    from .parsers import _INSTALLMENT_RE
+
+    if not text:
+        return ""
+    s = _INSTALLMENT_RE.sub('', text)
+    s = re.sub(r'\s+', ' ', s).strip().lower()
+    return s
+
+
+def get_merchant_alias_map(db: Session, user_id: int) -> dict:
+    """
+    Mapa raw_key -> {category_id, transaction_type, friendly_name}
+    aprendido do histórico de confirmações do usuário. Usado como
+    cache na classificação (acerta sem chamar a IA).
+    """
+    aliases = (
+        db.query(models.MerchantAlias)
+        .filter(models.MerchantAlias.user_id == user_id)
+        .all()
+    )
+    return {
+        a.raw_key: {
+            "category_id": a.category_id,
+            "transaction_type": a.transaction_type,
+            "friendly_name": a.friendly_name,
+        }
+        for a in aliases
+    }
+
+
+def upsert_merchant_alias(
+    db: Session,
+    user_id: int,
+    raw_description: str,
+    friendly_name: str,
+    category_id,
+    transaction_type,
+):
+    """
+    Registra/atualiza a associação aprendida para um merchant.
+    Chamado na confirmação do lote. Não faz commit (o chamador commita).
+    """
+    raw_key = _normalize_description(raw_description or friendly_name or "")
+    if not raw_key:
+        return
+
+    alias = (
+        db.query(models.MerchantAlias)
+        .filter(
+            models.MerchantAlias.user_id == user_id,
+            models.MerchantAlias.raw_key == raw_key,
+        )
+        .first()
+    )
+    if alias is None:
+        alias = models.MerchantAlias(
+            user_id=user_id,
+            raw_key=raw_key,
+            raw_description=raw_description,
+            friendly_name=friendly_name,
+            category_id=category_id,
+            transaction_type=transaction_type,
+            hits=1,
+        )
+        db.add(alias)
+    else:
+        alias.hits += 1
+        alias.raw_description = raw_description or alias.raw_description
+        if friendly_name:
+            alias.friendly_name = friendly_name
+        if category_id is not None:
+            alias.category_id = category_id
+        if transaction_type in ('income', 'expense'):
+            alias.transaction_type = transaction_type
+
+
+def get_classification_examples(
+    db: Session,
+    user_id: int,
+    limit: int = 30
+):
+    """
+    Constrói exemplos few-shot do histórico do usuário para a IA:
+    pares descrição -> categoria/tipo mais frequentes, priorizando
+    diversidade de categorias.
+
+    Retorna lista de dicts: {description, category_name, transaction_type}.
+    """
+    rows = (
+        db.query(models.Transaction)
+        .join(
+            models.Category,
+            models.Transaction.category_id == models.Category.id,
+        )
+        .filter(
+            models.Transaction.user_id == user_id,
+            models.Transaction.category_id.isnot(None),
+        )
+        .order_by(models.Transaction.date.desc())
+        .limit(2000)
+        .all()
+    )
+
+    # Agrupa por descrição normalizada; guarda contagem e dados
+    groups: dict = {}
+    for t in rows:
+        key = _normalize_description(t.description or "")
+        if not key:
+            continue
+        g = groups.get(key)
+        if g is None:
+            groups[key] = {
+                "description": (t.description or "").strip(),
+                "raw_description": (t.description or "").strip(),
+                "category_id": t.category_id,
+                "category_name": t.category.name if t.category else None,
+                "transaction_type": t.transaction_type,
+                "count": 1,
+            }
+        else:
+            g["count"] += 1
+
+    # Ordena por frequência e prioriza diversidade de categorias
+    ordered = sorted(
+        groups.values(), key=lambda g: g["count"], reverse=True
+    )
+    seen_categories: set = set()
+    diverse = []
+    leftover = []
+    for g in ordered:
+        if g["category_id"] not in seen_categories:
+            seen_categories.add(g["category_id"])
+            diverse.append(g)
+        else:
+            leftover.append(g)
+
+    selected = (diverse + leftover)[:limit]
+    return [
+        {
+            "description": g["description"],
+            "raw_description": g["raw_description"],
+            "category_name": g["category_name"],
+            "transaction_type": g["transaction_type"],
+        }
+        for g in selected
+    ]
+
+
+def classify_import_batch(
+    db: Session,
+    batch_id: int,
+    user_id: int
+):
+    """
+    Classifica via IA os itens PENDING de um lote: pré-preenche
+    category_id e transaction_type. O usuário revisa depois.
+
+    Retorna {classified, unmatched, ai_skipped, items}.
+    Levanta MissingGroqKey se a key não estiver configurada.
+    """
+    from .ai_classifier import classify_items
+
+    batch = get_import_batch(db, batch_id, user_id)
+    if not batch:
+        raise ValueError("Lote não encontrado")
+    if batch.status == models.ImportBatchStatusEnum.CONFIRMED:
+        raise ValueError("Lote já confirmado não pode ser reclassificado")
+
+    pending = [
+        item for item in batch.items
+        if item.status == models.ImportItemStatusEnum.PENDING
+    ]
+
+    # 1) Cache: aplica o que já foi aprendido (sem chamar a IA)
+    alias_map = get_merchant_alias_map(db, user_id)
+    classified = 0
+    classified_by_cache = 0
+    remaining = []
+    valid_category_ids = {
+        c.id for c in get_user_categories(db, user_id, limit=1000)
+    }
+    for item in pending:
+        raw = item.raw_description or item.description or ""
+        hit = alias_map.get(_normalize_description(raw))
+        if hit and hit.get("category_id") in valid_category_ids:
+            item.category_id = hit["category_id"]
+            if hit.get("transaction_type") in ('income', 'expense'):
+                item.transaction_type = hit["transaction_type"]
+            if hit.get("friendly_name"):
+                item.description = hit["friendly_name"]
+            classified += 1
+            classified_by_cache += 1
+        else:
+            remaining.append(item)
+
+    # 2) IA: classifica apenas os que o cache não resolveu
+    items_payload = [
+        {
+            "id": item.id,
+            "raw_description": item.raw_description or item.description or "",
+            "description": item.description or item.raw_description or "",
+            "amount": item.amount,
+        }
+        for item in remaining
+    ]
+
+    categories = [
+        {"id": c.id, "name": c.name}
+        for c in get_user_categories(db, user_id, limit=1000)
+    ]
+    examples = get_classification_examples(db, user_id)
+
+    result_map = (
+        classify_items(items_payload, categories, examples)
+        if items_payload else {}
+    )
+
+    ai_skipped = bool(items_payload) and not result_map
+    for item in remaining:
+        r = result_map.get(item.id)
+        if not r:
+            continue
+        if r.get("category_id") is not None:
+            item.category_id = r["category_id"]
+            classified += 1
+        if r.get("transaction_type") in ('income', 'expense'):
+            item.transaction_type = r["transaction_type"]
+        if r.get("description"):
+            item.description = r["description"]
+
+    if batch.status == models.ImportBatchStatusEnum.PENDING and classified:
+        batch.status = models.ImportBatchStatusEnum.REVIEWED
+
+    db.commit()
+    db.refresh(batch)
+
+    unmatched = len(pending) - classified
+    return {
+        "classified": classified,
+        "classified_by_cache": classified_by_cache,
+        "unmatched": unmatched,
+        "ai_skipped": ai_skipped,
+        "items": batch.items,
+    }
 
 
 def confirm_import_batch(
@@ -1455,6 +1718,8 @@ def confirm_import_batch(
     if not account:
         raise ValueError("Conta não encontrada")
 
+    is_credit_card = account.account_type == 'credit_card'
+
     confirmed_count = 0
     ignored_count = 0
     transaction_ids = []
@@ -1472,11 +1737,25 @@ def confirm_import_batch(
                 f"{item.installment_current}/{item.installment_total}"
             ).strip()
 
+        if is_credit_card:
+            # Cartão: tudo é despesa negativa (comportamento original)
+            tx_type = 'expense'
+            amount = -abs(item.amount)
+        else:
+            # Conta comum: tipo por item (default pelo sinal) e sinal
+            # coerente com o tipo.
+            tx_type = item.transaction_type
+            if tx_type not in ('income', 'expense'):
+                tx_type = 'income' if item.amount > 0 else 'expense'
+            amount = abs(item.amount) if tx_type == 'income' \
+                else -abs(item.amount)
+
         transaction = models.Transaction(
-            amount=-abs(item.amount),   # Despesa no cartão é sempre negativa
+            amount=amount,
             date=item.date,
             description=description,
-            transaction_type='expense',
+            raw_description=item.raw_description,
+            transaction_type=tx_type,
             category_id=item.category_id,
             account_id=batch.account_id,
             user_id=user_id,
@@ -1487,6 +1766,17 @@ def confirm_import_batch(
         # Atualiza saldo da conta
         account.balance += transaction.amount
 
+        # Aprende a associação merchant -> categoria/tipo/nome amigável
+        if item.raw_description and item.category_id:
+            upsert_merchant_alias(
+                db,
+                user_id=user_id,
+                raw_description=item.raw_description,
+                friendly_name=item.description,
+                category_id=item.category_id,
+                transaction_type=tx_type,
+            )
+
         item.status = models.ImportItemStatusEnum.CONFIRMED
         item.transaction_id = transaction.id
         transaction_ids.append(transaction.id)
@@ -1495,17 +1785,19 @@ def confirm_import_batch(
     batch.status = models.ImportBatchStatusEnum.CONFIRMED
     batch.confirmed_at = dt.utcnow()
 
-    statement_total = sum(
-        abs(item.amount)
-        for item in batch.items
-        if item.status != models.ImportItemStatusEnum.IGNORED
-    )
-    create_or_update_credit_card_statement(
-        db,
-        batch_id=batch.id,
-        user_id=user_id,
-        total_amount=statement_total,
-    )
+    # Fatura (statement) só faz sentido para cartão de crédito
+    if is_credit_card:
+        statement_total = sum(
+            abs(item.amount)
+            for item in batch.items
+            if item.status != models.ImportItemStatusEnum.IGNORED
+        )
+        create_or_update_credit_card_statement(
+            db,
+            batch_id=batch.id,
+            user_id=user_id,
+            total_amount=statement_total,
+        )
 
     db.commit()
 

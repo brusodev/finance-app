@@ -158,6 +158,7 @@ class Transaction(BaseModel):
     amount: float
     date: date
     description: Optional[str]
+    raw_description: Optional[str] = None
     transaction_type: str
     category: Optional[Category] = None
     account: Optional[Account] = None
@@ -518,6 +519,7 @@ class ImportItemCreate(BaseModel):
     amount: float
     date: date
     category_id: Optional[int] = None
+    transaction_type: Optional[str] = None  # 'income' | 'expense'
     installment_current: Optional[int] = None
     installment_total: Optional[int] = None
 
@@ -530,6 +532,7 @@ class ImportItemUpdate(BaseModel):
     amount: Optional[float] = None
     date: Optional[str] = None  # recebe string YYYY-MM-DD, convertida no crud
     category_id: Optional[int] = None
+    transaction_type: Optional[str] = None  # 'income' | 'expense'
     installment_current: Optional[int] = None
     installment_total: Optional[int] = None
     status: Optional[str] = None  # 'pending' | 'ignored'
@@ -553,6 +556,7 @@ class ImportItem(BaseModel):
     date: date
     category_id: Optional[int]
     category: Optional[Category] = None
+    transaction_type: Optional[str] = None
     installment_current: Optional[int]
     installment_total: Optional[int]
     status: str
@@ -618,3 +622,12 @@ class ConfirmImportResponse(BaseModel):
     confirmed_count: int
     ignored_count: int
     transactions_created: List[int]  # IDs das transactions criadas
+
+
+class ClassifyResult(BaseModel):
+    """Resultado da classificação (cache + IA) de um lote."""
+    classified: int       # total de itens que receberam categoria
+    classified_by_cache: int = 0  # resolvidos pelo histórico aprendido
+    unmatched: int        # itens sem sugestão de categoria
+    ai_skipped: bool = False  # IA não respondeu (erro/timeout do Groq)
+    items: List[ImportItem] = []

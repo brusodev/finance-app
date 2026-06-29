@@ -11,6 +11,7 @@ from .. import crud, schemas
 from ..database import get_db
 from .auth import get_current_user
 from ..parsers import parse_uploaded_file
+from ..ai_classifier import MissingGroqKey
 
 router = APIRouter(
     prefix="/credit-cards",
@@ -337,6 +338,47 @@ def update_item(
     try:
         return crud.update_import_item(
             db, item_id, item_in, current_user.id
+        )
+    except ValueError as e:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST, detail=str(e)
+        )
+
+
+# ============================================================
+# CLASSIFICAÇÃO POR IA
+# ============================================================
+
+@router.post(
+    "/{account_id}/batches/{batch_id}/classify",
+    response_model=schemas.ClassifyResult,
+)
+def classify_batch(
+    account_id: int,
+    batch_id: int,
+    db: Session = Depends(get_db),
+    current_user: schemas.User = Depends(get_current_user),
+):
+    """
+    Classifica via IA os itens pendentes do lote: pré-preenche
+    categoria e tipo (receita/despesa) com base no histórico do usuário.
+    O usuário ainda revisa e confirma manualmente.
+    """
+    batch = crud.get_import_batch(db, batch_id, current_user.id)
+    if not batch or batch.account_id != account_id:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Lote não encontrado",
+        )
+    try:
+        return crud.classify_import_batch(db, batch_id, current_user.id)
+    except MissingGroqKey:
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail=(
+                "Classificação por IA indisponível: GROQ_API_KEY não "
+                "configurada no servidor."
+            ),
         )
     except ValueError as e:
         raise HTTPException(
