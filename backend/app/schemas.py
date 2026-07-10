@@ -631,3 +631,19 @@ class ClassifyResult(BaseModel):
     unmatched: int        # itens sem sugestão de categoria
     ai_skipped: bool = False  # IA não respondeu (erro/timeout do Groq)
     items: List[ImportItem] = []
+
+
+class ClassifyJobCreated(BaseModel):
+    """Resposta ao iniciar a classificação assíncrona."""
+    job_id: str
+    status: str           # pending | running | done | error
+
+
+class ClassifyJobStatus(BaseModel):
+    """Andamento de um job de classificação (consultado por polling)."""
+    job_id: str
+    status: str           # pending | running | done | error
+    processed: int = 0
+    total: int = 0
+    error: Optional[str] = None
+    result: Optional[ClassifyResult] = None

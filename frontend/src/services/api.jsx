@@ -730,11 +730,20 @@ export const creditCardsAPI = {
     return handleResponse(response);
   },
 
-  // ---- Classify (IA) ----
+  // ---- Classify (IA) — assíncrono: dispara o job e retorna { job_id, status }
   classifyBatch: async (accountId, batchId) => {
     const response = await fetch(
       `${API_URL}/credit-cards/${accountId}/batches/${batchId}/classify`,
       { method: "POST", headers: getHeaders(), credentials: "include" }
+    );
+    return handleResponse(response);
+  },
+
+  // ---- Classify (IA) — andamento do job (polling)
+  getClassifyJob: async (accountId, batchId, jobId) => {
+    const response = await fetch(
+      `${API_URL}/credit-cards/${accountId}/batches/${batchId}/classify/${jobId}`,
+      { method: "GET", headers: getHeaders(), credentials: "include" }
     );
     return handleResponse(response);
   },

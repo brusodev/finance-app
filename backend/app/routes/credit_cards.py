@@ -1,14 +1,14 @@
 """Rotas de Cartão de Crédito — config, importação e revisão."""
 
 from fastapi import (
-    APIRouter, Depends, HTTPException, UploadFile, File,
+    APIRouter, BackgroundTasks, Depends, HTTPException, UploadFile, File,
     status, Query
 )
 from sqlalchemy.orm import Session
 from datetime import date
 
-from .. import crud, schemas
-from ..database import get_db
+from .. import crud, schemas, classify_jobs
+from ..database import get_db, SessionLocal
 from .auth import get_current_user
 from ..parsers import parse_uploaded_file
 from ..ai_classifier import MissingGroqKey
@@ -349,20 +349,53 @@ def update_item(
 # CLASSIFICAÇÃO POR IA
 # ============================================================
 
+def _run_classify_job(job_id: str, batch_id: int, user_id: int):
+    """
+    Roda a classificação em background com sessão de DB própria.
+    A request HTTP já retornou; aqui só atualizamos o job store.
+    """
+    db = SessionLocal()
+    try:
+        def on_progress(processed: int, total: int):
+            classify_jobs.set_progress(job_id, processed, total)
+
+        result = crud.classify_import_batch(
+            db, batch_id, user_id, on_progress=on_progress
+        )
+        # Serializa enquanto a sessão está aberta (items são ORM).
+        payload = schemas.ClassifyResult.model_validate(result).model_dump()
+        classify_jobs.set_done(job_id, payload)
+    except MissingGroqKey:
+        classify_jobs.set_error(
+            job_id,
+            "Classificação por IA indisponível: GROQ_API_KEY não "
+            "configurada no servidor.",
+        )
+    except ValueError as e:
+        classify_jobs.set_error(job_id, str(e))
+    except Exception:
+        classify_jobs.set_error(job_id, "Erro inesperado ao classificar.")
+    finally:
+        db.close()
+
+
 @router.post(
     "/{account_id}/batches/{batch_id}/classify",
-    response_model=schemas.ClassifyResult,
+    response_model=schemas.ClassifyJobCreated,
+    status_code=status.HTTP_202_ACCEPTED,
 )
 def classify_batch(
     account_id: int,
     batch_id: int,
+    background_tasks: BackgroundTasks,
     db: Session = Depends(get_db),
     current_user: schemas.User = Depends(get_current_user),
 ):
     """
-    Classifica via IA os itens pendentes do lote: pré-preenche
-    categoria e tipo (receita/despesa) com base no histórico do usuário.
-    O usuário ainda revisa e confirma manualmente.
+    Inicia, em background, a classificação por IA dos itens pendentes do
+    lote. Retorna um job_id; o frontend acompanha o andamento por polling
+    em GET .../classify/{job_id}. Roda assíncrono porque a IA pode levar
+    dezenas de segundos e a request síncrona estourava o timeout do proxy.
     """
     batch = crud.get_import_batch(db, batch_id, current_user.id)
     if not batch or batch.account_id != account_id:
@@ -370,20 +403,43 @@ def classify_batch(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="Lote não encontrado",
         )
-    try:
-        return crud.classify_import_batch(db, batch_id, current_user.id)
-    except MissingGroqKey:
+
+    job_id = classify_jobs.create_job(batch_id, current_user.id)
+    background_tasks.add_task(
+        _run_classify_job, job_id, batch_id, current_user.id
+    )
+    return {"job_id": job_id, "status": "pending"}
+
+
+@router.get(
+    "/{account_id}/batches/{batch_id}/classify/{job_id}",
+    response_model=schemas.ClassifyJobStatus,
+)
+def classify_batch_status(
+    account_id: int,
+    batch_id: int,
+    job_id: str,
+    current_user: schemas.User = Depends(get_current_user),
+):
+    """Andamento de um job de classificação (polling)."""
+    job = classify_jobs.get_job(job_id)
+    if (
+        not job
+        or job["batch_id"] != batch_id
+        or job["user_id"] != current_user.id
+    ):
         raise HTTPException(
-            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
-            detail=(
-                "Classificação por IA indisponível: GROQ_API_KEY não "
-                "configurada no servidor."
-            ),
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Job não encontrado",
         )
-    except ValueError as e:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST, detail=str(e)
-        )
+    return {
+        "job_id": job["id"],
+        "status": job["status"],
+        "processed": job["processed"],
+        "total": job["total"],
+        "error": job["error"],
+        "result": job["result"],
+    }
 
 
 # ============================================================

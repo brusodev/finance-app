@@ -11,7 +11,7 @@ MissingGroqKey — a rota traduz isso em 503.
 
 import json
 import os
-from typing import Any, Dict, List, Optional
+from typing import Any, Callable, Dict, List, Optional
 
 import httpx
 
@@ -115,6 +115,7 @@ def classify_items(
     items: List[Dict[str, Any]],
     categories: List[Dict[str, Any]],
     examples: List[Dict[str, Any]],
+    on_progress: Optional[Callable[[int, int], None]] = None,
 ) -> Dict[int, Dict[str, Any]]:
     """
     Classifica os itens via Groq, dividindo em chunks para não estourar
@@ -124,6 +125,9 @@ def classify_items(
     Levanta MissingGroqKey se a key não estiver setada. Chunks que
     falharem são pulados (seus itens ficam sem sugestão), sem derrubar
     os demais.
+
+    on_progress(processed, total) é chamado após cada chunk, para o job
+    em background reportar andamento.
     """
     api_key = os.getenv("GROQ_API_KEY")
     if not api_key:
@@ -134,12 +138,15 @@ def classify_items(
     if not items:
         return {}
 
+    total = len(items)
     out: Dict[int, Dict[str, Any]] = {}
-    for start in range(0, len(items), CHUNK_SIZE):
+    for start in range(0, total, CHUNK_SIZE):
         chunk = items[start:start + CHUNK_SIZE]
         out.update(
             _classify_chunk(api_key, chunk, categories, examples)
         )
+        if on_progress:
+            on_progress(min(start + CHUNK_SIZE, total), total)
     return out
 
 

@@ -93,6 +93,7 @@ export default function CreditCardImport() {
   // Classify (IA)
   const [classifying, setClassifying] = useState(false)
   const [classifyResult, setClassifyResult] = useState(null)
+  const [classifyProgress, setClassifyProgress] = useState(null) // { processed, total }
 
   // Statement payment
   const [paymentForm, setPaymentForm] = useState({
@@ -310,18 +311,39 @@ export default function CreditCardImport() {
     }
   }
 
-  // ── Classify (IA) ─────────────────────────────────────────
+  // ── Classify (IA) — assíncrono com polling ────────────────
   const classifyBatch = async () => {
     setClassifying(true)
     setClassifyResult(null)
+    setClassifyProgress(null)
+    const batchId = selectedBatch.id
     try {
-      const result = await creditCardsAPI.classifyBatch(accountId, selectedBatch.id)
-      setClassifyResult(result)
-      await fetchBatch(selectedBatch.id)
+      const { job_id } = await creditCardsAPI.classifyBatch(accountId, batchId)
+
+      // Polling até o job concluir (a IA pode levar dezenas de segundos)
+      while (true) {
+        await new Promise((r) => setTimeout(r, 2000))
+        const job = await creditCardsAPI.getClassifyJob(accountId, batchId, job_id)
+
+        if (job.status === 'running' || job.status === 'pending') {
+          if (job.total > 0) {
+            setClassifyProgress({ processed: job.processed, total: job.total })
+          }
+          continue
+        }
+        if (job.status === 'error') {
+          throw { detail: job.error || 'Erro ao classificar com IA' }
+        }
+        // done
+        setClassifyResult(job.result)
+        await fetchBatch(batchId)
+        break
+      }
     } catch (err) {
       alert(err.detail || 'Erro ao classificar com IA')
     } finally {
       setClassifying(false)
+      setClassifyProgress(null)
     }
   }
 
@@ -625,7 +647,12 @@ export default function CreditCardImport() {
                       title="Pré-preenche categoria e tipo com base no histórico"
                     >
                       {classifying
-                        ? <div className="w-4 h-4 border-2 border-purple-500 border-t-transparent rounded-full animate-spin" />
+                        ? <>
+                            <div className="w-4 h-4 border-2 border-purple-500 border-t-transparent rounded-full animate-spin" />
+                            {classifyProgress
+                              ? `${classifyProgress.processed}/${classifyProgress.total}`
+                              : 'Classificando…'}
+                          </>
                         : <><Sparkles size={15} /> Classificar com IA</>
                       }
                     </button>

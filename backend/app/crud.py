@@ -1600,7 +1600,8 @@ def get_classification_examples(
 def classify_import_batch(
     db: Session,
     batch_id: int,
-    user_id: int
+    user_id: int,
+    on_progress=None,
 ):
     """
     Classifica via IA os itens PENDING de um lote: pré-preenche
@@ -1608,6 +1609,9 @@ def classify_import_batch(
 
     Retorna {classified, unmatched, ai_skipped, items}.
     Levanta MissingGroqKey se a key não estiver configurada.
+
+    on_progress(processed, total) é repassado ao classificador para
+    reportar andamento ao job em background.
     """
     from .ai_classifier import classify_items
 
@@ -1662,7 +1666,7 @@ def classify_import_batch(
     examples = get_classification_examples(db, user_id)
 
     result_map = (
-        classify_items(items_payload, categories, examples)
+        classify_items(items_payload, categories, examples, on_progress)
         if items_payload else {}
     )
 
