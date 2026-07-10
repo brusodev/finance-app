@@ -68,3 +68,5 @@ frontend/nginx.conf
 
 # Skills internas (não expor estratégia/arquitetura)
 .github/skills/
+
+deploy.md

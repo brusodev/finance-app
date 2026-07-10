@@ -6,6 +6,7 @@ import {
   CreditCard, Calendar, Sparkles, Wallet
 } from 'lucide-react'
 import { creditCardsAPI, accountsAPI, categoriesAPI } from '../services/api'
+import CategorySelect from '../components/CategorySelect'
 import { formatCurrency, formatDateLocal } from '../utils/formatters'
 import { useAuth } from '../context/AuthContext'
 
@@ -860,16 +861,15 @@ export default function CreditCardImport() {
                       onChange={e => setNewItem(f => ({ ...f, date: e.target.value }))}
                       className="px-3 py-2 text-sm border border-zinc-300 dark:border-white/[0.08] rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-[#1a1a1a] text-zinc-900 dark:text-white"
                     />
-                    <select
+                    <CategorySelect
+                      categories={categories}
                       value={newItem.category_id}
-                      onChange={e => setNewItem(f => ({ ...f, category_id: e.target.value }))}
-                      className="col-span-2 sm:col-span-1 px-3 py-2 text-sm border border-zinc-300 dark:border-white/[0.08] rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-[#1a1a1a] text-zinc-900 dark:text-white"
-                    >
-                      <option value="">Sem categoria</option>
-                      {categories.map(c => (
-                        <option key={c.id} value={c.id}>{c.name}</option>
-                      ))}
-                    </select>
+                      onChange={id => setNewItem(f => ({ ...f, category_id: id }))}
+                      placeholder="Sem categoria"
+                      allowEmpty
+                      compact
+                      className="col-span-2 sm:col-span-1"
+                    />
                     <div className="flex items-center gap-1 col-span-2 sm:col-span-1">
                       <input
                         type="number"
@@ -952,16 +952,15 @@ export default function CreditCardImport() {
                               onChange={e => setEditForm(f => ({ ...f, date: e.target.value }))}
                               className="px-3 py-2 text-sm border border-blue-400 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-[#1a1a1a] text-zinc-900 dark:text-white"
                             />
-                            <select
+                            <CategorySelect
+                              categories={categories}
                               value={editForm.category_id}
-                              onChange={e => setEditForm(f => ({ ...f, category_id: e.target.value }))}
-                              className="col-span-2 sm:col-span-1 px-3 py-2 text-sm border border-blue-400 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-[#1a1a1a] text-zinc-900 dark:text-white"
-                            >
-                              <option value="">Sem categoria</option>
-                              {categories.map(c => (
-                                <option key={c.id} value={c.id}>{c.name}</option>
-                              ))}
-                            </select>
+                              onChange={id => setEditForm(f => ({ ...f, category_id: id }))}
+                              placeholder="Sem categoria"
+                              allowEmpty
+                              compact
+                              className="col-span-2 sm:col-span-1"
+                            />
                             {!isCreditCard && (
                               <select
                                 value={editForm.transaction_type}

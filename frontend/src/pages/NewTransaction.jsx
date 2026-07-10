@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react'
 import { useNavigate, useLocation } from 'react-router-dom'
 import { ArrowLeft, Save } from 'lucide-react'
 import { accountsAPI, categoriesAPI, transactionsAPI } from '../services/api'
+import CategorySelect from '../components/CategorySelect'
 import { useAuth } from '../context/AuthContext'
 import { getCurrencySymbol } from '../utils/formatters'
 
@@ -62,18 +63,11 @@ export default function NewTransaction() {
       }
     } catch (err) {
       setError('Erro ao carregar dados')
-      console.error('Erro:', err)
     }
   }
 
   const loadDescriptionSuggestions = async () => {
     try {
-      console.log('🔍 Carregando sugestões...', {
-        transaction_type: formData.transaction_type,
-        category_id: formData.category_id || null,
-        limit: 50
-      })
-
       // Tenta buscar sugestões com categoria específica
       let suggestions = await transactionsAPI.getDescriptionSuggestions(
         formData.transaction_type,
@@ -83,7 +77,6 @@ export default function NewTransaction() {
 
       // Se não houver sugestões para essa categoria, busca sugestões gerais do tipo
       if (suggestions.length === 0 && formData.category_id) {
-        console.log('⚠️ Sem sugestões para esta categoria, buscando sugestões gerais...')
         suggestions = await transactionsAPI.getDescriptionSuggestions(
           formData.transaction_type,
           null, // Sem filtro de categoria
@@ -91,10 +84,8 @@ export default function NewTransaction() {
         )
       }
 
-      console.log('✅ Sugestões carregadas:', suggestions)
       setDescriptionSuggestions(suggestions)
     } catch (err) {
-      console.error('❌ Erro ao carregar sugestões:', err)
       setDescriptionSuggestions([])
     }
   }
@@ -140,7 +131,6 @@ export default function NewTransaction() {
 
       navigate('/transacoes')
     } catch (err) {
-      console.error('Erro ao salvar:', err)
       setError('Erro ao salvar transação. Verifique os dados.')
     } finally {
       setLoading(false)
@@ -223,19 +213,11 @@ export default function NewTransaction() {
 
             <div>
               <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">Categoria</label>
-              <select
-                required
-                className="w-full px-4 py-2 border border-zinc-200 dark:border-white/[0.08] rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-zinc-50 dark:bg-[#1a1a1a] focus:bg-white dark:focus:bg-zinc-600 text-zinc-900 dark:text-white transition-colors"
+              <CategorySelect
+                categories={categories}
                 value={formData.category_id}
-                onChange={(e) => setFormData({ ...formData, category_id: e.target.value })}
-              >
-                <option value="">Selecione uma categoria</option>
-                {categories.map(category => (
-                  <option key={category.id} value={category.id}>
-                    {category.icon} {category.name}
-                  </option>
-                ))}
-              </select>
+                onChange={(id) => setFormData({ ...formData, category_id: id })}
+              />
             </div>
           </div>
 

@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import { transactionsAPI } from '../services/api'
 import { useAuth } from '../context/AuthContext'
 import { getCurrencySymbol } from '../utils/formatters'
+import CategorySelect from './CategorySelect'
 
 export default function TransactionForm({ categories, initialData, onSubmit, onCancel }) {
   const { user } = useAuth()
@@ -200,21 +201,12 @@ export default function TransactionForm({ categories, initialData, onSubmit, onC
             <label htmlFor="category" className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-2">
               Categoria
             </label>
-            <select
-              id="category"
-              required
+            <CategorySelect
+              categories={categories}
               value={categoryId}
-              onChange={(e) => setCategoryId(e.target.value)}
-              className="w-full px-4 py-2 border border-zinc-300 dark:border-white/[0.08] rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none bg-white dark:bg-[#1a1a1a] text-zinc-900 dark:text-white"
+              onChange={(id) => setCategoryId(id.toString())}
               disabled={loading}
-            >
-              <option value="">Selecione uma categoria</option>
-              {categories.map((cat) => (
-                <option key={cat.id} value={cat.id}>
-                  {cat.name}
-                </option>
-              ))}
-            </select>
+            />
           </div>
 
           {/* Descrição (ocupará 2 colunas em grid 2 cols) */}
