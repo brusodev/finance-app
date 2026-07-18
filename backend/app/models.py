@@ -25,6 +25,7 @@ class Category(Base):
     id = Column(Integer, primary_key=True, index=True)
     name = Column(String, index=True)
     icon = Column(String, nullable=True)
+    expense_kind = Column(String, nullable=True)  # 'fixed' | 'variable'
     user_id = Column(Integer, ForeignKey('users.id'))
     user = relationship("User")
 
@@ -59,6 +60,10 @@ class Transaction(Base):
     # Campos para transferências entre contas
     transfer_id = Column(String, nullable=True, index=True)  # UUID para vincular transações de transferência
     transfer_account_id = Column(Integer, ForeignKey('accounts.id'), nullable=True)  # Conta destino/origem da transferência
+
+    # Parcelamento (ex: 3/10) — preservado da fatura do cartão
+    installment_current = Column(Integer, nullable=True)
+    installment_total = Column(Integer, nullable=True)
 
     category = relationship("Category")
     account = relationship("Account", foreign_keys=[account_id])

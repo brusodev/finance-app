@@ -217,6 +217,7 @@ def get_totals_by_category(
     results = db.query(
         Transaction.category_id,
         Category.name.label('category_name'),
+        Category.expense_kind.label('expense_kind'),
         func.sum(
             case(
                 (Transaction.transaction_type == 'income',
@@ -237,7 +238,7 @@ def get_totals_by_category(
     ).filter(
         and_(*transaction_filters)
     ).group_by(
-        Transaction.category_id, Category.name
+        Transaction.category_id, Category.name, Category.expense_kind
     ).all()
 
     # Formatar resposta
@@ -248,6 +249,7 @@ def get_totals_by_category(
         totals.append({
             "category_id": row.category_id,
             "category_name": row.category_name,
+            "expense_kind": row.expense_kind,
             "total_income": total_income,
             "total_expense": total_expense,
             "balance": total_income - total_expense,

@@ -97,6 +97,31 @@ def update_config(
 
 
 # ============================================================
+# PARCELAMENTOS
+# ============================================================
+
+@router.get("/{account_id}/installments")
+def list_active_installments(
+    account_id: int,
+    db: Session = Depends(get_db),
+    current_user: schemas.User = Depends(get_current_user),
+):
+    """Parcelamentos ativos do cartão, consolidados entre faturas."""
+    account = crud.get_account(db, account_id)
+    if not account or account.user_id != current_user.id:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Conta não encontrada",
+        )
+    items = crud.get_active_installments(db, current_user.id, account_id)
+    return {
+        "items": items,
+        "total_remaining": sum(i["remaining_amount"] for i in items),
+        "count": len(items),
+    }
+
+
+# ============================================================
 # LOTES DE IMPORTAÇÃO
 # ============================================================
 

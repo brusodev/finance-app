@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import {
   CreditCard, Plus, Settings, ChevronRight, Calendar,
-  DollarSign, X, Check, AlertCircle, Trash2, History
+  DollarSign, X, Check, AlertCircle, Trash2, History, Clock
 } from 'lucide-react'
 import { accountsAPI, creditCardsAPI } from '../services/api'
 import { formatCurrency } from '../utils/formatters'
@@ -27,6 +27,7 @@ export default function CreditCards() {
   const [allAccounts, setAllAccounts] = useState([])
   const [configs, setConfigs] = useState({})
   const [latestBatches, setLatestBatches] = useState({})
+  const [installments, setInstallments] = useState({})
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
 
@@ -83,6 +84,14 @@ export default function CreditCards() {
         })
       )
       setLatestBatches(Object.fromEntries(batchEntries))
+
+      const installmentEntries = await Promise.all(
+        creditAccounts.map(async (acc) => {
+          try { return [acc.id, await creditCardsAPI.listInstallments(acc.id)] }
+          catch { return [acc.id, null] }
+        })
+      )
+      setInstallments(Object.fromEntries(installmentEntries))
     } catch {
       setError('Erro ao carregar cartões de crédito')
     } finally {
@@ -410,6 +419,41 @@ export default function CreditCards() {
                           </span>
                         </div>
                       )}
+                    </div>
+                  )}
+
+                  {/* Parcelamentos em aberto */}
+                  {installments[account.id]?.count > 0 && (
+                    <div className="rounded-xl border border-white/[0.08] bg-white/[0.03] p-3">
+                      <div className="flex items-center justify-between mb-2">
+                        <p className="text-xs font-semibold text-zinc-700 dark:text-zinc-300 flex items-center gap-1.5">
+                          <Clock size={13} className="text-amber-500" />
+                          Parcelamentos em aberto
+                        </p>
+                        <p className="text-xs font-bold text-amber-600 dark:text-amber-400">
+                          {formatCurrency(installments[account.id].total_remaining, user?.currency)}
+                        </p>
+                      </div>
+                      <div className="space-y-1.5">
+                        {installments[account.id].items.slice(0, 4).map((p, idx) => (
+                          <div key={idx} className="flex items-center justify-between gap-2 text-xs">
+                            <span className="text-zinc-600 dark:text-zinc-400 truncate flex items-center gap-1.5 min-w-0">
+                              <span className="truncate">{p.description}</span>
+                              <span className="shrink-0 text-[10px] font-medium px-1.5 py-0.5 rounded-full bg-amber-500/10 text-amber-600 dark:text-amber-400">
+                                {p.current}/{p.total}
+                              </span>
+                            </span>
+                            <span className="text-zinc-700 dark:text-zinc-300 shrink-0">
+                              faltam {p.remaining}× · {formatCurrency(p.remaining_amount, user?.currency)}
+                            </span>
+                          </div>
+                        ))}
+                        {installments[account.id].count > 4 && (
+                          <p className="text-[11px] text-zinc-500 dark:text-zinc-400 pt-0.5">
+                            + {installments[account.id].count - 4} outros parcelamentos
+                          </p>
+                        )}
+                      </div>
                     </div>
                   )}
 

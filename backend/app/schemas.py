@@ -67,15 +67,29 @@ class Token(BaseModel):
     user: User
 
 
+VALID_EXPENSE_KINDS = {"fixed", "variable"}
+
+
 class CategoryCreate(BaseModel):
     name: str
     icon: Optional[str] = None
+    expense_kind: Optional[str] = None
+
+    @field_validator("expense_kind")
+    @classmethod
+    def validate_expense_kind(cls, v):
+        if v is not None and v not in VALID_EXPENSE_KINDS:
+            raise ValueError(
+                "expense_kind deve ser 'fixed' ou 'variable'"
+            )
+        return v
 
 
 class Category(BaseModel):
     id: int
     name: str
     icon: Optional[str] = None
+    expense_kind: Optional[str] = None
 
     class Config:
         from_attributes = True

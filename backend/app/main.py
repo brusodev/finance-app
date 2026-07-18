@@ -79,6 +79,23 @@ def run_migrations():
                 "raw_description VARCHAR",
                 "transactions.raw_description"
             ),
+            # Category: classificação fixo/variável
+            (
+                "ALTER TABLE categories ADD COLUMN IF NOT EXISTS "
+                "expense_kind VARCHAR",
+                "categories.expense_kind"
+            ),
+            # Transaction: parcelamento preservado da fatura
+            (
+                "ALTER TABLE transactions ADD COLUMN IF NOT EXISTS "
+                "installment_current INTEGER",
+                "transactions.installment_current"
+            ),
+            (
+                "ALTER TABLE transactions ADD COLUMN IF NOT EXISTS "
+                "installment_total INTEGER",
+                "transactions.installment_total"
+            ),
         ]
     else:
         migrations = [
@@ -142,6 +159,11 @@ def run_migrations():
             (
                 "ALTER TABLE transactions ADD COLUMN raw_description VARCHAR",
                 "transactions.raw_description"
+            ),
+            # Category: classificação fixo/variável
+            (
+                "ALTER TABLE categories ADD COLUMN expense_kind VARCHAR",
+                "categories.expense_kind"
             ),
         ]
 

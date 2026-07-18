@@ -309,6 +309,7 @@ def create_category(db: Session, category: schemas.CategoryCreate, user_id: int)
     db_category = models.Category(
         name=category.name,
         icon=category.icon,
+        expense_kind=category.expense_kind,
         user_id=user_id
     )
     db.add(db_category)
@@ -345,6 +346,7 @@ def update_category(db: Session, category_id: int,
         db_category.name = category.name
         if category.icon:
             db_category.icon = category.icon
+        db_category.expense_kind = category.expense_kind
         db.commit()
         db.refresh(db_category)
     return db_category
@@ -1763,6 +1765,8 @@ def confirm_import_batch(
             category_id=item.category_id,
             account_id=batch.account_id,
             user_id=user_id,
+            installment_current=item.installment_current,
+            installment_total=item.installment_total,
         )
         db.add(transaction)
         db.flush()  # Gera o ID antes de atribuir
@@ -1811,3 +1815,76 @@ def confirm_import_batch(
         "ignored_count": ignored_count,
         "transactions_created": transaction_ids,
     }
+
+
+# ========================
+# PARCELAMENTOS (cross-fatura)
+# ========================
+
+import re as _re  # noqa: E402
+
+# Sufixo de parcela: " - Parcela 3/10", " 3/10", "(3/10)" etc.
+_INSTALLMENT_SUFFIX_RE = _re.compile(
+    r'\s*[-(]?\s*(?:parcela\s*)?\d{1,3}\s*[/\\]\s*\d{1,3}\)?\s*$',
+    _re.IGNORECASE,
+)
+
+
+def _installment_base_key(description: str) -> str:
+    """Descrição sem o sufixo de parcela, normalizada para agrupar."""
+    base = _INSTALLMENT_SUFFIX_RE.sub('', description or '').strip()
+    return base.lower()
+
+
+def get_active_installments(db: Session, user_id: int, account_id: int):
+    """
+    Consolida parcelamentos ativos de um cartão a partir das transações.
+
+    Agrupa por descrição-base (sem o sufixo 'Parcela X/Y') e usa a
+    parcela mais recente de cada grupo para projetar o que ainda falta.
+    Um grupo é ativo se a parcela mais recente tem current < total.
+    """
+    txs = db.query(models.Transaction).filter(
+        models.Transaction.user_id == user_id,
+        models.Transaction.account_id == account_id,
+        models.Transaction.installment_total.isnot(None),
+        models.Transaction.installment_current.isnot(None),
+    ).order_by(models.Transaction.date.asc()).all()
+
+    groups: dict = {}
+    for t in txs:
+        key = (_installment_base_key(t.description), t.installment_total)
+        g = groups.setdefault(key, {
+            'base_description': _INSTALLMENT_SUFFIX_RE.sub(
+                '', t.description or '').strip(),
+            'total': t.installment_total,
+            'latest': None,
+            'seen_current': set(),
+            'per_installment': abs(t.amount),
+        })
+        g['seen_current'].add(t.installment_current)
+        if g['latest'] is None or t.installment_current > g['latest']:
+            g['latest'] = t.installment_current
+            g['per_installment'] = abs(t.amount)
+            g['latest_date'] = t.date
+
+    result = []
+    for g in groups.values():
+        latest = g['latest']
+        total = g['total']
+        remaining = max(total - latest, 0)
+        if remaining <= 0:
+            continue  # parcelamento já quitado
+        result.append({
+            'description': g['base_description'],
+            'current': latest,
+            'total': total,
+            'remaining': remaining,
+            'per_installment': g['per_installment'],
+            'remaining_amount': remaining * g['per_installment'],
+            'paid_installments': len(g['seen_current']),
+            'latest_date': g.get('latest_date'),
+        })
+
+    result.sort(key=lambda x: x['remaining_amount'], reverse=True)
+    return result

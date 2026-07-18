@@ -2,21 +2,22 @@ import React, { useState, useEffect } from 'react'
 import { Plus, Edit2, Trash2, X } from 'lucide-react'
 import { categoriesAPI } from '../services/api'
 
+const EMPTY_FORM = { name: '', icon: '📁', expense_kind: '' }
+
+const EXPENSE_KIND_LABELS = { fixed: 'Fixo', variable: 'Variável' }
+
 export default function Categories() {
   const [categories, setCategories] = useState([])
   const [loading, setLoading] = useState(false)
   const [showForm, setShowForm] = useState(false)
   const [editingId, setEditingId] = useState(null)
-  const [formData, setFormData] = useState({
-    name: '',
-    icon: '📁'
-  })
+  const [formData, setFormData] = useState(EMPTY_FORM)
   const [error, setError] = useState('')
   const [success, setSuccess] = useState('')
   const [suggestions, setSuggestions] = useState([])
   const [iconSuggestions, setIconSuggestions] = useState([])
   const [customIcon, setCustomIcon] = useState('')
-  const [selectedCategory, setSelectedCategory] = useState(null)
+  const [confirmDelete, setConfirmDelete] = useState(null)
 
   useEffect(() => {
     loadCategories()
@@ -29,7 +30,7 @@ export default function Categories() {
       const data = await categoriesAPI.getSuggestions()
       setSuggestions(data)
     } catch (err) {
-      console.log('Erro ao carregar sugestões:', err)
+      // Sugestões são opcionais — falha silenciosa não bloqueia o formulário
     }
   }
 
@@ -38,7 +39,7 @@ export default function Categories() {
       const data = await categoriesAPI.getIcons()
       setIconSuggestions(data)
     } catch (err) {
-      console.log('Erro ao carregar ícones:', err)
+      setIconSuggestions([])
     }
   }
 
@@ -61,15 +62,16 @@ export default function Categories() {
     setSuccess('')
 
     try {
+      const payload = { ...formData, expense_kind: formData.expense_kind || null }
       if (editingId) {
-        await categoriesAPI.update(editingId, formData)
+        await categoriesAPI.update(editingId, payload)
         setSuccess('Categoria atualizada com sucesso!')
       } else {
-        await categoriesAPI.create(formData)
+        await categoriesAPI.create(payload)
         setSuccess('Categoria criada com sucesso!')
       }
       await loadCategories()
-      setFormData({ name: '', icon: '📁' })
+      setFormData(EMPTY_FORM)
       setEditingId(null)
       setShowForm(false)
     } catch (err) {
@@ -80,15 +82,16 @@ export default function Categories() {
     }
   }
 
-  const handleDelete = async (id) => {
-    if (window.confirm('Tem certeza que deseja deletar esta categoria?')) {
-      try {
-        await categoriesAPI.delete(id)
-        setSuccess('Categoria deletada com sucesso!')
-        await loadCategories()
-      } catch (err) {
-        setError('Erro ao deletar categoria')
-      }
+  const handleDelete = async () => {
+    if (!confirmDelete) return
+    try {
+      await categoriesAPI.delete(confirmDelete.id)
+      setSuccess('Categoria deletada com sucesso!')
+      await loadCategories()
+    } catch (err) {
+      setError('Erro ao deletar categoria')
+    } finally {
+      setConfirmDelete(null)
     }
   }
 
@@ -96,13 +99,14 @@ export default function Categories() {
     setEditingId(category.id)
     setFormData({
       name: category.name,
-      icon: category.icon || '📁'
+      icon: category.icon || '📁',
+      expense_kind: category.expense_kind || ''
     })
     setShowForm(true)
   }
 
   const resetForm = () => {
-    setFormData({ name: '', icon: '📁' })
+    setFormData(EMPTY_FORM)
     setEditingId(null)
     setError('')
     setSuccess('')
@@ -165,6 +169,24 @@ export default function Categories() {
                     ))}
                   </datalist>
                 )}
+              </div>
+
+              <div>
+                <label className='block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1'>
+                  Tipo de gasto
+                </label>
+                <select
+                  value={formData.expense_kind}
+                  onChange={(e) => setFormData({ ...formData, expense_kind: e.target.value })}
+                  className='w-full px-4 py-2 border border-zinc-200 dark:border-white/[0.08] rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-[#1a1a1a] text-zinc-900 dark:text-white'
+                >
+                  <option value=''>Sem classificação</option>
+                  <option value='fixed'>Fixo — repete todo mês (aluguel, assinaturas, plano de saúde)</option>
+                  <option value='variable'>Variável — depende do comportamento (mercado, lazer, refeições)</option>
+                </select>
+                <p className='text-xs text-zinc-500 dark:text-zinc-400 mt-1'>
+                  Usado nos relatórios para separar gastos compressíveis dos comprometidos
+                </p>
               </div>
 
               <div>
@@ -267,7 +289,7 @@ export default function Categories() {
                 <Edit2 size={14} />
               </button>
               <button
-                onClick={() => handleDelete(category.id)}
+                onClick={() => setConfirmDelete(category)}
                 className='p-1.5 rounded-lg text-zinc-400 hover:text-red-400 hover:bg-red-500/10 transition-colors'
                 title='Excluir'
               >
@@ -283,9 +305,47 @@ export default function Categories() {
             <h3 className='text-sm font-semibold text-zinc-700 dark:text-zinc-200 leading-tight'>
               {category.name}
             </h3>
+            {category.expense_kind && (
+              <span className={`mt-2 text-[10px] font-medium px-2 py-0.5 rounded-full ${
+                category.expense_kind === 'fixed'
+                  ? 'bg-blue-500/10 text-blue-600 dark:text-blue-400'
+                  : 'bg-amber-500/10 text-amber-600 dark:text-amber-400'
+              }`}>
+                {EXPENSE_KIND_LABELS[category.expense_kind]}
+              </span>
+            )}
           </div>
         ))}
       </div>
+
+      {/* Modal de confirmação de exclusão */}
+      {confirmDelete && (
+        <div className='fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4'>
+          <div className='bg-white dark:bg-[#111111] rounded-xl shadow-xl w-full max-w-sm p-6'>
+            <h2 className='text-lg font-semibold text-zinc-800 dark:text-white mb-2'>
+              Excluir categoria
+            </h2>
+            <p className='text-sm text-zinc-600 dark:text-zinc-400 mb-6'>
+              Tem certeza que deseja excluir a categoria{' '}
+              <span className='font-semibold text-zinc-800 dark:text-white'>{confirmDelete.name}</span>?
+            </p>
+            <div className='flex justify-end gap-3'>
+              <button
+                onClick={() => setConfirmDelete(null)}
+                className='px-4 py-2 text-sm font-medium text-zinc-600 dark:text-zinc-300 rounded-lg hover:bg-zinc-100 dark:hover:bg-white/[0.06] transition-colors'
+              >
+                Cancelar
+              </button>
+              <button
+                onClick={handleDelete}
+                className='px-4 py-2 text-sm font-medium bg-red-600 hover:bg-red-700 text-white rounded-lg transition-colors'
+              >
+                Excluir
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }

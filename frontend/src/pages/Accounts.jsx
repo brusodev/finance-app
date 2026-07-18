@@ -247,7 +247,14 @@ export default function Accounts() {
               {formatCurrency(account.balance, user?.currency)}
             </p>
 
-            {account.account_type !== 'credit_card' && (
+            {account.account_type === 'credit_card' ? (
+              <button
+                onClick={() => navigate(`/cartoes/${account.id}/importar`)}
+                className='mt-4 w-full flex items-center justify-center gap-1.5 px-3 py-2 text-sm border border-zinc-300 dark:border-white/[0.08] text-zinc-600 dark:text-zinc-300 rounded-lg hover:bg-zinc-50 dark:hover:bg-white/[0.06] transition-colors'
+              >
+                <Upload size={15} /> Importar fatura
+              </button>
+            ) : (
               <button
                 onClick={() => navigate(`/contas/${account.id}/importar`)}
                 className='mt-4 w-full flex items-center justify-center gap-1.5 px-3 py-2 text-sm border border-zinc-300 dark:border-white/[0.08] text-zinc-600 dark:text-zinc-300 rounded-lg hover:bg-zinc-50 dark:hover:bg-white/[0.06] transition-colors'

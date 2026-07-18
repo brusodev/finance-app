@@ -1,4 +1,4 @@
-const API_URL = import.meta.env.VITE_API_URL || "http://localhost:8000";
+const API_URL = import.meta.env.VITE_API_URL;
 
 const getHeaders = () => ({
   "Content-Type": "application/json",
@@ -661,6 +661,14 @@ export const creditCardsAPI = {
   listBatches: async (accountId) => {
     const response = await fetch(
       `${API_URL}/credit-cards/${accountId}/batches`,
+      { headers: getHeaders(), credentials: "include" }
+    );
+    return handleResponse(response);
+  },
+
+  listInstallments: async (accountId) => {
+    const response = await fetch(
+      `${API_URL}/credit-cards/${accountId}/installments`,
       { headers: getHeaders(), credentials: "include" }
     );
     return handleResponse(response);

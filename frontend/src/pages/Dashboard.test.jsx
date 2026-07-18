@@ -1,5 +1,6 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { render, screen, waitFor } from '@testing-library/react';
+import { MemoryRouter } from 'react-router-dom';
 import Dashboard from './Dashboard';
 import * as api from '../services/api';
 import * as AuthContext from '../context/AuthContext';
@@ -25,6 +26,14 @@ vi.mock('../context/AuthContext', () => ({
 describe('Dashboard Component', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    vi.stubGlobal('fetch', vi.fn((url) =>
+      Promise.resolve({
+        ok: true,
+        json: () => Promise.resolve(
+          String(url).includes('by-category') ? [] : {}
+        ),
+      })
+    ));
     AuthContext.useAuth.mockReturnValue({
       user: { username: 'testuser', full_name: 'Test User' }
     });
@@ -35,7 +44,7 @@ describe('Dashboard Component', () => {
     api.categoriesAPI.getAll.mockReturnValue(new Promise(() => {}));
     api.accountsAPI.getAll.mockReturnValue(new Promise(() => {}));
 
-    render(<Dashboard />);
+    render(<Dashboard />, { wrapper: MemoryRouter });
     expect(screen.getByRole('status')).toBeInTheDocument();
   });
 
@@ -44,10 +53,10 @@ describe('Dashboard Component', () => {
     api.categoriesAPI.getAll.mockResolvedValue([]);
     api.accountsAPI.getAll.mockResolvedValue([]);
 
-    render(<Dashboard />);
+    render(<Dashboard />, { wrapper: MemoryRouter });
 
     await waitFor(() => {
-      expect(screen.getByText(/Bem-vindo, Test User/i)).toBeInTheDocument();
+      expect(screen.getByText(/(Bom dia|Boa tarde|Boa noite), Test/i)).toBeInTheDocument();
     }, { timeout: 3000 });
   });
 
@@ -56,7 +65,7 @@ describe('Dashboard Component', () => {
     api.categoriesAPI.getAll.mockResolvedValue([]);
     api.accountsAPI.getAll.mockResolvedValue([]);
 
-    render(<Dashboard />);
+    render(<Dashboard />, { wrapper: MemoryRouter });
 
     await waitFor(() => {
       expect(screen.getByText(/API Error/i)).toBeInTheDocument();
@@ -78,7 +87,7 @@ describe('Dashboard Component', () => {
     api.categoriesAPI.getAll.mockResolvedValue([]);
     api.accountsAPI.getAll.mockResolvedValue(mockAccounts);
 
-    render(<Dashboard />);
+    render(<Dashboard />, { wrapper: MemoryRouter });
 
     await waitFor(() => {
       // Check for formatted values - more flexible regex
@@ -105,7 +114,7 @@ describe('Dashboard Component', () => {
     api.categoriesAPI.getAll.mockResolvedValue([]);
     api.accountsAPI.getAll.mockResolvedValue(mockAccounts);
 
-    render(<Dashboard />);
+    render(<Dashboard />, { wrapper: MemoryRouter });
 
     await waitFor(() => {
       // Should display 0,00 for zero balance
@@ -128,7 +137,7 @@ describe('Dashboard Component', () => {
     api.categoriesAPI.getAll.mockResolvedValue([]);
     api.accountsAPI.getAll.mockResolvedValue([]);
 
-    render(<Dashboard />);
+    render(<Dashboard />, { wrapper: MemoryRouter });
 
     await waitFor(() => {
       expect(screen.getByText('Mac')).toBeInTheDocument();
@@ -145,7 +154,7 @@ describe('Dashboard Component', () => {
     api.categoriesAPI.getAll.mockResolvedValue([]);
     api.accountsAPI.getAll.mockResolvedValue([]);
 
-    render(<Dashboard />);
+    render(<Dashboard />, { wrapper: MemoryRouter });
 
     await waitFor(() => {
       expect(screen.getByText(/Nenhuma transação registrada/i)).toBeInTheDocument();
@@ -167,7 +176,7 @@ describe('Dashboard Component', () => {
     api.categoriesAPI.getAll.mockResolvedValue([]);
     api.accountsAPI.getAll.mockResolvedValue([]);
 
-    render(<Dashboard />);
+    render(<Dashboard />, { wrapper: MemoryRouter });
 
     await waitFor(() => {
       expect(screen.getByText('Sem categoria')).toBeInTheDocument();
@@ -187,7 +196,7 @@ describe('Dashboard Component', () => {
     api.categoriesAPI.getAll.mockResolvedValue([]);
     api.accountsAPI.getAll.mockResolvedValue([]);
 
-    render(<Dashboard />);
+    render(<Dashboard />, { wrapper: MemoryRouter });
 
     await waitFor(() => {
       expect(screen.getByText('Transaction 1')).toBeInTheDocument();
