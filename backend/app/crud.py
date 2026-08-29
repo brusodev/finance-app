@@ -1,3 +1,5 @@
+from datetime import date, datetime
+
 from sqlalchemy.orm import Session
 from . import models, schemas
 from .utils import hash_password
@@ -1244,6 +1246,86 @@ def update_credit_card_config(
 
 # ---- Import Batch ----
 
+def _normalize_import_item_signature(item: dict):
+    """Gera uma assinatura estável para comparar itens importados."""
+    raw_description = (item.get('raw_description') or item.get('description') or '').strip()
+    raw_amount = float(item.get('raw_amount') or item.get('amount') or 0.0)
+    raw_date = item.get('raw_date') or item.get('date')
+    if isinstance(raw_date, str):
+        raw_date = date.fromisoformat(raw_date)
+    installment_current = item.get('installment_current')
+    installment_total = item.get('installment_total')
+    return (
+        raw_description.lower(),
+        round(raw_amount, 2),
+        raw_date.isoformat() if raw_date else None,
+        installment_current,
+        installment_total,
+    )
+
+
+def _normalize_import_items_list(items_data):
+    """Normaliza a lista de itens para comparação sem depender da ordem."""
+    return sorted(
+        (_normalize_import_item_signature(item) for item in items_data or []),
+        key=lambda item: (
+            item[0],
+            str(item[1]),
+            str(item[2] or ''),
+            str(item[3] or ''),
+            str(item[4] or ''),
+        )
+    )
+
+
+def find_duplicate_import_batch(
+    db: Session,
+    account_id: int,
+    user_id: int,
+    reference_month,
+    items_data: list,
+):
+    """Retorna um lote equivalente já existente para a mesma conta/mês/conteúdo."""
+    from datetime import date as date_type
+
+    ref = reference_month
+    if isinstance(ref, date_type):
+        ref = ref.replace(day=1)
+
+    if not items_data:
+        return None
+
+    normalized_items = _normalize_import_items_list(items_data)
+    if not normalized_items:
+        return None
+
+    batches = (
+        db.query(models.ImportBatch)
+        .filter(
+            models.ImportBatch.user_id == user_id,
+            models.ImportBatch.account_id == account_id,
+            models.ImportBatch.reference_month == ref,
+            models.ImportBatch.status != models.ImportBatchStatusEnum.CANCELLED,
+        )
+        .all()
+    )
+
+    for batch in batches:
+        existing_items = _normalize_import_items_list([
+            {
+                'raw_description': item.raw_description or item.description,
+                'raw_amount': item.raw_amount,
+                'raw_date': item.raw_date,
+                'installment_current': item.installment_current,
+                'installment_total': item.installment_total,
+            }
+            for item in batch.items
+        ])
+        if len(existing_items) == len(normalized_items) and existing_items == normalized_items:
+            return batch
+    return None
+
+
 def create_import_batch(
     db: Session,
     account_id: int,
@@ -1266,6 +1348,7 @@ def create_import_batch(
         file_name=file_name,
         file_type=file_type,
         status=models.ImportBatchStatusEnum.PENDING,
+        updated_at=datetime.utcnow(),
     )
     db.add(batch)
     db.commit()
@@ -1285,7 +1368,7 @@ def list_import_batches(
     user_id: int,
     account_id: int = None
 ):
-    """Lista lotes de importação do usuário."""
+    """Lista lotes de importação do usuário, do mais recente para o mais antigo."""
     query = db.query(models.ImportBatch).filter(
         models.ImportBatch.user_id == user_id
     )
@@ -1294,6 +1377,7 @@ def list_import_batches(
             models.ImportBatch.account_id == account_id
         )
     return query.order_by(
+        models.ImportBatch.updated_at.desc(),
         models.ImportBatch.created_at.desc()
     ).all()
 
@@ -1307,6 +1391,7 @@ def cancel_import_batch(db: Session, batch_id: int, user_id: int):
         raise ValueError("Lote já confirmado não pode ser cancelado")
 
     batch.status = models.ImportBatchStatusEnum.CANCELLED
+    batch.updated_at = datetime.utcnow()
     db.commit()
     db.refresh(batch)
     return batch
@@ -1351,6 +1436,7 @@ def add_import_items(
         db.add(item)
         created.append(item)
 
+    batch.updated_at = datetime.utcnow()
     db.commit()
     for item in created:
         db.refresh(item)
@@ -1389,6 +1475,7 @@ def add_manual_import_item(
         status=models.ImportItemStatusEnum.PENDING,
     )
     db.add(db_item)
+    batch.updated_at = datetime.utcnow()
     db.commit()
     db.refresh(db_item)
     return db_item
@@ -1442,6 +1529,7 @@ def update_import_item(
     if item.batch.status == models.ImportBatchStatusEnum.PENDING:
         item.batch.status = models.ImportBatchStatusEnum.REVIEWED
 
+    item.batch.updated_at = datetime.utcnow()
     db.commit()
     db.refresh(item)
     return item
@@ -1792,6 +1880,7 @@ def confirm_import_batch(
 
     batch.status = models.ImportBatchStatusEnum.CONFIRMED
     batch.confirmed_at = dt.utcnow()
+    batch.updated_at = dt.utcnow()
 
     # Fatura (statement) só faz sentido para cartão de crédito
     if is_credit_card:

@@ -169,6 +169,7 @@ def list_batches(
             file_type=b.file_type,
             status=b.status.value if hasattr(b.status, 'value') else b.status,
             created_at=b.created_at,
+            updated_at=b.updated_at or b.created_at,
             item_count=len(b.items),
             total_amount=total,
             statement=statement_info,
@@ -251,6 +252,22 @@ async def upload_batch(
         raise HTTPException(
             status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
             detail=f"Erro ao processar arquivo: {e}",
+        )
+
+    duplicate_batch = crud.find_duplicate_import_batch(
+        db,
+        account_id=account_id,
+        user_id=current_user.id,
+        reference_month=reference_month,
+        items_data=items_data,
+    )
+    if duplicate_batch:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail=(
+                "Importação equivalente já existe para esta conta e mês. "
+                f"Revise o lote #{duplicate_batch.id} em vez de duplicar."
+            ),
         )
 
     batch = crud.create_import_batch(

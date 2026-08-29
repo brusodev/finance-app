@@ -1,4 +1,4 @@
-from datetime import date
+from datetime import date, datetime, timedelta
 
 import pytest
 from sqlalchemy import create_engine
@@ -53,6 +53,70 @@ def _seed_user_and_accounts(db_session):
     db_session.refresh(card)
     db_session.refresh(category)
     return user, checking, card, category
+
+
+def test_find_duplicate_import_batch_detects_same_content(db_session):
+    user, _, card, _ = _seed_user_and_accounts(db_session)
+    items = [
+        {"raw_description": "Mercado", "raw_amount": 80.0, "raw_date": date(2026, 4, 5)},
+        {"raw_description": "Farmácia", "raw_amount": 40.0, "raw_date": date(2026, 4, 8)},
+    ]
+
+    batch = crud.create_import_batch(
+        db_session,
+        account_id=card.id,
+        reference_month=date(2026, 4, 1),
+        user_id=user.id,
+    )
+    crud.add_import_items(db_session, batch.id, items, user.id)
+
+    duplicate = crud.find_duplicate_import_batch(
+        db_session,
+        account_id=card.id,
+        user_id=user.id,
+        reference_month=date(2026, 4, 1),
+        items_data=items,
+    )
+
+    assert duplicate is not None
+    assert duplicate.id == batch.id
+
+    different_items = [
+        {"raw_description": "Mercado", "raw_amount": 80.0, "raw_date": date(2026, 4, 5)},
+        {"raw_description": "Cinema", "raw_amount": 65.0, "raw_date": date(2026, 4, 12)},
+    ]
+    assert crud.find_duplicate_import_batch(
+        db_session,
+        account_id=card.id,
+        user_id=user.id,
+        reference_month=date(2026, 4, 1),
+        items_data=different_items,
+    ) is None
+
+
+def test_list_import_batches_orders_most_recent_first(db_session):
+    user, _, card, _ = _seed_user_and_accounts(db_session)
+
+    older = crud.create_import_batch(
+        db_session,
+        account_id=card.id,
+        reference_month=date(2026, 4, 1),
+        user_id=user.id,
+    )
+    newer = crud.create_import_batch(
+        db_session,
+        account_id=card.id,
+        reference_month=date(2026, 5, 1),
+        user_id=user.id,
+    )
+
+    older.created_at = datetime.utcnow() - timedelta(days=2)
+    newer.created_at = datetime.utcnow()
+    db_session.add_all([older, newer])
+    db_session.commit()
+
+    ordered = crud.list_import_batches(db_session, user.id, account_id=card.id)
+    assert [batch.id for batch in ordered] == [newer.id, older.id]
 
 
 def test_confirm_and_pay_credit_card_statement_in_parts(db_session):

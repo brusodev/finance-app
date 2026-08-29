@@ -594,6 +594,7 @@ class ImportBatch(BaseModel):
     file_type: Optional[str]
     status: str
     created_at: datetime
+    updated_at: Optional[datetime] = None
     confirmed_at: Optional[datetime]
     statement: Optional[CreditCardStatement] = None
     items: List[ImportItem] = []
@@ -623,6 +624,7 @@ class ImportBatchSummary(BaseModel):
     file_type: Optional[str]
     status: str
     created_at: datetime
+    updated_at: Optional[datetime] = None
     item_count: int
     total_amount: float
     statement: Optional[ImportBatchStatementInfo] = None

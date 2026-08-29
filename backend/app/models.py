@@ -217,6 +217,7 @@ class ImportBatch(Base):
     file_type = Column(String, nullable=True)   # 'csv', 'ofx', 'pdf', 'manual'
     status = Column(Enum(ImportBatchStatusEnum), default=ImportBatchStatusEnum.PENDING, nullable=False)
     created_at = Column(DateTime, default=datetime.utcnow)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
     confirmed_at = Column(DateTime, nullable=True)
 
     account = relationship("Account")

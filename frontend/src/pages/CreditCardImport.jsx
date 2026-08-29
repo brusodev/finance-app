@@ -51,6 +51,18 @@ function monthOptions() {
   return opts
 }
 
+function formatBatchDate(value) {
+  const date = value ? new Date(value) : null
+  if (!date || Number.isNaN(date.getTime())) return '—'
+  return date.toLocaleString('pt-BR', {
+    day: '2-digit',
+    month: '2-digit',
+    year: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
+  })
+}
+
 // ─── Main component ─────────────────────────────────────────
 export default function CreditCardImport() {
   const { accountId } = useParams()
@@ -66,6 +78,11 @@ export default function CreditCardImport() {
   const [selectedBatch, setSelectedBatch] = useState(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
+  const orderedBatches = [...batches].sort((a, b) => {
+    const aUpdated = new Date(a.updated_at || a.created_at || 0).getTime()
+    const bUpdated = new Date(b.updated_at || b.created_at || 0).getTime()
+    return bUpdated - aUpdated
+  })
 
   // New batch form
   const [newBatchMode, setNewBatchMode] = useState(null) // 'manual' | 'upload'
@@ -535,8 +552,11 @@ export default function CreditCardImport() {
               )}
 
               {createError && (
-                <div className="flex items-center gap-2 text-red-600 dark:text-red-400 text-xs">
-                  <AlertCircle size={14} /> {createError}
+                <div className="rounded-xl border border-red-200 dark:border-red-700/60 bg-red-50 dark:bg-red-900/20 p-3 text-xs text-red-700 dark:text-red-300">
+                  <div className="flex items-start gap-2">
+                    <AlertCircle size={14} className="mt-0.5 shrink-0" />
+                    <span>{createError}</span>
+                  </div>
                 </div>
               )}
 
@@ -562,12 +582,12 @@ export default function CreditCardImport() {
           )}
 
           {/* Batch list */}
-          {batches.length === 0 && !newBatchMode ? (
+          {orderedBatches.length === 0 && !newBatchMode ? (
             <div className="rounded-2xl border border-white/[0.08] bg-white/[0.03] dark:bg-white/[0.03] backdrop-blur-sm p-6 text-center text-zinc-400 dark:text-zinc-500 text-sm">
               {isCreditCard ? 'Nenhuma fatura ainda' : 'Nenhuma importação ainda'}
             </div>
           ) : (
-            batches.map(b => (
+            orderedBatches.map((b, index) => (
               <button
                 key={b.id}
                 onClick={() => fetchBatch(b.id)}
@@ -577,20 +597,30 @@ export default function CreditCardImport() {
                     : 'border-white/[0.08] bg-white/[0.03] dark:bg-white/[0.03] backdrop-blur-sm hover:bg-white/[0.07]'
                 }`}
               >
-                <div className="flex items-start justify-between mb-2">
-                  <div>
-                    <p className="font-medium text-zinc-800 dark:text-white text-sm">
-                      {new Date(b.reference_month + 'T12:00:00').toLocaleDateString('pt-BR', {
-                        month: 'long', year: 'numeric'
-                      })}
-                    </p>
+                <div className="flex items-start justify-between mb-2 gap-2">
+                  <div className="min-w-0 flex-1">
+                    <div className="flex items-center gap-2">
+                      <p className="font-medium text-zinc-800 dark:text-white text-sm">
+                        {new Date(b.reference_month + 'T12:00:00').toLocaleDateString('pt-BR', {
+                          month: 'long', year: 'numeric'
+                        })}
+                      </p>
+                      {index === 0 && (
+                        <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 font-medium">
+                          Recentes
+                        </span>
+                      )}
+                    </div>
                     {b.file_name && (
-                      <p className="text-xs text-zinc-400 dark:text-zinc-500 mt-0.5 flex items-center gap-1">
+                      <p className="text-xs text-zinc-400 dark:text-zinc-500 mt-0.5 flex items-center gap-1 truncate">
                         <FileText size={11} /> {b.file_name}
                       </p>
                     )}
+                    <p className="text-[10px] text-zinc-500 dark:text-zinc-400 mt-1">
+                      Atualizado em {formatBatchDate(b.updated_at || b.created_at)}
+                    </p>
                   </div>
-                  <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${STATUS_COLOR[b.status] ?? STATUS_COLOR.pending}`}>
+                  <span className={`text-xs px-2 py-0.5 rounded-full font-medium shrink-0 ${STATUS_COLOR[b.status] ?? STATUS_COLOR.pending}`}>
                     {STATUS_LABEL[b.status] ?? b.status}
                   </span>
                 </div>
@@ -629,6 +659,9 @@ export default function CreditCardImport() {
                     <span>{pendingCount} pendentes · {ignoredCount} ignorados</span>
                     <span className="font-semibold text-zinc-700 dark:text-zinc-300">
                       Total: {formatCurrency(totalPending, user?.currency)}
+                    </span>
+                    <span className="text-xs text-zinc-500 dark:text-zinc-400">
+                      Última atividade: {formatBatchDate(selectedBatch.updated_at || selectedBatch.created_at)}
                     </span>
                   </div>
                 </div>
