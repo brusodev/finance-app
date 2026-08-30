@@ -67,6 +67,17 @@ def run_migrations():
                 "account_transaction_id INTEGER REFERENCES transactions(id)",
                 "investment_transactions.account_transaction_id"
             ),
+            # Import batch migrations
+            (
+                "ALTER TABLE import_batches ADD COLUMN IF NOT EXISTS "
+                "updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP",
+                "import_batches.updated_at"
+            ),
+            (
+                "ALTER TABLE import_batches ADD COLUMN IF NOT EXISTS "
+                "confirmed_at TIMESTAMP",
+                "import_batches.confirmed_at"
+            ),
             # Import item migrations
             (
                 "ALTER TABLE import_items ADD COLUMN IF NOT EXISTS "
@@ -149,6 +160,17 @@ def run_migrations():
                 "ALTER TABLE investment_transactions ADD COLUMN "
                 "account_transaction_id INTEGER REFERENCES transactions(id)",
                 "investment_transactions.account_transaction_id"
+            ),
+            # Import batch migrations
+            (
+                "ALTER TABLE import_batches ADD COLUMN updated_at "
+                "TIMESTAMP DEFAULT CURRENT_TIMESTAMP",
+                "import_batches.updated_at"
+            ),
+            (
+                "ALTER TABLE import_batches ADD COLUMN confirmed_at "
+                "TIMESTAMP",
+                "import_batches.confirmed_at"
             ),
             # Import item migrations
             (

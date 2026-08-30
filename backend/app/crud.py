@@ -1378,7 +1378,8 @@ def list_import_batches(
         )
     return query.order_by(
         models.ImportBatch.updated_at.desc(),
-        models.ImportBatch.created_at.desc()
+        models.ImportBatch.created_at.desc(),
+        models.ImportBatch.id.desc()
     ).all()
 
 

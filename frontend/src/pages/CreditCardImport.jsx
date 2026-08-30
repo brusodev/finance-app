@@ -63,6 +63,12 @@ function formatBatchDate(value) {
   })
 }
 
+function formatReferenceMonth(value) {
+  return new Date(`${value}T12:00:00`).toLocaleDateString('pt-BR', {
+    month: 'long', year: 'numeric'
+  })
+}
+
 // ─── Main component ─────────────────────────────────────────
 export default function CreditCardImport() {
   const { accountId } = useParams()
@@ -76,6 +82,7 @@ export default function CreditCardImport() {
   const [categories, setCategories] = useState([])
   const [batches, setBatches] = useState([])
   const [selectedBatch, setSelectedBatch] = useState(null)
+  const [openMonths, setOpenMonths] = useState(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
   const orderedBatches = [...batches].sort((a, b) => {
@@ -83,6 +90,22 @@ export default function CreditCardImport() {
     const bUpdated = new Date(b.updated_at || b.created_at || 0).getTime()
     return bUpdated - aUpdated
   })
+  const groupedBatches = orderedBatches.reduce((groups, batch) => {
+    const monthKey = batch.reference_month
+    const group = groups.find(item => item.monthKey === monthKey)
+    if (group) {
+      group.batches.push(batch)
+    } else {
+      groups.push({ monthKey, batches: [batch] })
+    }
+    return groups
+  }, [])
+  const orderedItems = selectedBatch?.items
+    ? [...selectedBatch.items].sort((a, b) => {
+        const dateDifference = new Date(b.date).getTime() - new Date(a.date).getTime()
+        return dateDifference || b.id - a.id
+      })
+    : []
 
   // New batch form
   const [newBatchMode, setNewBatchMode] = useState(null) // 'manual' | 'upload'
@@ -126,7 +149,14 @@ export default function CreditCardImport() {
 
   useEffect(() => {
     fetchInitial()
+    setOpenMonths(null)
   }, [accountId])
+
+  useEffect(() => {
+    if (openMonths === null && groupedBatches.length > 0) {
+      setOpenMonths(new Set([groupedBatches[0].monthKey]))
+    }
+  }, [batches, openMonths, groupedBatches])
 
   useEffect(() => {
     if (selectedBatch || batches.length === 0) return
@@ -587,51 +617,86 @@ export default function CreditCardImport() {
               {isCreditCard ? 'Nenhuma fatura ainda' : 'Nenhuma importação ainda'}
             </div>
           ) : (
-            orderedBatches.map((b, index) => (
-              <button
-                key={b.id}
-                onClick={() => fetchBatch(b.id)}
-                className={`w-full text-left rounded-2xl border p-4 transition-all duration-200 hover:border-blue-400 dark:hover:border-blue-500 ${
-                  selectedBatch?.id === b.id
-                    ? 'border-blue-500 dark:border-blue-500 bg-white/[0.06] dark:bg-white/[0.06]'
-                    : 'border-white/[0.08] bg-white/[0.03] dark:bg-white/[0.03] backdrop-blur-sm hover:bg-white/[0.07]'
-                }`}
-              >
-                <div className="flex items-start justify-between mb-2 gap-2">
-                  <div className="min-w-0 flex-1">
-                    <div className="flex items-center gap-2">
-                      <p className="font-medium text-zinc-800 dark:text-white text-sm">
-                        {new Date(b.reference_month + 'T12:00:00').toLocaleDateString('pt-BR', {
-                          month: 'long', year: 'numeric'
-                        })}
+            groupedBatches.map((group, groupIndex) => {
+              const groupTotal = group.batches.reduce((sum, batch) => sum + batch.total_amount, 0)
+              const groupItemCount = group.batches.reduce((sum, batch) => sum + batch.item_count, 0)
+              const isOpen = openMonths?.has(group.monthKey)
+              return (
+                <div
+                  key={group.monthKey}
+                  className="overflow-hidden rounded-2xl border border-white/[0.08] bg-white/[0.03] dark:bg-white/[0.03] backdrop-blur-sm"
+                >
+                  <button
+                    type="button"
+                    onClick={() => setOpenMonths(previous => {
+                      const next = new Set(previous ?? [])
+                      if (next.has(group.monthKey)) next.delete(group.monthKey)
+                      else next.add(group.monthKey)
+                      return next
+                    })}
+                    className={`flex w-full items-center justify-between gap-2 px-4 py-3 text-left hover:bg-white/[0.05] transition-colors ${isOpen ? 'border-b border-white/[0.06]' : ''}`}
+                    aria-expanded={isOpen}
+                  >
+                    <div className="flex items-center gap-2 min-w-0">
+                      <p className="font-semibold text-zinc-800 dark:text-white text-sm truncate">
+                        {formatReferenceMonth(group.monthKey)}
                       </p>
-                      {index === 0 && (
-                        <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 font-medium">
+                      {groupIndex === 0 && (
+                        <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 font-medium shrink-0">
                           Recentes
                         </span>
                       )}
                     </div>
-                    {b.file_name && (
-                      <p className="text-xs text-zinc-400 dark:text-zinc-500 mt-0.5 flex items-center gap-1 truncate">
-                        <FileText size={11} /> {b.file_name}
-                      </p>
-                    )}
-                    <p className="text-[10px] text-zinc-500 dark:text-zinc-400 mt-1">
-                      Atualizado em {formatBatchDate(b.updated_at || b.created_at)}
-                    </p>
-                  </div>
-                  <span className={`text-xs px-2 py-0.5 rounded-full font-medium shrink-0 ${STATUS_COLOR[b.status] ?? STATUS_COLOR.pending}`}>
-                    {STATUS_LABEL[b.status] ?? b.status}
-                  </span>
+                    <span className="text-[10px] text-zinc-500 dark:text-zinc-400 shrink-0">
+                      {group.batches.length} {group.batches.length === 1 ? 'lote' : 'lotes'}
+                    </span>
+                  </button>
+                  {isOpen && group.batches.map(b => (
+                    <button
+                      key={b.id}
+                      onClick={() => fetchBatch(b.id)}
+                      className={`w-full text-left border-b last:border-b-0 border-white/[0.06] p-4 transition-all duration-200 hover:bg-white/[0.07] hover:border-blue-400 dark:hover:border-blue-500 ${
+                        selectedBatch?.id === b.id
+                          ? 'bg-white/[0.06] dark:bg-white/[0.06]'
+                          : ''
+                      }`}
+                    >
+                      <div className="flex items-start justify-between mb-2 gap-2">
+                        <div className="min-w-0 flex-1">
+                          {b.file_name ? (
+                            <p className="text-xs text-zinc-400 dark:text-zinc-500 flex items-center gap-1 truncate">
+                              <FileText size={11} /> {b.file_name}
+                            </p>
+                          ) : (
+                            <p className="text-xs text-zinc-400 dark:text-zinc-500">Lançamentos manuais</p>
+                          )}
+                          <p className="text-[10px] text-zinc-500 dark:text-zinc-400 mt-1">
+                            Atualizado em {formatBatchDate(b.updated_at || b.created_at)}
+                          </p>
+                        </div>
+                        <span className={`text-xs px-2 py-0.5 rounded-full font-medium shrink-0 ${STATUS_COLOR[b.status] ?? STATUS_COLOR.pending}`}>
+                          {STATUS_LABEL[b.status] ?? b.status}
+                        </span>
+                      </div>
+                      <div className="flex items-center justify-between text-xs text-zinc-500 dark:text-zinc-400">
+                        <span>{b.item_count} itens</span>
+                        <span className="font-medium text-zinc-700 dark:text-zinc-300">
+                          {formatCurrency(b.total_amount, user?.currency)}
+                        </span>
+                      </div>
+                    </button>
+                  ))}
+                  {group.batches.length > 1 && (
+                    <div className="flex items-center justify-between bg-white/[0.02] px-4 py-2 text-[11px] text-zinc-500 dark:text-zinc-400">
+                      <span>Total do mês: {groupItemCount} itens</span>
+                      <span className="font-medium text-zinc-700 dark:text-zinc-300">
+                        {formatCurrency(groupTotal, user?.currency)}
+                      </span>
+                    </div>
+                  )}
                 </div>
-                <div className="flex items-center justify-between text-xs text-zinc-500 dark:text-zinc-400">
-                  <span>{b.item_count} itens</span>
-                  <span className="font-medium text-zinc-700 dark:text-zinc-300">
-                    {formatCurrency(b.total_amount, user?.currency)}
-                  </span>
-                </div>
-              </button>
-            ))
+              )
+            })
           )}
         </div>
 
@@ -951,7 +1016,7 @@ export default function CreditCardImport() {
                 </div>
               ) : (
                 <div className="divide-y divide-zinc-100 dark:divide-zinc-800">
-                  {selectedBatch.items.map(item => (
+                  {orderedItems.map(item => (
                     <div
                       key={item.id}
                       className={`p-4 transition-colors ${

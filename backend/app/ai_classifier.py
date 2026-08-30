@@ -10,17 +10,22 @@ MissingGroqKey — a rota traduz isso em 503.
 """
 
 import json
+import logging
 import os
+import time
 from typing import Any, Callable, Dict, List, Optional
 
 import httpx
 
 GROQ_URL = "https://api.groq.com/openai/v1/chat/completions"
-DEFAULT_MODEL = "llama-3.3-70b-versatile"
+DEFAULT_MODEL = "openai/gpt-oss-20b"
 TIMEOUT_SECONDS = 30.0
 # Itens por chamada à IA — mantém cada request bem abaixo do
 # rate limit de tokens/minuto (TPM) do tier free do Groq.
-CHUNK_SIZE = 25
+CHUNK_SIZE = 15
+MAX_RETRIES = 3
+
+logger = logging.getLogger(__name__)
 
 VALID_TYPES = ("income", "expense")
 
@@ -164,6 +169,8 @@ def _classify_chunk(
     payload = {
         "model": model,
         "temperature": 0,
+        "reasoning_format": "hidden",
+        "max_completion_tokens": 2048,
         "response_format": {"type": "json_object"},
         "messages": [
             {"role": "system", "content": _system_prompt()},
@@ -174,21 +181,41 @@ def _classify_chunk(
         ],
     }
 
-    try:
-        resp = httpx.post(
-            GROQ_URL,
-            headers={
-                "Authorization": f"Bearer {api_key}",
-                "Content-Type": "application/json",
-            },
-            json=payload,
-            timeout=TIMEOUT_SECONDS,
-        )
-        resp.raise_for_status()
-        content = resp.json()["choices"][0]["message"]["content"]
-        parsed = json.loads(content)
-    except (httpx.HTTPError, KeyError, ValueError, json.JSONDecodeError):
-        return {}
+    for attempt in range(MAX_RETRIES + 1):
+        try:
+            resp = httpx.post(
+                GROQ_URL,
+                headers={
+                    "Authorization": f"Bearer {api_key}",
+                    "Content-Type": "application/json",
+                },
+                json=payload,
+                timeout=TIMEOUT_SECONDS,
+            )
+            resp.raise_for_status()
+            content = resp.json()["choices"][0]["message"]["content"]
+            parsed = json.loads(content)
+            break
+        except httpx.HTTPStatusError as error:
+            if error.response.status_code == 429 and attempt < MAX_RETRIES:
+                retry_after = error.response.headers.get("retry-after")
+                try:
+                    delay = min(float(retry_after), 30.0)
+                except (TypeError, ValueError):
+                    delay = 5.0
+                time.sleep(delay)
+                continue
+            logger.warning(
+                "Groq request failed: status=%s attempt=%s",
+                error.response.status_code,
+                attempt + 1,
+            )
+            return {}
+        except (httpx.HTTPError, KeyError, ValueError, json.JSONDecodeError) as error:
+            logger.warning(
+                "Groq response could not be parsed: %s", type(error).__name__
+            )
+            return {}
 
     results = parsed.get("results")
     if not isinstance(results, list):
