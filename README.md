@@ -9,6 +9,9 @@ Sistema completo de gestão financeira pessoal com controle de contas, transaç�
 - **Dashboard Interativo** - Visão geral com gráficos e estatísticas
 - **Contas Bancárias** - Gerenciamento de múltiplas contas com diferentes moedas (BRL, USD, EUR)
 - **Cartões de Crédito** - Cadastro, configuração e revisão de faturas com importação manual, CSV e OFX
+- **Importações organizadas** - Histórico agrupado por mês, com lotes recolhíveis e ordenados pela atividade mais recente
+- **Proteção contra duplicidade** - Bloqueia uma nova importação equivalente para a mesma conta e mês, permitindo vários lotes diferentes no mesmo mês
+- **Classificação por IA** - Sugere categoria, tipo e descrição para lançamentos importados, com processamento em lotes
 - **Categorias Personalizadas** - Organize receitas e despesas com ícones coloridos
 - **Transações** - Registro completo de movimentações financeiras
 - **Transferências entre Contas** - Movimente valores entre suas contas facilmente
@@ -31,6 +34,31 @@ Sistema completo de gestão financeira pessoal com controle de contas, transaç�
 
 - **JWT** - Autenticação segura
 - **Perfil de Usuário** - Dados pessoais e preferências
+
+### Classificação inteligente de importações
+
+O classificador usa a API da Groq para sugerir categorias e descrições dos lançamentos.
+
+- Classifica somente itens pendentes do lote.
+- Divide lotes grandes em blocos menores e acompanha o progresso no frontend.
+- Reaplica automaticamente associações já aprendidas para o mesmo estabelecimento, sem chamar a IA novamente.
+- Usa classificações anteriores como exemplos para ajudar a IA em descrições novas ou ambíguas.
+- A memória de classificação é registrada quando o lote é confirmado com uma categoria definida.
+
+Configure no arquivo `.env.docker`:
+
+```env
+GROQ_API_KEY=sua-chave-groq
+GROQ_MODEL=openai/gpt-oss-20b
+```
+
+O modelo precisa estar disponível para a chave utilizada. Para trocar o modelo, altere `GROQ_MODEL` e recrie o container do backend:
+
+```bash
+docker compose --env-file .env.docker up -d --build backend
+```
+
+Sem `GROQ_API_KEY`, ou quando a API estiver indisponível, os lançamentos continuam podendo ser classificados manualmente.
 
 ---
 
