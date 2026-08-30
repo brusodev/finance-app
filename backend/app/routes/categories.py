@@ -51,7 +51,7 @@ def get_category_suggestions(
     limit: int = 10
 ):
     """
-    Obter sugestões de nomes de categorias baseadas em categorias populares de outros usuários.
+    Obter sugestões de nomes de categoria a partir de uma lista curada de nomes comuns.
 
     - limit: número máximo de sugestões (padrão: 10)
     """

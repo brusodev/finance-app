@@ -126,24 +126,22 @@ def create_account(db: Session, account: schemas.AccountCreate, user_id: int):
     return db_account
 
 
+COMMON_ACCOUNT_NAMES = [
+    "Nubank", "Itaú", "Bradesco", "Banco do Brasil", "Santander",
+    "Caixa Econômica", "Inter", "C6 Bank", "PicPay", "Carteira",
+    "Poupança", "XP Investimentos", "Mercado Pago",
+]
+
+
 def get_account_suggestions(db: Session, user_id: int, limit: int = 10):
-    """Get account name suggestions from other users (most popular)"""
-    from sqlalchemy import func
-
-    # Buscar nomes de contas de outros usuários, agrupadas por nome, ordenadas por frequência
-    suggestions = db.query(
-        models.Account.name,
-        func.count(models.Account.name).label('count')
-    ).filter(
-        models.Account.user_id != user_id  # Excluir contas do próprio usuário
-    ).group_by(
-        models.Account.name
-    ).order_by(
-        func.count(models.Account.name).desc()  # Mais populares primeiro
-    ).limit(limit).all()
-
-    # Retornar apenas os nomes
-    return [suggestion.name for suggestion in suggestions]
+    """Sugestões de nomes de conta a partir de uma lista curada (não usa dados de outros usuários)."""
+    existing = {
+        name for (name,) in db.query(models.Account.name).filter(
+            models.Account.user_id == user_id
+        ).all()
+    }
+    suggestions = [n for n in COMMON_ACCOUNT_NAMES if n not in existing]
+    return suggestions[:limit]
 
 
 def update_account(db: Session, account_id: int, account: schemas.AccountUpdate):
@@ -320,24 +318,23 @@ def create_category(db: Session, category: schemas.CategoryCreate, user_id: int)
     return db_category
 
 
+COMMON_CATEGORY_NAMES = [
+    "Alimentação", "Transporte", "Saúde", "Educação", "Lazer",
+    "Moradia", "Vestuário", "Beleza", "Pets", "Tecnologia",
+    "Esportes", "Viagem", "Mercado", "Contas", "Investimentos",
+    "Presentes", "Doação", "Salário", "Freelance",
+]
+
+
 def get_category_suggestions(db: Session, user_id: int, limit: int = 10):
-    """Get category name suggestions from other users (most popular)"""
-    from sqlalchemy import func
-
-    # Buscar categorias de outros usuários, agrupadas por nome, ordenadas por frequência
-    suggestions = db.query(
-        models.Category.name,
-        func.count(models.Category.name).label('count')
-    ).filter(
-        models.Category.user_id != user_id  # Excluir categorias do próprio usuário
-    ).group_by(
-        models.Category.name
-    ).order_by(
-        func.count(models.Category.name).desc()  # Mais populares primeiro
-    ).limit(limit).all()
-
-    # Retornar apenas os nomes
-    return [suggestion.name for suggestion in suggestions]
+    """Sugestões de nomes de categoria a partir de uma lista curada (não usa dados de outros usuários)."""
+    existing = {
+        name for (name,) in db.query(models.Category.name).filter(
+            models.Category.user_id == user_id
+        ).all()
+    }
+    suggestions = [n for n in COMMON_CATEGORY_NAMES if n not in existing]
+    return suggestions[:limit]
 
 
 def update_category(db: Session, category_id: int,

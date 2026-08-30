@@ -19,7 +19,7 @@ def get_account_suggestions(
     limit: int = 10
 ):
     """
-    Obter sugestões de nomes de contas baseadas em contas populares de outros usuários.
+    Obter sugestões de nomes de conta a partir de uma lista curada de nomes comuns.
 
     - limit: número máximo de sugestões (padrão: 10)
     """
