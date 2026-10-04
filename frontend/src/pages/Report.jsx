@@ -427,7 +427,7 @@ export default function Report() {
     return `${MONTH_NAMES[parseInt(month) - 1]} ${year}`;
   };
 
-  const onlyExpenses = categoryData.filter(c => Math.abs(c.total_expense) > 0);
+  const onlyExpenses = categoryData.filter(c => c.expense_kind !== 'investment' && Math.abs(c.total_expense) > 0);
   const maxExpense = onlyExpenses.length > 0 ? Math.abs(onlyExpenses[0].total_expense) : 0;
   const totalExpense = onlyExpenses.reduce((s, c) => s + Math.abs(c.total_expense), 0);
 
@@ -482,6 +482,14 @@ export default function Report() {
     : reserveMonths >= 6 ? { status: 'good', label: 'Confortável' }
     : reserveMonths >= 3 ? { status: 'warn', label: 'Razoável' }
     : { status: 'bad', label: 'Reforçar reserva' };
+
+  const invested = periodData?.total_invested ?? 0;
+  const redeemed = periodData?.total_redeemed ?? 0;
+  const investedPct = income > 0 && invested > 0 ? (invested / income) * 100 : null;
+  const investedStatus = investedPct == null ? null
+    : investedPct >= 20 ? { status: 'good', label: 'Ótimo' }
+    : investedPct >= 10 ? { status: 'warn', label: 'Moderado' }
+    : { status: 'bad', label: 'Baixo' };
 
   const cardCommitment = income > 0 && totalCreditCardPayments > 0
     ? (totalCreditCardPayments / income) * 100
@@ -594,6 +602,11 @@ export default function Report() {
                 + {formatCurrency(totalCreditCardPayments, user?.currency)} em faturas
               </p>
             )}
+            {invested > 0 && (
+              <p className="text-xs text-zinc-500 dark:text-zinc-400 mt-1">
+                + {formatCurrency(invested, user?.currency)} investidos
+              </p>
+            )}
           </div>
         </div>
       )}
@@ -604,7 +617,7 @@ export default function Report() {
           <h2 className="text-sm font-semibold text-zinc-500 dark:text-zinc-400 uppercase tracking-wide mb-2">
             Saúde Financeira
           </h2>
-          <div className="grid grid-cols-2 xl:grid-cols-4 gap-3">
+          <div className="grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-3">
             <HealthTile
               label="Taxa de Poupança"
               value={savingsRate != null ? fmtPct(savingsRate) : '—'}
@@ -634,6 +647,14 @@ export default function Report() {
               status={reserveStatus?.status}
               statusLabel={reserveStatus?.label}
               hint="saldo total ÷ despesa média (6m)"
+            />
+            <HealthTile
+              label="Investido no Mês"
+              value={formatCurrency(invested, user?.currency)}
+              status={investedStatus?.status}
+              statusLabel={investedStatus ? `${fmtPct(investedPct)} da receita · ${investedStatus.label}` : undefined}
+              meterPct={investedPct}
+              hint={redeemed > 0 ? `resgates: ${formatCurrency(redeemed, user?.currency)}` : 'aportes do mês'}
             />
             <HealthTile
               label="Fatura ÷ Receita"
@@ -752,6 +773,7 @@ export default function Report() {
               /* Detalhes — lista expandível */
               <div className="space-y-2">
                 {categoryData.map((category, i) => {
+                  if (category.expense_kind === 'investment') return null;
                   const expense = Math.abs(category.total_expense);
                   if (expense === 0 && category.total_income === 0) return null;
                   const isExpanded = expandedCategories.has(category.category_id);

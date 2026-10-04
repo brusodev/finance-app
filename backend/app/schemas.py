@@ -67,7 +67,7 @@ class Token(BaseModel):
     user: User
 
 
-VALID_EXPENSE_KINDS = {"fixed", "variable"}
+VALID_EXPENSE_KINDS = {"fixed", "variable", "investment"}
 
 
 class CategoryCreate(BaseModel):
@@ -80,7 +80,7 @@ class CategoryCreate(BaseModel):
     def validate_expense_kind(cls, v):
         if v is not None and v not in VALID_EXPENSE_KINDS:
             raise ValueError(
-                "expense_kind deve ser 'fixed' ou 'variable'"
+                "expense_kind deve ser 'fixed', 'variable' ou 'investment'"
             )
         return v
 

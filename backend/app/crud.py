@@ -837,10 +837,59 @@ def delete_investment_asset(db: Session, asset_id: int, user_id: int):
 def _get_or_create_investment_category(db: Session, user_id: int) -> int:
     category = get_category_by_name_and_user(db, "Investimentos", user_id)
     if not category:
-        category = models.Category(name="Investimentos", icon="📈", user_id=user_id)
+        category = models.Category(
+            name="Investimentos", icon="📈", user_id=user_id,
+            expense_kind="investment",
+        )
         db.add(category)
         db.flush()
+    elif not category.expense_kind:
+        category.expense_kind = "investment"
     return category.id
+
+
+def get_flow_totals(db: Session, user_id: int, filters: list) -> dict:
+    """
+    Receitas/despesas do período, separando movimentos de investimento
+    (categorias com expense_kind='investment') dos totais operacionais.
+    """
+    from sqlalchemy import func, case, or_
+
+    investment_ids = db.query(models.Category.id).filter(
+        models.Category.user_id == user_id,
+        models.Category.expense_kind == "investment",
+    )
+    is_investment = models.Transaction.category_id.in_(investment_ids)
+    not_investment = or_(
+        models.Transaction.category_id.is_(None),
+        models.Transaction.category_id.notin_(investment_ids),
+    )
+    amount = func.abs(models.Transaction.amount)
+    tx_type = models.Transaction.transaction_type
+
+    def total(kind, investment):
+        return func.sum(case(
+            (
+                (tx_type == kind) & (is_investment if investment else not_investment),
+                amount,
+            ),
+            else_=0,
+        ))
+
+    row = db.query(
+        total("income", False),
+        total("expense", False),
+        total("expense", True),
+        total("income", True),
+    ).filter(models.Transaction.user_id == user_id, *filters).one()
+
+    income, expense, invested, redeemed = (float(v or 0) for v in row)
+    return {
+        "total_income": income,
+        "total_expense": expense,
+        "total_invested": invested,
+        "total_redeemed": redeemed,
+    }
 
 
 def create_investment_transaction(db: Session, transaction: schemas.InvestmentTransactionCreate, user_id: int):

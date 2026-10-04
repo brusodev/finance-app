@@ -9,6 +9,7 @@ from .routes import (
 from .database import engine, Base, SessionLocal, get_db
 from sqlalchemy import text, and_
 from .models import User
+from . import crud
 import os
 from datetime import date
 
@@ -215,6 +216,20 @@ def run_migrations():
             except Exception as e:
                 print(f"  [WARN] Erro ao migrar saldos: {e}")
 
+            # Categoria "Investimentos" existente passa a ser tipo investment
+            try:
+                result = conn.execute(text("""
+                    UPDATE categories
+                    SET expense_kind = 'investment'
+                    WHERE name = 'Investimentos' AND expense_kind IS NULL
+                """))
+                if result.rowcount > 0:
+                    print(
+                        f"  [DATA] {result.rowcount} categorias "
+                        "Investimentos classificadas")
+            except Exception as e:
+                print(f"  [WARN] Erro ao classificar Investimentos: {e}")
+
         print("[OK] Migracoes verificadas com sucesso!")
     except Exception as e:
         print(f"[ERRO] Erro ao verificar migracoes: {str(e)}")
@@ -364,35 +379,15 @@ async def dashboard(
         and_(*transaction_filters)
     ).scalar() or 0
 
-    # Calcular receitas e despesas
-    income_result = db.query(func.sum(Transaction.amount)).filter(
-        and_(*transaction_filters),
-        Transaction.transaction_type == 'income'
-    ).scalar() or 0.0
-
-    expense_result = db.query(func.sum(func.abs(Transaction.amount))).filter(
-        and_(*transaction_filters),
-        Transaction.transaction_type == 'expense'
-    ).scalar() or 0.0
+    flow = crud.get_flow_totals(db, current_user.id, transaction_filters[1:])
 
     return {
         "total_accounts": total_accounts,
         "total_categories": total_categories,
         "total_transactions": total_transactions,
         "total_balance": float(total_balance),
-        "total_income": float(income_result),
-        "total_expense": float(expense_result),
-        "net_balance": float(income_result) - float(expense_result)
-    }
-
-    return {
-        "total_accounts": total_accounts,
-        "total_categories": total_categories,
-        "total_transactions": total_transactions,
-        "total_balance": float(total_balance),
-        "total_income": float(income_result),
-        "total_expense": float(expense_result),
-        "net_balance": float(income_result) - float(expense_result)
+        **flow,
+        "net_balance": flow["total_income"] - flow["total_expense"]
     }
 
 
@@ -439,15 +434,7 @@ async def dashboard_summary(
         and_(*transaction_filters)
     ).scalar() or 0
 
-    income_result = db.query(func.sum(Transaction.amount)).filter(
-        and_(*transaction_filters),
-        Transaction.transaction_type == 'income'
-    ).scalar() or 0.0
-
-    expense_result = db.query(func.sum(func.abs(Transaction.amount))).filter(
-        and_(*transaction_filters),
-        Transaction.transaction_type == 'expense'
-    ).scalar() or 0.0
+    flow = crud.get_flow_totals(db, current_user.id, transaction_filters[1:])
 
     # Buscar últimas 10 transações com joins otimizados
     from sqlalchemy.orm import joinedload
@@ -470,9 +457,8 @@ async def dashboard_summary(
             "total_categories": total_categories,
             "total_transactions": total_transactions,
             "total_balance": float(total_balance),
-            "total_income": float(income_result),
-            "total_expense": float(expense_result),
-            "net_balance": float(income_result) - float(expense_result)
+            **flow,
+            "net_balance": flow["total_income"] - flow["total_expense"]
         },
         "recent_transactions": transactions_data
     }

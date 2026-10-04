@@ -4,7 +4,12 @@ import { categoriesAPI } from '../services/api'
 
 const EMPTY_FORM = { name: '', icon: '📁', expense_kind: '' }
 
-const EXPENSE_KIND_LABELS = { fixed: 'Fixo', variable: 'Variável' }
+const EXPENSE_KIND_LABELS = { fixed: 'Fixo', variable: 'Variável', investment: 'Investimento' }
+const EXPENSE_KIND_BADGES = {
+  fixed: 'bg-blue-500/10 text-blue-600 dark:text-blue-400',
+  variable: 'bg-amber-500/10 text-amber-600 dark:text-amber-400',
+  investment: 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400',
+}
 
 export default function Categories() {
   const [categories, setCategories] = useState([])
@@ -183,6 +188,7 @@ export default function Categories() {
                   <option value=''>Sem classificação</option>
                   <option value='fixed'>Fixo — repete todo mês (aluguel, assinaturas, plano de saúde)</option>
                   <option value='variable'>Variável — depende do comportamento (mercado, lazer, refeições)</option>
+                  <option value='investment'>Investimento — aportes e aplicações (não conta como despesa)</option>
                 </select>
                 <p className='text-xs text-zinc-500 dark:text-zinc-400 mt-1'>
                   Usado nos relatórios para separar gastos compressíveis dos comprometidos
@@ -306,11 +312,7 @@ export default function Categories() {
               {category.name}
             </h3>
             {category.expense_kind && (
-              <span className={`mt-2 text-[10px] font-medium px-2 py-0.5 rounded-full ${
-                category.expense_kind === 'fixed'
-                  ? 'bg-blue-500/10 text-blue-600 dark:text-blue-400'
-                  : 'bg-amber-500/10 text-amber-600 dark:text-amber-400'
-              }`}>
+              <span className={`mt-2 text-[10px] font-medium px-2 py-0.5 rounded-full ${EXPENSE_KIND_BADGES[category.expense_kind]}`}>
                 {EXPENSE_KIND_LABELS[category.expense_kind]}
               </span>
             )}

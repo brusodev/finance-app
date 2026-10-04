@@ -281,41 +281,18 @@ def get_totals_by_period(
     - period_start: Data inicial
     - period_end: Data final
     """
-    from sqlalchemy import func, case
+    from sqlalchemy import func
 
-    # Query otimizada com agregação SQL
-    result = db.query(
-        func.sum(
-            case(
-                (Transaction.transaction_type == 'income',
-                 func.abs(Transaction.amount)),
-                else_=0
-            )
-        ).label('total_income'),
-        func.sum(
-            case(
-                (Transaction.transaction_type == 'expense',
-                 func.abs(Transaction.amount)),
-                else_=0
-            )
-        ).label('total_expense'),
-        func.count(Transaction.id).label('transaction_count')
-    ).filter(
-        and_(
-            Transaction.user_id == current_user.id,
-            Transaction.date >= start,
-            Transaction.date <= end
-        )
-    ).first()
-
-    total_income = float(result.total_income or 0)
-    total_expense = float(result.total_expense or 0)
+    period_filters = [Transaction.date >= start, Transaction.date <= end]
+    totals = crud.get_flow_totals(db, current_user.id, period_filters)
+    transaction_count = db.query(func.count(Transaction.id)).filter(
+        Transaction.user_id == current_user.id, *period_filters
+    ).scalar() or 0
 
     return {
-        "total_income": total_income,
-        "total_expense": total_expense,
-        "balance": total_income - total_expense,
-        "transaction_count": result.transaction_count or 0,
+        **totals,
+        "balance": totals["total_income"] - totals["total_expense"],
+        "transaction_count": transaction_count,
         "period_start": start.isoformat(),
         "period_end": end.isoformat()
     }
