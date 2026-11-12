@@ -52,6 +52,8 @@ class Transaction(Base):
     date = Column(Date, index=True)  # Índice para ordenação e filtros
     description = Column(String, index=True)  # Índice para sugestões
     raw_description = Column(String, nullable=True)  # Memo íntegro do extrato (origem)
+    # Id único do banco (FITID), herdado do item importado
+    external_id = Column(String, nullable=True, index=True)
     transaction_type = Column(String, index=True)  # Índice para filtros ('income', 'expense', 'transfer')
     category_id = Column(Integer, ForeignKey('categories.id'), index=True)
     account_id = Column(Integer, ForeignKey('accounts.id'), nullable=True, index=True)
@@ -215,6 +217,9 @@ class ImportBatch(Base):
     reference_month = Column(Date, nullable=False)
     file_name = Column(String, nullable=True)
     file_type = Column(String, nullable=True)   # 'csv', 'ofx', 'pdf', 'manual'
+    # Período que o extrato declara cobrir (OFX DTSTART/DTEND), se houver
+    period_start = Column(Date, nullable=True)
+    period_end = Column(Date, nullable=True)
     status = Column(Enum(ImportBatchStatusEnum), default=ImportBatchStatusEnum.PENDING, nullable=False)
     created_at = Column(DateTime, default=datetime.utcnow)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
@@ -302,6 +307,11 @@ class ImportItem(Base):
     installment_total = Column(Integer, nullable=True)
 
     status = Column(Enum(ImportItemStatusEnum), default=ImportItemStatusEnum.PENDING, nullable=False)
+    # Id único do banco (OFX FITID / coluna 'Identificador' do CSV)
+    external_id = Column(String, nullable=True, index=True)
+    # Detecção de duplicidade na importação: 'certain' | 'possible'
+    duplicate_status = Column(String, nullable=True)
+    duplicate_note = Column(String, nullable=True)
     # Aponta para a Transaction criada após confirmação
     transaction_id = Column(Integer, ForeignKey('transactions.id'), nullable=True)
 

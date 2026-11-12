@@ -666,6 +666,14 @@ export const creditCardsAPI = {
     return handleResponse(response);
   },
 
+  getImportCoverage: async (accountId) => {
+    const response = await fetch(
+      `${API_URL}/credit-cards/${accountId}/import-coverage`,
+      { headers: getHeaders(), credentials: "include" }
+    );
+    return handleResponse(response);
+  },
+
   listInstallments: async (accountId) => {
     const response = await fetch(
       `${API_URL}/credit-cards/${accountId}/installments`,

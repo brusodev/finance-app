@@ -108,6 +108,37 @@ def run_migrations():
                 "installment_total INTEGER",
                 "transactions.installment_total"
             ),
+            # Detecção de duplicidade / cobertura de período
+            (
+                "ALTER TABLE import_items ADD COLUMN IF NOT EXISTS "
+                "external_id VARCHAR",
+                "import_items.external_id"
+            ),
+            (
+                "ALTER TABLE import_items ADD COLUMN IF NOT EXISTS "
+                "duplicate_status VARCHAR",
+                "import_items.duplicate_status"
+            ),
+            (
+                "ALTER TABLE import_items ADD COLUMN IF NOT EXISTS "
+                "duplicate_note VARCHAR",
+                "import_items.duplicate_note"
+            ),
+            (
+                "ALTER TABLE transactions ADD COLUMN IF NOT EXISTS "
+                "external_id VARCHAR",
+                "transactions.external_id"
+            ),
+            (
+                "ALTER TABLE import_batches ADD COLUMN IF NOT EXISTS "
+                "period_start DATE",
+                "import_batches.period_start"
+            ),
+            (
+                "ALTER TABLE import_batches ADD COLUMN IF NOT EXISTS "
+                "period_end DATE",
+                "import_batches.period_end"
+            ),
         ]
     else:
         migrations = [
@@ -187,6 +218,36 @@ def run_migrations():
             (
                 "ALTER TABLE categories ADD COLUMN expense_kind VARCHAR",
                 "categories.expense_kind"
+            ),
+            (
+                "ALTER TABLE import_items ADD COLUMN "
+                "external_id VARCHAR",
+                "import_items.external_id"
+            ),
+            (
+                "ALTER TABLE import_items ADD COLUMN "
+                "duplicate_status VARCHAR",
+                "import_items.duplicate_status"
+            ),
+            (
+                "ALTER TABLE import_items ADD COLUMN "
+                "duplicate_note VARCHAR",
+                "import_items.duplicate_note"
+            ),
+            (
+                "ALTER TABLE transactions ADD COLUMN "
+                "external_id VARCHAR",
+                "transactions.external_id"
+            ),
+            (
+                "ALTER TABLE import_batches ADD COLUMN "
+                "period_start DATE",
+                "import_batches.period_start"
+            ),
+            (
+                "ALTER TABLE import_batches ADD COLUMN "
+                "period_end DATE",
+                "import_batches.period_end"
             ),
         ]
 

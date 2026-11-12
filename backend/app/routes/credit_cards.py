@@ -10,7 +10,7 @@ from datetime import date
 from .. import crud, schemas, classify_jobs
 from ..database import get_db, SessionLocal
 from .auth import get_current_user
-from ..parsers import parse_uploaded_file
+from ..parsers import parse_uploaded_file, parse_ofx_period
 from ..ai_classifier import MissingGroqKey
 
 router = APIRouter(
@@ -119,6 +119,22 @@ def list_active_installments(
         "total_remaining": sum(i["remaining_amount"] for i in items),
         "count": len(items),
     }
+
+
+@router.get("/{account_id}/import-coverage")
+def import_coverage(
+    account_id: int,
+    db: Session = Depends(get_db),
+    current_user: schemas.User = Depends(get_current_user),
+):
+    """Períodos já importados da conta e buracos (dias ou meses) entre eles."""
+    account = crud.get_account(db, account_id)
+    if not account or account.user_id != current_user.id:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Conta não encontrada",
+        )
+    return crud.get_import_coverage(db, account_id, current_user.id)
 
 
 # ============================================================
@@ -254,6 +270,10 @@ async def upload_batch(
             detail=f"Erro ao processar arquivo: {e}",
         )
 
+    period_start = period_end = None
+    if ext.lower().strip('.') in ('ofx', 'qfx'):
+        period_start, period_end = parse_ofx_period(content)
+
     duplicate_batch = crud.find_duplicate_import_batch(
         db,
         account_id=account_id,
@@ -277,6 +297,8 @@ async def upload_batch(
         file_name=filename,
         file_type=ext,
         user_id=current_user.id,
+        period_start=period_start,
+        period_end=period_end,
     )
 
     if items_data:

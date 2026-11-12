@@ -575,6 +575,9 @@ class ImportItem(BaseModel):
     installment_total: Optional[int]
     status: str
     transaction_id: Optional[int]
+    external_id: Optional[str] = None
+    duplicate_status: Optional[str] = None  # 'certain' | 'possible'
+    duplicate_note: Optional[str] = None
 
     class Config:
         from_attributes = True
@@ -592,6 +595,8 @@ class ImportBatch(BaseModel):
     reference_month: date
     file_name: Optional[str]
     file_type: Optional[str]
+    period_start: Optional[date] = None
+    period_end: Optional[date] = None
     status: str
     created_at: datetime
     updated_at: Optional[datetime] = None

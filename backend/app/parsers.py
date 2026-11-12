@@ -83,6 +83,9 @@ _CSV_FIELD_MAP = {
         'valor', 'amount', 'value', 'debito', 'débito',
         'credito', 'crédito', 'total',
     ],
+    # Opcional: id único da transação (ex.: Nubank conta 'Identificador')
+    'external_id': ['identificador', 'id', 'fitid', 'id transação',
+                    'id transacao'],
 }
 
 
@@ -155,6 +158,10 @@ def parse_csv(content: bytes) -> List[Dict[str, Any]]:
         raw_desc = row[col['description']].strip()
         raw_date_str = row[col['date']].strip()
         raw_amount_str = row[col['amount']].strip()
+        external_id = (
+            row[col['external_id']].strip() or None
+            if 'external_id' in col else None
+        )
 
         if not raw_amount_str or not raw_date_str:
             continue
@@ -177,6 +184,7 @@ def parse_csv(content: bytes) -> List[Dict[str, Any]]:
             'raw_date': parsed_date,
             'installment_current': curr,
             'installment_total': total,
+            'external_id': external_id,
         })
 
     return items
@@ -224,6 +232,7 @@ def parse_ofx(content: bytes) -> List[Dict[str, Any]]:
         raw_date_str = _tag(block, 'DTPOSTED')
         raw_amount_str = _tag(block, 'TRNAMT')
         memo = _tag(block, 'MEMO') or _tag(block, 'NAME')
+        fitid = _tag(block, 'FITID') or None
 
         if not raw_date_str or not raw_amount_str:
             continue
@@ -248,6 +257,7 @@ def parse_ofx(content: bytes) -> List[Dict[str, Any]]:
             'raw_date': parsed_date,
             'installment_current': curr,
             'installment_total': total,
+            'external_id': fitid,
         })
 
     if not items:
@@ -257,6 +267,28 @@ def parse_ofx(content: bytes) -> List[Dict[str, Any]]:
         )
 
     return items
+
+
+def parse_ofx_period(content: bytes):
+    """
+    Período declarado pelo extrato OFX (<BANKTRANLIST> DTSTART/DTEND).
+    Retorna (start, end) como date, ou (None, None) se ausente/ilegível.
+    """
+    text = content.decode('latin-1', errors='ignore')
+
+    def _date(tag):
+        m = re.search(rf'<{tag}>\s*(\d{{8}})', text, re.IGNORECASE)
+        if not m:
+            return None
+        try:
+            return _parse_date(m.group(1))
+        except ValueError:
+            return None
+
+    start, end = _date('DTSTART'), _date('DTEND')
+    if start and end and start > end:
+        return None, None
+    return start, end
 
 
 # ------------------------------------------------------------------ #

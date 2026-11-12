@@ -49,7 +49,7 @@ Configure no arquivo `.env.docker`:
 
 ```env
 GROQ_API_KEY=sua-chave-groq
-GROQ_MODEL=openai/gpt-oss-20b
+GROQ_MODEL=qwen/qwen3.8-27b
 ```
 
 O modelo precisa estar disponível para a chave utilizada. Para trocar o modelo, altere `GROQ_MODEL` e recrie o container do backend:

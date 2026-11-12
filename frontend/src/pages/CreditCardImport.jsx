@@ -3,7 +3,7 @@ import { useParams, useNavigate, useLocation } from 'react-router-dom'
 import {
   Upload, Plus, Check, X, ChevronLeft, FileText,
   Pencil, Trash2, AlertCircle, CheckCircle2, Clock,
-  CreditCard, Calendar, Sparkles, Wallet
+  CreditCard, Calendar, Sparkles, Wallet, Copy, CalendarX
 } from 'lucide-react'
 import { creditCardsAPI, accountsAPI, categoriesAPI } from '../services/api'
 import CategorySelect from '../components/CategorySelect'
@@ -63,6 +63,19 @@ function formatBatchDate(value) {
   })
 }
 
+function formatShortDate(value) {
+  if (!value) return ''
+  return new Date(value + 'T12:00:00').toLocaleDateString('pt-BR', {
+    day: '2-digit', month: '2-digit',
+  })
+}
+
+function formatMonthName(value) {
+  return new Date(value + 'T12:00:00').toLocaleDateString('pt-BR', {
+    month: 'long', year: 'numeric',
+  })
+}
+
 function formatReferenceMonth(value) {
   return new Date(`${value}T12:00:00`).toLocaleDateString('pt-BR', {
     month: 'long', year: 'numeric'
@@ -84,6 +97,7 @@ export default function CreditCardImport() {
   const [selectedBatch, setSelectedBatch] = useState(null)
   const [openMonths, setOpenMonths] = useState(null)
   const [loading, setLoading] = useState(true)
+  const [coverage, setCoverage] = useState(null)
   const [error, setError] = useState('')
   const orderedBatches = [...batches].sort((a, b) => {
     const aUpdated = new Date(a.updated_at || a.created_at || 0).getTime()
@@ -197,6 +211,15 @@ export default function CreditCardImport() {
       setLoading(false)
     }
   }
+
+  // Cobertura de período: recalcula sempre que a lista de lotes muda
+  // (upload, confirmação, cancelamento).
+  useEffect(() => {
+    if (!accountId) return
+    creditCardsAPI.getImportCoverage(accountId)
+      .then(setCoverage)
+      .catch(() => setCoverage(null))
+  }, [accountId, batches])
 
   const fetchBatch = async (batchId) => {
     try {
@@ -445,6 +468,10 @@ export default function CreditCardImport() {
   // ── Render helpers ────────────────────────────────────────
   const pendingCount = selectedBatch?.items?.filter(i => i.status === 'pending').length ?? 0
   const ignoredCount = selectedBatch?.items?.filter(i => i.status === 'ignored').length ?? 0
+  const dupCertainCount = selectedBatch?.items
+    ?.filter(i => i.duplicate_status === 'certain' && i.status === 'ignored').length ?? 0
+  const dupPossibleCount = selectedBatch?.items
+    ?.filter(i => i.duplicate_status === 'possible' && i.status === 'pending').length ?? 0
   const totalPending = selectedBatch?.items
     ?.filter(i => i.status !== 'ignored')
     .reduce((s, i) => s + Math.abs(i.amount), 0) ?? 0
@@ -611,6 +638,36 @@ export default function CreditCardImport() {
             </div>
           )}
 
+          {/* Cobertura de período */}
+          {coverage?.covered_until && (
+            <div className={`rounded-2xl border p-3 text-xs space-y-1 ${
+              coverage.gaps.length || coverage.missing_months.length
+                ? 'border-amber-300 dark:border-amber-700/60 bg-amber-50 dark:bg-amber-900/20 text-amber-800 dark:text-amber-300'
+                : 'border-white/[0.08] bg-white/[0.03] text-zinc-500 dark:text-zinc-400'
+            }`}>
+              <p>
+                {coverage.kind === 'months'
+                  ? <>Faturas importadas até <strong>{formatMonthName(coverage.covered_until)}</strong></>
+                  : <>Extrato importado até <strong>{formatShortDate(coverage.covered_until)}</strong></>}
+              </p>
+              {coverage.missing_months.map(m => (
+                <p key={m} className="flex items-center gap-1.5">
+                  <CalendarX size={13} className="shrink-0" />
+                  Falta a fatura de {formatMonthName(m)}
+                </p>
+              ))}
+              {coverage.gaps.map(g => (
+                <p key={g.start} className="flex items-center gap-1.5">
+                  <CalendarX size={13} className="shrink-0" />
+                  {g.days === 1
+                    ? `Dia ${formatShortDate(g.start)} não importado`
+                    : `${formatShortDate(g.start)} a ${formatShortDate(g.end)} não importados`}
+                  {!g.exact && ' (ou sem movimento)'}
+                </p>
+              ))}
+            </div>
+          )}
+
           {/* Batch list */}
           {orderedBatches.length === 0 && !newBatchMode ? (
             <div className="rounded-2xl border border-white/[0.08] bg-white/[0.03] dark:bg-white/[0.03] backdrop-blur-sm p-6 text-center text-zinc-400 dark:text-zinc-500 text-sm">
@@ -774,6 +831,18 @@ export default function CreditCardImport() {
                   </div>
                 )}
               </div>
+
+              {/* Duplicidade detectada na importação */}
+              {!isFrozen && (dupCertainCount > 0 || dupPossibleCount > 0) && (
+                <div className="p-4 bg-amber-50 dark:bg-amber-900/20 border-b border-amber-200 dark:border-amber-800 flex items-start gap-2 text-amber-800 dark:text-amber-300 text-sm">
+                  <Copy size={18} className="shrink-0 mt-0.5" />
+                  <span>
+                    {dupCertainCount > 0 && `${dupCertainCount} já estavam importados e foram ignorados automaticamente. `}
+                    {dupPossibleCount > 0 && `${dupPossibleCount} parecem repetidos — confira os marcados com "Possível duplicata". `}
+                    Restaure qualquer item se for um lançamento novo de verdade.
+                  </span>
+                </div>
+              )}
 
               {/* Classify result banner */}
               {classifyResult && (
@@ -1124,7 +1193,22 @@ export default function CreditCardImport() {
                               {item.status === 'confirmed' && (
                                 <CheckCircle2 size={14} className="text-green-500 flex-shrink-0" />
                               )}
+                              {item.duplicate_status && item.status !== 'confirmed' && (
+                                <span className={`text-[10px] px-1.5 py-0.5 rounded-full font-medium flex-shrink-0 ${
+                                  item.duplicate_status === 'certain'
+                                    ? 'bg-zinc-200 dark:bg-white/[0.08] text-zinc-600 dark:text-zinc-300'
+                                    : 'bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-300'
+                                }`}>
+                                  {item.duplicate_status === 'certain' ? 'Já importado' : 'Possível duplicata'}
+                                </span>
+                              )}
                             </div>
+                            {item.duplicate_note && item.status !== 'confirmed' && (
+                              <p className="text-[11px] text-amber-700 dark:text-amber-400 truncate mt-0.5"
+                                title={item.duplicate_note}>
+                                {item.duplicate_note}
+                              </p>
+                            )}
                             {item.raw_description
                               && item.raw_description !== item.description && (
                               <p className="text-[11px] text-zinc-400 dark:text-zinc-600 truncate mt-0.5"

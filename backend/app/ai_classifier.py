@@ -18,7 +18,7 @@ from typing import Any, Callable, Dict, List, Optional
 import httpx
 
 GROQ_URL = "https://api.groq.com/openai/v1/chat/completions"
-DEFAULT_MODEL = "openai/gpt-oss-20b"
+DEFAULT_MODEL = "qwen/qwen3.8-27b"
 TIMEOUT_SECONDS = 30.0
 # Itens por chamada à IA — mantém cada request bem abaixo do
 # rate limit de tokens/minuto (TPM) do tier free do Groq.
@@ -62,7 +62,19 @@ def _system_prompt() -> str:
         "Remova códigos, agências, contas e ruído; mantenha o essencial "
         "para um humano reconhecer o gasto.\n"
         "- confidence: número de 0 a 1.\n"
-        "Use os exemplos do histórico para seguir o padrão pessoal do "
+        "'Transferência enviada pelo Pix', 'Compra no débito' etc. são "
+        "só o MEIO de pagamento: classifique pelo destinatário/"
+        "estabelecimento e pela nota do memo (ex.: Pix para AUTOPASS = "
+        "transporte; Pix 'Coxinhas (...)' = refeição; Pix para EDP = "
+        "conta de luz). Só use uma categoria de transferência quando não "
+        "houver gasto real por trás.\n"
+        "Cada lançamento pode trazer 'similar': lançamentos que o PRÓPRIO "
+        "usuário já confirmou para o mesmo estabelecimento/contato, com "
+        "o nome e a categoria que ele escolheu. Quando o 'similar' é do "
+        "mesmo merchant/contato, SIGA a categoria, o tipo e o estilo de "
+        "nome dele — isso vale mais do que a sua intuição (ex.: Pix para "
+        "uma pessoa que o usuário classifica como 'Empréstimos'). Os "
+        "'exemplos gerais' mostram o estilo de nomes e categorias do "
         "usuário. Descrições do mesmo estabelecimento variam muito "
         "('UBER *TRIP', 'Uber viagem'): trate-as como o mesmo merchant.\n"
         "Responda APENAS com um objeto JSON no formato: "
@@ -79,32 +91,35 @@ def _user_prompt(
     examples: List[Dict[str, Any]],
 ) -> str:
     cats = [{"id": c["id"], "name": c["name"]} for c in categories]
-    ex = [
-        {
-            "raw": e.get("raw_description") or e.get("description"),
-            "description": e["description"],
-            "category": e.get("category_name"),
-            "type": e.get("transaction_type"),
-        }
-        for e in examples
-    ]
-    its = [
-        {
+    ex = [_example(e) for e in examples]
+    its = []
+    for i in items:
+        entry = {
             "id": i["id"],
             "raw": i.get("raw_description") or i.get("description") or "",
             "description": i.get("description") or "",
             "amount": i.get("amount"),
         }
-        for i in items
-    ]
+        if i.get("similar"):
+            entry["similar"] = [_example(e) for e in i["similar"]]
+        its.append(entry)
     return (
         "Categorias disponíveis:\n"
         + json.dumps(cats, ensure_ascii=False)
-        + "\n\nExemplos do histórico do usuário:\n"
+        + "\n\nExemplos gerais do histórico do usuário:\n"
         + json.dumps(ex, ensure_ascii=False)
         + "\n\nLançamentos a classificar:\n"
         + json.dumps(its, ensure_ascii=False)
     )
+
+
+def _example(e: Dict[str, Any]) -> Dict[str, Any]:
+    return {
+        "raw": e.get("raw_description") or e.get("description"),
+        "description": e.get("description"),
+        "category": e.get("category_name"),
+        "type": e.get("transaction_type"),
+    }
 
 
 def _normalize_type(value: Any, amount: Optional[float]) -> str:
@@ -148,10 +163,48 @@ def classify_items(
     for start in range(0, total, CHUNK_SIZE):
         chunk = items[start:start + CHUNK_SIZE]
         out.update(
-            _classify_chunk(api_key, chunk, categories, examples)
+            _classify_with_split(api_key, chunk, categories, examples)
         )
         if on_progress:
             on_progress(min(start + CHUNK_SIZE, total), total)
+    return out
+
+
+class _ChunkFailed(RuntimeError):
+    """O modelo não devolveu um JSON válido para o grupo."""
+
+
+def _classify_with_split(
+    api_key: str,
+    items: List[Dict[str, Any]],
+    categories: List[Dict[str, Any]],
+    examples: List[Dict[str, Any]],
+) -> Dict[int, Dict[str, Any]]:
+    """
+    Classifica um grupo; se o modelo errar o JSON, divide ao meio e
+    tenta de novo, para que um item problemático não derrube os demais.
+    Itens que o modelo omitir também são reenviados uma vez.
+    """
+    try:
+        out = _classify_chunk(api_key, items, categories, examples)
+    except _ChunkFailed:
+        if len(items) == 1:
+            return {}
+        mid = len(items) // 2
+        out = _classify_with_split(api_key, items[:mid], categories, examples)
+        out.update(
+            _classify_with_split(api_key, items[mid:], categories, examples)
+        )
+        return out
+
+    missing = [i for i in items if i["id"] not in out]
+    if missing and len(missing) < len(items):
+        try:
+            out.update(
+                _classify_chunk(api_key, missing, categories, examples)
+            )
+        except _ChunkFailed:
+            pass
     return out
 
 
@@ -169,8 +222,7 @@ def _classify_chunk(
     payload = {
         "model": model,
         "temperature": 0,
-        "reasoning_format": "hidden",
-        "max_completion_tokens": 2048,
+        "max_completion_tokens": 4096,
         "response_format": {"type": "json_object"},
         "messages": [
             {"role": "system", "content": _system_prompt()},
@@ -180,6 +232,8 @@ def _classify_chunk(
             },
         ],
     }
+    if model.startswith("openai/gpt-oss"):
+        payload["reasoning_format"] = "hidden"
 
     for attempt in range(MAX_RETRIES + 1):
         try:
@@ -206,20 +260,31 @@ def _classify_chunk(
                 time.sleep(delay)
                 continue
             logger.warning(
-                "Groq request failed: status=%s attempt=%s",
+                "Groq request failed: status=%s attempt=%s items=%s",
                 error.response.status_code,
                 attempt + 1,
+                len(items),
             )
+            # 400 = o modelo gerou JSON inválido (json_validate_failed)
+            if error.response.status_code == 400:
+                raise _ChunkFailed() from error
             return {}
-        except (httpx.HTTPError, KeyError, ValueError, json.JSONDecodeError) as error:
+        except (KeyError, ValueError, json.JSONDecodeError) as error:
             logger.warning(
-                "Groq response could not be parsed: %s", type(error).__name__
+                "Groq response could not be parsed: %s items=%s",
+                type(error).__name__,
+                len(items),
             )
+            raise _ChunkFailed() from error
+        except httpx.HTTPError as error:
+            logger.warning("Groq request error: %s", type(error).__name__)
             return {}
-
-    results = parsed.get("results")
-    if not isinstance(results, list):
+    else:
         return {}
+
+    results = parsed.get("results") if isinstance(parsed, dict) else None
+    if not isinstance(results, list):
+        raise _ChunkFailed()
 
     out: Dict[int, Dict[str, Any]] = {}
     for r in results:

@@ -1378,7 +1378,9 @@ def create_import_batch(
     reference_month,
     file_name: str = None,
     file_type: str = None,
-    user_id: int = None
+    user_id: int = None,
+    period_start=None,
+    period_end=None,
 ):
     """Cria um novo lote de importação (staging)."""
     from datetime import date as date_type
@@ -1393,6 +1395,8 @@ def create_import_batch(
         reference_month=ref,
         file_name=file_name,
         file_type=file_type,
+        period_start=period_start,
+        period_end=period_end,
         status=models.ImportBatchStatusEnum.PENDING,
         updated_at=datetime.utcnow(),
     )
@@ -1478,11 +1482,14 @@ def add_import_items(
             ),
             installment_current=data.get('installment_current'),
             installment_total=data.get('installment_total'),
+            external_id=data.get('external_id'),
             status=models.ImportItemStatusEnum.PENDING,
         )
         db.add(item)
         created.append(item)
 
+    db.flush()
+    flag_duplicate_items(db, batch, created)
     batch.updated_at = datetime.utcnow()
     db.commit()
     for item in created:
@@ -1662,6 +1669,136 @@ def upsert_merchant_alias(
             alias.transaction_type = transaction_type
 
 
+_MEMO_PREFIX_RE = None
+_TOKEN_STOPWORDS = {
+    'ltda', 'eireli', 'comercio', 'servicos', 'agencia', 'conta', 'bco',
+    'banco', 'pagamento', 'brasil', 'unibanco', 'parcela', 'shop', 'loja',
+    'lojas', 'com', 'para', 'dos', 'das', 'the',
+}
+
+
+def _strip_accents(text: str) -> str:
+    import unicodedata
+    return ''.join(
+        ch for ch in unicodedata.normalize('NFKD', text)
+        if not unicodedata.combining(ch)
+    )
+
+
+def _merchant_tokens(text: str) -> set:
+    """
+    Extrai os tokens que identificam o estabelecimento/contato de um memo
+    bruto, ignorando o meio de pagamento ('Transferência enviada pelo
+    Pix -', 'Compra no débito -'), documentos, banco, agência e conta.
+
+    Ex.: 'Transferência enviada pelo Pix - Agua (RAUL ESTEVES - •••.595 -
+    BCO DO BRASIL ... Conta: 24228-4)' -> {'agua', 'raul', 'esteves'}.
+    """
+    global _MEMO_PREFIX_RE
+    import re
+    if _MEMO_PREFIX_RE is None:
+        _MEMO_PREFIX_RE = re.compile(
+            r'^(estorno\s*-\s*)?'
+            r'(compra no debito( via nupay)?'
+            r'|transferencia (enviada|recebida)( pelo pix)?'
+            r'|pagamento de boleto efetuado|pix (enviado|recebido)'
+            r')\s*-\s*'
+        )
+    s = _strip_accents(_normalize_description(text))
+    s = _MEMO_PREFIX_RE.sub('', s)
+    # Corta CPF/CNPJ mascarado, banco, agência e conta
+    s = re.split(r'\s-\s(?=[•*\d.]{4,}|.*ag[eê]ncia)', s)[0]
+    s = re.split(r'ag[eê]ncia:|conta:', s)[0]
+    tokens = set(re.findall(r'[a-z][a-z0-9]{2,}', s))
+    return tokens - _TOKEN_STOPWORDS
+
+
+def _alias_example(alias, category_name):
+    raw = (alias.raw_description or alias.raw_key or '').strip()
+    return {
+        "raw_description": raw[:140],
+        "description": (alias.friendly_name or raw).strip(),
+        "category_name": category_name,
+        "transaction_type": alias.transaction_type,
+        "hits": alias.hits,
+    }
+
+
+def get_alias_examples(db: Session, user_id: int, limit: int = 15):
+    """
+    Exemplos gerais (pares bruto -> nome amigável/categoria) a partir da
+    memória de confirmações, priorizando os mais usados e a diversidade
+    de categorias. Cai para o histórico de transações se a memória
+    estiver vazia.
+    """
+    rows = (
+        db.query(models.MerchantAlias, models.Category.name)
+        .join(
+            models.Category,
+            models.MerchantAlias.category_id == models.Category.id,
+        )
+        .filter(models.MerchantAlias.user_id == user_id)
+        .order_by(models.MerchantAlias.hits.desc())
+        .all()
+    )
+    if not rows:
+        return get_classification_examples(db, user_id, limit=limit)
+
+    seen, diverse, leftover = set(), [], []
+    for alias, cat_name in rows:
+        target = leftover if alias.category_id in seen else diverse
+        seen.add(alias.category_id)
+        target.append(_alias_example(alias, cat_name))
+    return (diverse + leftover)[:limit]
+
+
+def find_similar_aliases(
+    db: Session,
+    user_id: int,
+    raw_descriptions: list,
+    per_item: int = 4,
+):
+    """
+    Recuperação (o 'R' do RAG): para cada memo bruto, devolve os
+    lançamentos já confirmados do mesmo estabelecimento/contato, por
+    sobreposição de tokens do merchant. Lista paralela a
+    raw_descriptions.
+    """
+    rows = (
+        db.query(models.MerchantAlias, models.Category.name)
+        .outerjoin(
+            models.Category,
+            models.MerchantAlias.category_id == models.Category.id,
+        )
+        .filter(models.MerchantAlias.user_id == user_id)
+        .all()
+    )
+    indexed = [
+        (_merchant_tokens(a.raw_description or a.raw_key), a, name)
+        for a, name in rows
+    ]
+    indexed = [x for x in indexed if x[0]]
+
+    out = []
+    for raw in raw_descriptions:
+        query = _merchant_tokens(raw or '')
+        scored = []
+        if query:
+            for tokens, alias, name in indexed:
+                shared = query & tokens
+                if not shared:
+                    continue
+                score = len(shared) / len(query | tokens)
+                scored.append((score, alias.hits, alias, name))
+        scored.sort(key=lambda x: (x[0], x[1]), reverse=True)
+        out.append([
+            _alias_example(alias, name)
+            for score, _, alias, name in scored[:per_item]
+            if score >= 0.2
+        ])
+    return out
+
+
 def get_classification_examples(
     db: Session,
     user_id: int,
@@ -1800,7 +1937,12 @@ def classify_import_batch(
         {"id": c.id, "name": c.name}
         for c in get_user_categories(db, user_id, limit=1000)
     ]
-    examples = get_classification_examples(db, user_id)
+    examples = get_alias_examples(db, user_id)
+    similar = find_similar_aliases(
+        db, user_id, [i["raw_description"] for i in items_payload]
+    )
+    for payload_item, sims in zip(items_payload, similar):
+        payload_item["similar"] = sims
 
     result_map = (
         classify_items(items_payload, categories, examples, on_progress)
@@ -1896,6 +2038,7 @@ def confirm_import_batch(
             date=item.date,
             description=description,
             raw_description=item.raw_description,
+            external_id=item.external_id,
             transaction_type=tx_type,
             category_id=item.category_id,
             account_id=batch.account_id,
@@ -2024,3 +2167,259 @@ def get_active_installments(db: Session, user_id: int, account_id: int):
 
     result.sort(key=lambda x: x['remaining_amount'], reverse=True)
     return result
+
+
+# ------------------------------------------------------------------ #
+#  Duplicidade e cobertura de período na importação                   #
+# ------------------------------------------------------------------ #
+
+DUPLICATE_DATE_WINDOW_DAYS = 2
+
+
+def _fmt_brl(value: float) -> str:
+    s = f"{abs(value):,.2f}".replace(",", "X").replace(".", ",")
+    return "R$ " + s.replace("X", ".")
+
+
+def _dup_candidates(db: Session, batch, date_from, date_to):
+    """
+    Lançamentos já existentes na conta que um item novo pode repetir:
+    transações gravadas e itens ainda não confirmados de outros lotes.
+    """
+    from datetime import timedelta
+
+    lo = date_from - timedelta(days=DUPLICATE_DATE_WINDOW_DAYS)
+    hi = date_to + timedelta(days=DUPLICATE_DATE_WINDOW_DAYS)
+
+    txs = (
+        db.query(models.Transaction)
+        .filter(
+            models.Transaction.account_id == batch.account_id,
+            models.Transaction.user_id == batch.user_id,
+            models.Transaction.date >= lo,
+            models.Transaction.date <= hi,
+        )
+        .all()
+    )
+    origin = {}
+    if txs:
+        for it in (
+            db.query(models.ImportItem)
+            .filter(models.ImportItem.transaction_id.in_([t.id for t in txs]))
+            .all()
+        ):
+            origin[it.transaction_id] = it.batch_id
+
+    cands = []
+    for t in txs:
+        where = (
+            f"lote #{origin[t.id]}" if t.id in origin else "lançamento manual"
+        )
+        cands.append({
+            "date": t.date,
+            "cents": round(abs(t.amount or 0) * 100),
+            "raw": _normalize_description(t.raw_description or ""),
+            "tokens": _merchant_tokens(t.raw_description or t.description or ""),
+            "external_id": t.external_id,
+            "label": (
+                f"{t.date.strftime('%d/%m')} · {t.description or '—'} · "
+                f"{_fmt_brl(t.amount or 0)} ({where})"
+            ),
+        })
+
+    pending = (
+        db.query(models.ImportItem)
+        .join(models.ImportBatch)
+        .filter(
+            models.ImportBatch.account_id == batch.account_id,
+            models.ImportBatch.user_id == batch.user_id,
+            models.ImportBatch.id != batch.id,
+            models.ImportBatch.status.in_([
+                models.ImportBatchStatusEnum.PENDING,
+                models.ImportBatchStatusEnum.REVIEWED,
+            ]),
+            models.ImportItem.status == models.ImportItemStatusEnum.PENDING,
+            models.ImportItem.date >= lo,
+            models.ImportItem.date <= hi,
+        )
+        .all()
+    )
+    for it in pending:
+        cands.append({
+            "date": it.date,
+            "cents": round(abs(it.amount or 0) * 100),
+            "raw": _normalize_description(it.raw_description or ""),
+            "tokens": _merchant_tokens(it.raw_description or it.description or ""),
+            "external_id": it.external_id,
+            "label": (
+                f"{it.date.strftime('%d/%m')} · {it.description or '—'} · "
+                f"{_fmt_brl(it.amount or 0)} (lote #{it.batch_id}, "
+                "ainda não confirmado)"
+            ),
+        })
+    return cands
+
+
+def _dup_match_level(item, cand, raw, tokens):
+    """'certain', 'possible' ou None para um par item novo x existente."""
+    if item.external_id and cand["external_id"]:
+        # Com id do banco dos dois lados a resposta é exata
+        return "certain" if item.external_id == cand["external_id"] else None
+    if round(abs(item.amount) * 100) != cand["cents"]:
+        return None
+    gap = abs((item.date - cand["date"]).days)
+    if gap > DUPLICATE_DATE_WINDOW_DAYS:
+        return None
+    if raw and cand["raw"] == raw:
+        # Mesmo memo e valor: no mesmo dia é certeza; dias vizinhos podem
+        # ser gastos recorrentes (ex.: passagem diária), então só avisa.
+        return "certain" if gap == 0 else "possible"
+    if tokens and cand["tokens"]:
+        overlap = len(tokens & cand["tokens"]) / len(tokens | cand["tokens"])
+        if overlap >= 0.5:
+            return "possible"
+    if gap == 0:
+        # Mesmo valor no mesmo dia com texto diferente: o banco às vezes
+        # muda o memo entre exportações ('Débito em conta' x 'Débito
+        # automático - CLARO'), e lançamentos manuais não têm memo.
+        return "possible"
+    return None
+
+
+def flag_duplicate_items(db: Session, batch, items):
+    """
+    Marca itens recém-importados que repetem lançamentos já existentes
+    na conta. Certeza -> status IGNORED; possível -> fica pendente com
+    aviso. Cada lançamento existente casa com no máximo um item novo,
+    para que compras repetidas de verdade (2 cafés iguais) não sumam.
+    Não faz commit.
+    """
+    items = [i for i in items if i.date is not None and i.amount is not None]
+    if not items:
+        return {"certain": 0, "possible": 0}
+
+    cands = _dup_candidates(
+        db, batch, min(i.date for i in items), max(i.date for i in items)
+    )
+    used = set()
+    keys = {
+        i.id: (
+            _normalize_description(i.raw_description or ""),
+            _merchant_tokens(i.raw_description or ""),
+        )
+        for i in items
+    }
+    counts = {"certain": 0, "possible": 0}
+
+    for level in ("certain", "possible"):
+        for item in items:
+            if item.duplicate_status:
+                continue
+            raw, tokens = keys[item.id]
+            best = None
+            for idx, cand in enumerate(cands):
+                if idx in used:
+                    continue
+                if _dup_match_level(item, cand, raw, tokens) != level:
+                    continue
+                gap = abs((item.date - cand["date"]).days)
+                if best is None or gap < best[0]:
+                    best = (gap, idx)
+            if best is None:
+                continue
+            used.add(best[1])
+            cand = cands[best[1]]
+            item.duplicate_status = level
+            if level == "certain":
+                item.status = models.ImportItemStatusEnum.IGNORED
+                item.duplicate_note = f"Já importado: {cand['label']}"
+            else:
+                item.duplicate_note = f"Parece repetir: {cand['label']}"
+            counts[level] += 1
+    return counts
+
+
+def get_import_coverage(db: Session, account_id: int, user_id: int):
+    """
+    Períodos já importados de uma conta e os buracos entre eles.
+
+    Conta comum: usa o período declarado pelo OFX (exato) ou, sem ele,
+    as datas do primeiro e do último item (aproximado: dias sem
+    movimento parecem buraco, por isso só avisa buracos de 3+ dias).
+    Cartão: o que importa é a sequência de faturas, então aponta os
+    meses de referência que ficaram sem lote.
+    """
+    from datetime import timedelta
+
+    account = get_account(db, account_id)
+    batches = (
+        db.query(models.ImportBatch)
+        .filter(
+            models.ImportBatch.account_id == account_id,
+            models.ImportBatch.user_id == user_id,
+            models.ImportBatch.status != models.ImportBatchStatusEnum.CANCELLED,
+        )
+        .all()
+    )
+
+    if account and account.account_type == 'credit_card':
+        months = sorted({b.reference_month.replace(day=1) for b in batches})
+        missing = []
+        if months:
+            y, m = months[0].year, months[0].month
+            last = months[-1]
+            have = set(months)
+            while (y, m) < (last.year, last.month):
+                m += 1
+                if m > 12:
+                    y, m = y + 1, 1
+                d = months[0].replace(year=y, month=m)
+                if d not in have:
+                    missing.append(d)
+        return {
+            "kind": "months",
+            "covered_until": months[-1] if months else None,
+            "missing_months": missing,
+            "gaps": [],
+        }
+
+    ranges = []
+    for b in batches:
+        dates = [i.date for i in b.items if i.date]
+        start = b.period_start or (min(dates) if dates else None)
+        end = b.period_end or (max(dates) if dates else None)
+        if start and end:
+            ranges.append({
+                "start": start, "end": end,
+                "exact": bool(b.period_start and b.period_end),
+                "batch_ids": [b.id],
+            })
+    ranges.sort(key=lambda r: r["start"])
+
+    merged = []
+    for r in ranges:
+        if merged and r["start"] <= merged[-1]["end"] + timedelta(days=1):
+            last = merged[-1]
+            if r["end"] > last["end"]:
+                last["end"], last["exact_end"] = r["end"], r["exact"]
+            last["batch_ids"] += r["batch_ids"]
+        else:
+            merged.append({**r, "exact_end": r["exact"], "exact_start": r["exact"]})
+
+    gaps = []
+    for prev, nxt in zip(merged, merged[1:]):
+        start = prev["end"] + timedelta(days=1)
+        end = nxt["start"] - timedelta(days=1)
+        days = (end - start).days + 1
+        exact = prev["exact_end"] and nxt["exact_start"]
+        if days >= (1 if exact else 3):
+            gaps.append({
+                "start": start, "end": end, "days": days, "exact": exact,
+            })
+
+    return {
+        "kind": "days",
+        "covered_until": merged[-1]["end"] if merged else None,
+        "missing_months": [],
+        "gaps": gaps,
+    }
