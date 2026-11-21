@@ -1,5 +1,7 @@
 """Rotas de Cartão de Crédito — config, importação e revisão."""
 
+import logging
+
 from fastapi import (
     APIRouter, BackgroundTasks, Depends, HTTPException, UploadFile, File,
     status, Query
@@ -15,6 +17,8 @@ from ..parsers import (
     parse_uploaded_file, parse_ofx_period, parse_ofx_balance,
 )
 from ..ai_classifier import MissingGroqKey
+
+logger = logging.getLogger(__name__)
 
 router = APIRouter(
     prefix="/credit-cards",
@@ -366,10 +370,17 @@ async def upload_batch(
 
     try:
         items_data = parse_uploaded_file(content, ext)
-    except Exception as e:
+    except ValueError as e:
+        # Mensagens dos parsers, escritas para o usuário.
         raise HTTPException(
             status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
             detail=f"Erro ao processar arquivo: {e}",
+        )
+    except Exception:
+        logger.exception("Falha inesperada ao ler arquivo importado")
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail="Não foi possível ler o arquivo. Confira se é um CSV ou OFX válido.",
         )
 
     period_start = period_end = None

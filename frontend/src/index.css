@@ -2,6 +2,10 @@
 @tailwind components;
 @tailwind utilities;
 
+/* Fundo escuro antes do JS carregar (evita flash branco). Fica aqui, e
+   não num <style> inline no index.html, para o CSP proibir estilos inline. */
+html { background-color: #000000; }
+
 @layer base {
   /* Garante fundo preto em todo overscroll/rubber-band do mobile e desktop */
   html {

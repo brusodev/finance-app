@@ -18,6 +18,16 @@ class User(Base):
     birth_date = Column(Date, nullable=True)  # Data de nascimento
     address = Column(String, nullable=True)  # Endereço
     currency = Column(String, default='BRL')  # Moeda padrão do usuário
+    # Sobe a cada troca de senha: invalida todos os tokens emitidos antes.
+    token_version = Column(Integer, default=0, nullable=True)
+
+
+class RevokedToken(Base):
+    """Tokens encerrados por logout antes de expirar (lista de bloqueio)."""
+    __tablename__ = 'revoked_tokens'
+
+    jti = Column(String, primary_key=True)
+    expires_at = Column(DateTime, nullable=False, index=True)
 
 
 class Category(Base):

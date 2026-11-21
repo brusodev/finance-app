@@ -10,8 +10,10 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 # Copiar arquivos de dependências
 COPY requirements.txt .
 
-# Instalar dependências Python
-RUN pip install --no-cache-dir -r requirements.txt
+# Instalar dependências Python (pip/setuptools atualizados: os da imagem
+# base têm alertas de segurança)
+RUN pip install --no-cache-dir --upgrade pip==26.2.2 setuptools==84.2.1 \
+    && pip install --no-cache-dir -r requirements.txt
 
 # Copiar código da aplicação
 COPY . .

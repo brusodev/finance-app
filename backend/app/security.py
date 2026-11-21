@@ -9,7 +9,11 @@ from fastapi import Request
 
 # Falhas permitidas dentro da janela antes de bloquear.
 LOGIN_WINDOW_SECONDS = int(os.getenv("LOGIN_WINDOW_SECONDS", "900"))
-LOGIN_MAX_FAILURES_PER_USER = int(os.getenv("LOGIN_MAX_FAILURES_PER_USER", "8"))
+# Por par usuário+IP: segura força bruta sem deixar que um terceiro, de
+# outro IP, tranque a conta de alguém só errando a senha dela.
+LOGIN_MAX_FAILURES_PER_USER_IP = int(os.getenv("LOGIN_MAX_FAILURES_PER_USER_IP", "8"))
+# Por usuário em qualquer IP: só ataques distribuídos chegam aqui.
+LOGIN_MAX_FAILURES_PER_USER = int(os.getenv("LOGIN_MAX_FAILURES_PER_USER", "50"))
 LOGIN_MAX_FAILURES_PER_IP = int(os.getenv("LOGIN_MAX_FAILURES_PER_IP", "30"))
 
 
@@ -34,15 +38,22 @@ class LoginRateLimiter:
 
     def __init__(self, window=LOGIN_WINDOW_SECONDS,
                  max_user=LOGIN_MAX_FAILURES_PER_USER,
-                 max_ip=LOGIN_MAX_FAILURES_PER_IP):
+                 max_ip=LOGIN_MAX_FAILURES_PER_IP,
+                 max_user_ip=LOGIN_MAX_FAILURES_PER_USER_IP):
         self.window = window
         self.max_user = max_user
         self.max_ip = max_ip
+        self.max_user_ip = max_user_ip
         self._fails = defaultdict(deque)
         self._lock = threading.Lock()
 
     def _keys(self, username: str, ip: str):
-        return (("user", (username or "").strip().lower()), self.max_user), (("ip", ip), self.max_ip)
+        user = (username or "").strip().lower()
+        return (
+            (("user_ip", user, ip), self.max_user_ip),
+            (("user", user), self.max_user),
+            (("ip", ip), self.max_ip),
+        )
 
     def _prune(self, q, now):
         while q and q[0] <= now - self.window:
@@ -71,8 +82,9 @@ class LoginRateLimiter:
                 q.append(now)
 
     def record_success(self, username: str, ip: str):
+        user = (username or "").strip().lower()
         with self._lock:
-            self._fails.pop(("user", (username or "").strip().lower()), None)
+            self._fails.pop(("user_ip", user, ip), None)
 
     def reset(self):
         with self._lock:

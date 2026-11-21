@@ -51,12 +51,20 @@ def test_login_works_and_token_is_accepted(client):
     assert client.get("/auth/me").json()["username"] == "bruno"
 
 
-def test_login_blocked_after_repeated_failures_per_user(client):
+def test_failures_lock_only_that_user_and_ip(client):
     for _ in range(8):
         assert _login(client, "errada").status_code == 401
-    r = _login(client, "senha-certa", ip="2.2.2.2")  # mesmo de outro IP
+    r = _login(client, "senha-certa")
     assert r.status_code == 429
     assert int(r.headers["Retry-After"]) > 0
+    # Outra pessoa, de outro IP, não consegue trancar a conta do dono.
+    assert _login(client, "senha-certa", ip="2.2.2.2").status_code == 200
+
+
+def test_distributed_attack_locks_user(client):
+    for i in range(50):
+        _login(client, "errada", ip=f"10.0.{i // 250}.{i % 250}")
+    assert _login(client, "senha-certa", ip="3.3.3.3").status_code == 429
 
 
 def test_login_blocked_per_ip_across_usernames(client):
@@ -66,8 +74,8 @@ def test_login_blocked_per_ip_across_usernames(client):
     assert _login(client, "senha-certa", ip="9.9.9.9").status_code == 200
 
 
-def test_success_clears_user_failures():
-    lim = LoginRateLimiter(window=60, max_user=3, max_ip=100)
+def test_success_clears_user_ip_failures():
+    lim = LoginRateLimiter(window=60, max_user=100, max_ip=100, max_user_ip=3)
     for _ in range(2):
         lim.record_failure("bruno", "ip", now=10)
     lim.record_success("bruno", "ip")
@@ -76,7 +84,37 @@ def test_success_clears_user_failures():
     lim.record_failure("bruno", "ip", now=12)
     lim.record_failure("bruno", "ip", now=13)
     assert lim.retry_after("bruno", "ip", now=14) > 0
+    assert lim.retry_after("bruno", "outro-ip", now=14) == 0
     assert lim.retry_after("bruno", "ip", now=80) == 0  # janela expirou
+
+
+def test_logout_revokes_token_on_server(client):
+    _login(client, "senha-certa")
+    token = client.cookies.get("access_token")
+    assert client.post("/auth/logout").status_code == 200
+    client.cookies.set("access_token", token)  # cópia guardada do token
+    assert client.get("/auth/me").status_code == 401
+
+
+def test_password_change_drops_other_sessions(client):
+    other = TestClient(app, base_url="https://testserver")
+    _login(client, "senha-certa")
+    _login(other, "senha-certa", ip="4.4.4.4")
+    r = client.post("/auth/change-password",
+                    json={"current_password": "senha-certa", "new_password": "nova-senha-1"})
+    assert r.status_code == 200
+    assert client.get("/auth/me").status_code == 200   # quem trocou segue logado
+    assert other.get("/auth/me").status_code == 401    # o outro aparelho cai
+
+
+def test_old_tokens_without_jti_still_work(client):
+    import jwt as pyjwt
+    from datetime import datetime, timedelta, timezone
+    _login(client, "senha-certa")
+    old = pyjwt.encode({"sub": "1", "exp": datetime.now(timezone.utc) + timedelta(hours=1)},
+                       auth.SECRET_KEY, algorithm="HS256")
+    client.cookies.set("access_token", old)
+    assert client.get("/auth/me").status_code == 200
 
 
 def test_registration_disabled_by_default(client, monkeypatch):

@@ -1,11 +1,15 @@
 """Gerenciamento de Transferências entre Contas"""
 
+import logging
+
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 from typing import List
 from .. import crud, schemas
 from ..database import get_db
 from .auth import get_current_user
+
+logger = logging.getLogger(__name__)
 
 router = APIRouter(
     prefix="/transfers",
@@ -42,10 +46,11 @@ def create_transfer(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail=str(e)
         )
-    except Exception as e:
+    except Exception:
+        logger.exception("Erro ao criar transferência")
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Erro ao criar transferência: {str(e)}"
+            detail="Erro ao criar transferência"
         )
 
 
@@ -87,8 +92,9 @@ def delete_transfer(
             status_code=status.HTTP_404_NOT_FOUND,
             detail=str(e)
         )
-    except Exception as e:
+    except Exception:
+        logger.exception("Erro ao deletar transferência")
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Erro ao deletar transferência: {str(e)}"
+            detail="Erro ao deletar transferência"
         )
