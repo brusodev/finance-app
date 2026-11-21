@@ -28,7 +28,7 @@ import CreditCardStatements from "./pages/CreditCardStatements";
 
 function App() {
   return (
-    <BrowserRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
+    <BrowserRouter>
       <ThemeProvider>
         <AuthProvider>
           <TransactionProvider>

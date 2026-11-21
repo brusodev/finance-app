@@ -72,8 +72,8 @@ export default function SettingsPage() {
       return
     }
 
-    if (password.newPassword.length < 6) {
-      setError('A nova senha deve ter no mínimo 6 caracteres')
+    if (password.newPassword.length < 8) {
+      setError('A nova senha deve ter no mínimo 8 caracteres')
       return
     }
 

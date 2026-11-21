@@ -39,8 +39,8 @@ export default function Register() {
         return
       }
 
-      if (password.length < 6) {
-        setError('Senha deve ter no mínimo 6 caracteres')
+      if (password.length < 8) {
+        setError('Senha deve ter no mínimo 8 caracteres')
         setLoading(false)
         return
       }
@@ -153,9 +153,9 @@ export default function Register() {
               className="w-full px-4 py-2 border border-zinc-300 dark:border-white/[0.08] rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none bg-white dark:bg-[#1a1a1a] text-zinc-900 dark:text-white"
               placeholder="crie uma senha"
               disabled={loading}
-              minLength={6}
+              minLength={8}
             />
-            <p className="text-zinc-500 dark:text-zinc-400 text-xs mt-1">Mínimo 6 caracteres</p>
+            <p className="text-zinc-500 dark:text-zinc-400 text-xs mt-1">Mínimo 8 caracteres</p>
           </div>
 
           <div>
@@ -171,7 +171,7 @@ export default function Register() {
               className="w-full px-4 py-2 border border-zinc-300 dark:border-white/[0.08] rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none bg-white dark:bg-[#1a1a1a] text-zinc-900 dark:text-white"
               placeholder="confirme sua senha"
               disabled={loading}
-              minLength={6}
+              minLength={8}
             />
           </div>
 

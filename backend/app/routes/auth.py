@@ -1,12 +1,14 @@
 """Autenticação - Rotas de registro e login"""
 
 from datetime import datetime, timedelta, timezone
-from fastapi import APIRouter, Depends, HTTPException, status, Cookie, Response
-from jose import JWTError, jwt
+from fastapi import APIRouter, Depends, HTTPException, status, Cookie, Response, Request
+import jwt
+from jwt import PyJWTError as JWTError
 from sqlalchemy.orm import Session
 from .. import crud, schemas
 from ..database import get_db
 from ..utils import verify_password, hash_password, is_legacy_hash
+from ..security import login_limiter, client_ip
 import os
 
 router = APIRouter(
@@ -26,6 +28,9 @@ ACCESS_TOKEN_EXPIRE_MINUTES = 60 * 24  # 24 horas
 
 COOKIE_NAME = "access_token"
 IS_PRODUCTION = os.getenv("ENVIRONMENT", "production") == "production"
+# Cadastro público desligado por padrão; ligue com REGISTRATION_ENABLED=true.
+REGISTRATION_ENABLED = os.getenv("REGISTRATION_ENABLED", "false").lower() in ("1", "true", "yes")
+MIN_PASSWORD_LENGTH = 8
 
 
 def create_access_token(user_id: int) -> str:
@@ -90,11 +95,21 @@ def get_current_user(
 )
 def register(user: schemas.UserCreate, db: Session = Depends(get_db)):
     """
-    Registrar novo usuário.
+    Registrar novo usuário (só se REGISTRATION_ENABLED=true).
 
     - username: nome de usuário único
     - password: senha (será criptografada com bcrypt)
     """
+    if not REGISTRATION_ENABLED:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Cadastro de novos usuários está desativado"
+        )
+    if len(user.password or "") < MIN_PASSWORD_LENGTH:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"A senha deve ter pelo menos {MIN_PASSWORD_LENGTH} caracteres"
+        )
     db_user = crud.get_user_by_username(db, username=user.username)
     if db_user:
         raise HTTPException(
@@ -107,19 +122,32 @@ def register(user: schemas.UserCreate, db: Session = Depends(get_db)):
 @router.post("/login", response_model=schemas.UserOnly)
 def login(
     user: schemas.UserCreate,
+    request: Request,
     response: Response,
     db: Session = Depends(get_db),
 ):
     """
     Login de usuário. Define cookie httpOnly com JWT válido por 24 horas.
+    Muitas falhas seguidas (por usuário ou IP) bloqueiam por um tempo.
     """
+    ip = client_ip(request)
+    wait = login_limiter.retry_after(user.username, ip)
+    if wait:
+        raise HTTPException(
+            status_code=status.HTTP_429_TOO_MANY_REQUESTS,
+            detail=f"Muitas tentativas de login. Tente de novo em {max(wait // 60, 1)} min.",
+            headers={"Retry-After": str(wait)},
+        )
+
     db_user = crud.get_user_by_username(db, username=user.username)
     valid = db_user and verify_password(user.password, db_user.hashed_password)
     if not valid:
+        login_limiter.record_failure(user.username, ip)
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Username ou password inválidos"
         )
+    login_limiter.record_success(user.username, ip)
 
     # Migração automática: se o hash ainda é PBKDF2 legado, atualiza para bcrypt
     if is_legacy_hash(db_user.hashed_password):
@@ -135,7 +163,10 @@ def login(
 @router.post("/logout")
 def logout(response: Response):
     """Encerra a sessão removendo o cookie de autenticação."""
-    response.delete_cookie(key=COOKIE_NAME, path="/", samesite="strict")
+    response.delete_cookie(
+        key=COOKIE_NAME, path="/", samesite="lax",
+        secure=IS_PRODUCTION, httponly=True,
+    )
     return {"message": "Logout realizado com sucesso"}
 
 
@@ -168,6 +199,11 @@ def change_password(
 
     db_user = crud.get_user(db, user_id=current_user.id)
     new_pw = password_data.get("new_password", "")
+    if len(new_pw) < MIN_PASSWORD_LENGTH:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"A nova senha deve ter pelo menos {MIN_PASSWORD_LENGTH} caracteres"
+        )
     db_user.hashed_password = hash_password(new_pw)
     db.commit()
 

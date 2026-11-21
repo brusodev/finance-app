@@ -191,12 +191,15 @@ export default function Login() {
                 </button>
               </form>
 
-              <div className="mt-8 text-center text-sm text-zinc-400">
-                Não tem conta?{' '}
-                <Link to="/register" className="font-medium text-blue-300 transition hover:text-blue-200">
-                  Cadastre-se aqui
-                </Link>
-              </div>
+              {/* Cadastro público só quando habilitado no build (VITE_REGISTRATION_ENABLED). */}
+              {import.meta.env.VITE_REGISTRATION_ENABLED === 'true' && (
+                <div className="mt-8 text-center text-sm text-zinc-400">
+                  Não tem conta?{' '}
+                  <Link to="/register" className="font-medium text-blue-300 transition hover:text-blue-200">
+                    Cadastre-se aqui
+                  </Link>
+                </div>
+              )}
             </div>
           </section>
         </div>

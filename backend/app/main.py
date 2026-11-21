@@ -10,6 +10,7 @@ from .database import engine, Base, SessionLocal, get_db
 from sqlalchemy import text, and_
 from .models import User
 from . import crud
+from .security import security_headers_middleware
 import os
 from datetime import date
 
@@ -403,12 +404,19 @@ async def lifespan(app_instance):
     # Shutdown
     print("Encerrando Finance App...")
 
+# Documentação interativa só fora de produção (não expõe o mapa da API).
+_docs_enabled = os.getenv("ENVIRONMENT", "production") != "production"
+
 app = FastAPI(
     title='Finance App API',
     description='API para gerenciamento de finanças pessoais',
     version='0.1.0',
-    lifespan=lifespan
+    lifespan=lifespan,
+    docs_url='/docs' if _docs_enabled else None,
+    redoc_url='/redoc' if _docs_enabled else None,
+    openapi_url='/openapi.json' if _docs_enabled else None,
 )
+app.middleware("http")(security_headers_middleware)
 
 
 # Configurar CORS
