@@ -220,6 +220,9 @@ class ImportBatch(Base):
     # Período que o extrato declara cobrir (OFX DTSTART/DTEND), se houver
     period_start = Column(Date, nullable=True)
     period_end = Column(Date, nullable=True)
+    # Saldo final informado pelo banco no extrato (OFX LEDGERBAL)
+    statement_balance = Column(Float, nullable=True)
+    statement_balance_date = Column(Date, nullable=True)
     status = Column(Enum(ImportBatchStatusEnum), default=ImportBatchStatusEnum.PENDING, nullable=False)
     created_at = Column(DateTime, default=datetime.utcnow)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)

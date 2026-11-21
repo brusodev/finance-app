@@ -186,3 +186,91 @@ def test_csv_parser_reads_identifier_column():
         "05/10/2026,-8.00,uuid-1,Compra no débito - CAFE\n"
     ).encode()
     assert parse_csv(csv_bytes)[0]["external_id"] == "uuid-1"
+
+
+# ---------------- Conferência de saldo ----------------
+
+from app.parsers import parse_ofx_balance
+
+
+def _bal_batch(db, user, acc, rows, bal, bal_date):
+    return _import(db, user, acc, rows, period_start=date(2026, 10, 1),
+                   period_end=bal_date, statement_balance=bal,
+                   statement_balance_date=bal_date)
+
+
+def test_ofx_parser_reads_ledger_balance():
+    ofx = OFX.replace(b"</BANKTRANLIST>", b"</BANKTRANLIST><LEDGERBAL>"
+                      b"<BALAMT>1234.56<DTASOF>20261031000000[-3:BRT]"
+                      b"</LEDGERBAL>")
+    assert parse_ofx_balance(ofx) == (1234.56, date(2026, 10, 31))
+    assert parse_ofx_balance(OFX) == (None, None)
+
+
+def test_balance_matches_counting_pending_items(db):
+    user, acc = _account(db)
+    acc.initial_balance = 100.0
+    db.commit()
+    batch = _bal_batch(db, user, acc, [
+        (CAFE, -8.0, date(2026, 10, 5), None),
+        ("Transferência recebida pelo Pix - FULANO", 50.0, date(2026, 10, 6), None),
+    ], 142.0, date(2026, 10, 31))
+    check = crud.get_balance_check(db, batch)
+    assert check["matches"] and check["pending_count"] == 2
+    crud.confirm_import_batch(db, batch.id, user.id)
+    db.refresh(batch)
+    check = crud.get_balance_check(db, batch)
+    assert check["matches"] and check["app_balance"] == 142.0
+
+
+def test_balance_difference_points_to_ignored_item(db):
+    user, acc = _account(db)
+    batch = _bal_batch(db, user, acc, [
+        (CAFE, -8.0, date(2026, 10, 5), None),
+        (UBER, -21.5, date(2026, 10, 6), None),
+    ], -29.5, date(2026, 10, 31))
+    uber = next(i for i in batch.items if i.raw_description == UBER)
+    uber.status = models.ImportItemStatusEnum.IGNORED
+    db.commit()
+    check = crud.get_balance_check(db, batch)
+    assert not check["matches"] and check["difference"] == -21.5
+    assert any("ignorado" in h for h in check["hints"])
+
+
+def test_balance_difference_points_to_extra_transaction(db):
+    user, acc = _account(db)
+    db.add(models.Transaction(amount=-40.0, date=date(2026, 10, 3),
+                              description="Mercado (manual)",
+                              transaction_type="expense",
+                              account_id=acc.id, user_id=user.id))
+    db.commit()
+    batch = _bal_batch(db, user, acc, [(CAFE, -8.0, date(2026, 10, 5), None)],
+                       -8.0, date(2026, 10, 31))
+    check = crud.get_balance_check(db, batch)
+    assert check["difference"] == 40.0
+    assert any("Mercado (manual)" in h for h in check["hints"])
+
+
+def test_transactions_after_statement_date_are_not_counted(db):
+    user, acc = _account(db)
+    db.add(models.Transaction(amount=-99.0, date=date(2026, 11, 5),
+                              description="Depois", transaction_type="expense",
+                              account_id=acc.id, user_id=user.id))
+    db.commit()
+    batch = _bal_batch(db, user, acc, [(CAFE, -8.0, date(2026, 10, 5), None)],
+                       -8.0, date(2026, 10, 31))
+    assert crud.get_balance_check(db, batch)["matches"]
+
+
+def test_no_balance_check_for_cards_or_without_balance(db):
+    user, card = _account(db, kind="credit_card")
+    batch = _bal_batch(db, user, card, [(CAFE, -8.0, date(2026, 10, 5), None)],
+                       -8.0, date(2026, 10, 31))
+    assert crud.get_balance_check(db, batch) is None
+    user2 = user
+    acc = models.Account(name="X", account_type="checking", initial_balance=0,
+                         balance=0, currency="BRL", user=user2)
+    db.add(acc)
+    db.commit()
+    plain = _import(db, user2, acc, [(CAFE, -8.0, date(2026, 10, 5), None)])
+    assert crud.get_balance_check(db, plain) is None

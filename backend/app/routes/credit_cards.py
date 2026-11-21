@@ -10,7 +10,9 @@ from datetime import date
 from .. import crud, schemas, classify_jobs
 from ..database import get_db, SessionLocal
 from .auth import get_current_user
-from ..parsers import parse_uploaded_file, parse_ofx_period
+from ..parsers import (
+    parse_uploaded_file, parse_ofx_period, parse_ofx_balance,
+)
 from ..ai_classifier import MissingGroqKey
 
 router = APIRouter(
@@ -271,8 +273,10 @@ async def upload_batch(
         )
 
     period_start = period_end = None
+    bank_balance = bank_balance_date = None
     if ext.lower().strip('.') in ('ofx', 'qfx'):
         period_start, period_end = parse_ofx_period(content)
+        bank_balance, bank_balance_date = parse_ofx_balance(content)
 
     duplicate_batch = crud.find_duplicate_import_batch(
         db,
@@ -299,6 +303,8 @@ async def upload_batch(
         user_id=current_user.id,
         period_start=period_start,
         period_end=period_end,
+        statement_balance=bank_balance,
+        statement_balance_date=bank_balance_date,
     )
 
     if items_data:
@@ -306,6 +312,23 @@ async def upload_batch(
         db.refresh(batch)
 
     return batch
+
+
+@router.get("/{account_id}/batches/{batch_id}/balance-check")
+def batch_balance_check(
+    account_id: int,
+    batch_id: int,
+    db: Session = Depends(get_db),
+    current_user: schemas.User = Depends(get_current_user),
+):
+    """Compara o saldo final do extrato com o saldo do app na mesma data."""
+    batch = crud.get_import_batch(db, batch_id, current_user.id)
+    if not batch or batch.account_id != account_id:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Lote não encontrado",
+        )
+    return crud.get_balance_check(db, batch)
 
 
 @router.get(

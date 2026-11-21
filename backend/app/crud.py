@@ -1381,6 +1381,8 @@ def create_import_batch(
     user_id: int = None,
     period_start=None,
     period_end=None,
+    statement_balance=None,
+    statement_balance_date=None,
 ):
     """Cria um novo lote de importação (staging)."""
     from datetime import date as date_type
@@ -1397,6 +1399,8 @@ def create_import_batch(
         file_type=file_type,
         period_start=period_start,
         period_end=period_end,
+        statement_balance=statement_balance,
+        statement_balance_date=statement_balance_date,
         status=models.ImportBatchStatusEnum.PENDING,
         updated_at=datetime.utcnow(),
     )
@@ -2381,6 +2385,7 @@ def get_import_coverage(db: Session, account_id: int, user_id: int):
             "covered_until": months[-1] if months else None,
             "missing_months": missing,
             "gaps": [],
+            "balance_check": None,
         }
 
     ranges = []
@@ -2417,9 +2422,116 @@ def get_import_coverage(db: Session, account_id: int, user_id: int):
                 "start": start, "end": end, "days": days, "exact": exact,
             })
 
+    latest = max(
+        (b for b in batches if b.statement_balance is not None
+         and b.statement_balance_date),
+        key=lambda b: (b.statement_balance_date, b.id),
+        default=None,
+    )
     return {
         "kind": "days",
         "covered_until": merged[-1]["end"] if merged else None,
         "missing_months": [],
         "gaps": gaps,
+        "balance_check": get_balance_check(db, latest) if latest else None,
+    }
+
+
+def _item_signed_amount(item) -> float:
+    """Valor com sinal que o item terá ao virar transação (conta comum)."""
+    tx_type = item.transaction_type
+    if tx_type not in ('income', 'expense'):
+        tx_type = 'income' if item.amount > 0 else 'expense'
+    return abs(item.amount) if tx_type == 'income' else -abs(item.amount)
+
+
+def get_balance_check(db: Session, batch):
+    """
+    Conferência de saldo: saldo final do extrato (OFX LEDGERBAL) contra
+    o saldo do app na mesma data = saldo inicial + transações até a data
+    + itens ainda pendentes deste lote (o que entraria ao confirmar).
+
+    Se não bater, aponta itens ignorados ou transações com exatamente o
+    valor da diferença (lançamento esquecido ou duplicado).
+    Só para contas comuns; cartão de crédito retorna None.
+    """
+    from sqlalchemy import func
+
+    if batch is None or batch.statement_balance is None \
+            or not batch.statement_balance_date:
+        return None
+    account = get_account(db, batch.account_id)
+    if not account or account.account_type == 'credit_card':
+        return None
+
+    asof = batch.statement_balance_date
+    tx_sum = db.query(func.coalesce(func.sum(models.Transaction.amount), 0.0)) \
+        .filter(
+            models.Transaction.account_id == account.id,
+            models.Transaction.date <= asof,
+        ).scalar() or 0.0
+    app_balance = round((account.initial_balance or 0.0) + tx_sum, 2)
+
+    pending = []
+    if batch.status not in (models.ImportBatchStatusEnum.CONFIRMED,
+                            models.ImportBatchStatusEnum.CANCELLED):
+        pending = [
+            i for i in batch.items
+            if i.status == models.ImportItemStatusEnum.PENDING
+            and i.date and i.date <= asof
+        ]
+    pending_effect = round(sum(_item_signed_amount(i) for i in pending), 2)
+    projected = round(app_balance + pending_effect, 2)
+    bank = round(batch.statement_balance, 2)
+    difference = round(bank - projected, 2)
+    matches = abs(difference) < 0.01
+
+    hints = []
+    if not matches:
+        cents = round(difference * 100)
+        # Falta no app: item ignorado deste lote com o valor da diferença
+        for i in batch.items:
+            if i.status == models.ImportItemStatusEnum.IGNORED \
+                    and round(_item_signed_amount(i) * 100) == cents:
+                hints.append(
+                    f"O item ignorado '{i.description or i.raw_description}' "
+                    f"de {i.date.strftime('%d/%m')} tem exatamente esse valor"
+                )
+        # Sobra: item pendente deste lote que entraria em dobro
+        for i in pending:
+            if round(_item_signed_amount(i) * 100) == -cents:
+                hints.append(
+                    f"O item pendente '{i.description or i.raw_description}' "
+                    f"de {i.date.strftime('%d/%m')} tem exatamente esse valor"
+                    " (já foi lançado?)"
+                )
+        # Sobra no app: transação (talvez duplicada) com o valor oposto
+        start = batch.period_start or min(
+            (i.date for i in batch.items if i.date), default=asof)
+        extra = db.query(models.Transaction).filter(
+            models.Transaction.account_id == account.id,
+            models.Transaction.date >= start,
+            models.Transaction.date <= asof,
+        ).all()
+        for t in extra:
+            if round(t.amount * 100) == -cents:
+                hints.append(
+                    f"A transação '{t.description}' de "
+                    f"{t.date.strftime('%d/%m')} tem exatamente esse valor "
+                    "(está duplicada ou não aconteceu?)"
+                )
+        hints = hints[:5]
+
+    return {
+        "batch_id": batch.id,
+        "date": asof,
+        "bank_balance": bank,
+        "app_balance": app_balance,
+        "pending_effect": pending_effect,
+        "pending_count": len(pending),
+        "projected_balance": projected,
+        "difference": difference,
+        "matches": matches,
+        "confirmed": batch.status == models.ImportBatchStatusEnum.CONFIRMED,
+        "hints": hints,
     }

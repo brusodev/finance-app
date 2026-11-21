@@ -139,6 +139,16 @@ def run_migrations():
                 "period_end DATE",
                 "import_batches.period_end"
             ),
+            (
+                "ALTER TABLE import_batches ADD COLUMN IF NOT EXISTS "
+                "statement_balance DOUBLE PRECISION",
+                "import_batches.statement_balance"
+            ),
+            (
+                "ALTER TABLE import_batches ADD COLUMN IF NOT EXISTS "
+                "statement_balance_date DATE",
+                "import_batches.statement_balance_date"
+            ),
         ]
     else:
         migrations = [
@@ -248,6 +258,16 @@ def run_migrations():
                 "ALTER TABLE import_batches ADD COLUMN "
                 "period_end DATE",
                 "import_batches.period_end"
+            ),
+            (
+                "ALTER TABLE import_batches ADD COLUMN "
+                "statement_balance REAL",
+                "import_batches.statement_balance"
+            ),
+            (
+                "ALTER TABLE import_batches ADD COLUMN "
+                "statement_balance_date DATE",
+                "import_batches.statement_balance_date"
             ),
         ]
 

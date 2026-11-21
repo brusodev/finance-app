@@ -597,6 +597,8 @@ class ImportBatch(BaseModel):
     file_type: Optional[str]
     period_start: Optional[date] = None
     period_end: Optional[date] = None
+    statement_balance: Optional[float] = None
+    statement_balance_date: Optional[date] = None
     status: str
     created_at: datetime
     updated_at: Optional[datetime] = None

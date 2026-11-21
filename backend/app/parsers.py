@@ -291,6 +291,28 @@ def parse_ofx_period(content: bytes):
     return start, end
 
 
+def parse_ofx_balance(content: bytes):
+    """
+    Saldo final informado pelo banco no OFX (<LEDGERBAL> BALAMT/DTASOF).
+    Retorna (valor, data) ou (None, None) se ausente/ilegível.
+    """
+    text = content.decode('latin-1', errors='ignore')
+    m = re.search(r'<LEDGERBAL>(.*?)(</LEDGERBAL>|<AVAILBAL>|$)', text,
+                  re.DOTALL | re.IGNORECASE)
+    if not m:
+        return None, None
+    block = m.group(1)
+    amt = re.search(r'<BALAMT>\s*([-+]?[\d.,]+)', block, re.IGNORECASE)
+    dt = re.search(r'<DTASOF>\s*(\d{8})', block, re.IGNORECASE)
+    if not amt or not dt:
+        return None, None
+    try:
+        return (float(amt.group(1).replace(',', '.')),
+                _parse_date(dt.group(1)))
+    except ValueError:
+        return None, None
+
+
 # ------------------------------------------------------------------ #
 #  Entry point                                                         #
 # ------------------------------------------------------------------ #

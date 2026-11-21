@@ -3,7 +3,7 @@ import { useParams, useNavigate, useLocation } from 'react-router-dom'
 import {
   Upload, Plus, Check, X, ChevronLeft, FileText,
   Pencil, Trash2, AlertCircle, CheckCircle2, Clock,
-  CreditCard, Calendar, Sparkles, Wallet, Copy, CalendarX
+  CreditCard, Calendar, Sparkles, Wallet, Copy, CalendarX, Scale
 } from 'lucide-react'
 import { creditCardsAPI, accountsAPI, categoriesAPI } from '../services/api'
 import CategorySelect from '../components/CategorySelect'
@@ -98,6 +98,7 @@ export default function CreditCardImport() {
   const [openMonths, setOpenMonths] = useState(null)
   const [loading, setLoading] = useState(true)
   const [coverage, setCoverage] = useState(null)
+  const [balanceCheck, setBalanceCheck] = useState(null)
   const [error, setError] = useState('')
   const orderedBatches = [...batches].sort((a, b) => {
     const aUpdated = new Date(a.updated_at || a.created_at || 0).getTime()
@@ -220,6 +221,16 @@ export default function CreditCardImport() {
       .then(setCoverage)
       .catch(() => setCoverage(null))
   }, [accountId, batches])
+
+  // Conferência de saldo do lote: recalcula a cada mudança no lote
+  // (ignorar/restaurar item, editar, confirmar).
+  useEffect(() => {
+    setBalanceCheck(null)
+    if (!accountId || !selectedBatch?.id || selectedBatch.statement_balance == null) return
+    creditCardsAPI.getBalanceCheck(accountId, selectedBatch.id)
+      .then(setBalanceCheck)
+      .catch(() => setBalanceCheck(null))
+  }, [accountId, selectedBatch])
 
   const fetchBatch = async (batchId) => {
     try {
@@ -650,6 +661,14 @@ export default function CreditCardImport() {
                   ? <>Faturas importadas até <strong>{formatMonthName(coverage.covered_until)}</strong></>
                   : <>Extrato importado até <strong>{formatShortDate(coverage.covered_until)}</strong></>}
               </p>
+              {coverage.balance_check && (
+                <p className="flex items-center gap-1.5">
+                  <Scale size={13} className="shrink-0" />
+                  {coverage.balance_check.matches
+                    ? `Saldo confere com o banco em ${formatShortDate(coverage.balance_check.date)}`
+                    : `Saldo difere do banco em ${formatShortDate(coverage.balance_check.date)}: ${formatCurrency(coverage.balance_check.difference, user?.currency)}`}
+                </p>
+              )}
               {coverage.missing_months.map(m => (
                 <p key={m} className="flex items-center gap-1.5">
                   <CalendarX size={13} className="shrink-0" />
@@ -831,6 +850,40 @@ export default function CreditCardImport() {
                   </div>
                 )}
               </div>
+
+              {/* Conferência de saldo com o extrato */}
+              {balanceCheck && (
+                <div className={`p-4 border-b text-sm flex items-start gap-2 ${
+                  balanceCheck.matches
+                    ? 'bg-green-50 dark:bg-green-900/20 border-green-200 dark:border-green-800 text-green-700 dark:text-green-400'
+                    : 'bg-red-50 dark:bg-red-900/20 border-red-200 dark:border-red-800 text-red-700 dark:text-red-300'
+                }`}>
+                  <Scale size={18} className="shrink-0 mt-0.5" />
+                  <div className="space-y-1">
+                    <p className="font-medium">
+                      {balanceCheck.matches
+                        ? `Saldo confere com o banco em ${formatShortDate(balanceCheck.date)}`
+                        : `Saldo não confere com o banco em ${formatShortDate(balanceCheck.date)}: diferença de ${formatCurrency(balanceCheck.difference, user?.currency)}`}
+                    </p>
+                    <p className="text-xs opacity-90">
+                      Banco: {formatCurrency(balanceCheck.bank_balance, user?.currency)}
+                      {' · '}Prospera{balanceCheck.confirmed ? '' : ' após confirmar'}: {formatCurrency(balanceCheck.projected_balance, user?.currency)}
+                      {!balanceCheck.confirmed && balanceCheck.pending_count > 0
+                        && ` (inclui ${balanceCheck.pending_count} itens pendentes)`}
+                    </p>
+                    {!balanceCheck.matches && (
+                      <p className="text-xs opacity-90">
+                        {balanceCheck.difference > 0
+                          ? 'O banco tem mais dinheiro que o Prospera: falta lançar uma entrada ou sobra uma saída.'
+                          : 'O banco tem menos dinheiro que o Prospera: falta lançar uma saída ou sobra uma entrada.'}
+                      </p>
+                    )}
+                    {balanceCheck.hints.map(h => (
+                      <p key={h} className="text-xs">• {h}</p>
+                    ))}
+                  </div>
+                </div>
+              )}
 
               {/* Duplicidade detectada na importação */}
               {!isFrozen && (dupCertainCount > 0 || dupPossibleCount > 0) && (
