@@ -1345,6 +1345,13 @@ def update_credit_card_config(
     if config.credit_limit is not None:
         db_config.credit_limit = config.credit_limit
 
+    # Fechamento/vencimento mudaram: recalcula as datas das faturas.
+    db.flush()
+    for statement in db.query(models.CreditCardStatement).filter(
+        models.CreditCardStatement.account_id == account_id,
+    ).all():
+        _apply_statement_cycle(db, statement)
+
     db.commit()
     db.refresh(db_config)
     return db_config

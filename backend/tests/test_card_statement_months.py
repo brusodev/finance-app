@@ -189,3 +189,12 @@ def test_realign_relabels_cancelled_batches(db, env):
     db.refresh(b)
     assert b.reference_month == date(2026, 4, 1)
     assert crud.realign_card_statements(db) == []
+
+
+def test_config_change_updates_statement_dates(db, env):
+    user, _, card = env
+    b = _import(db, user, card, date(2026, 4, 1), [("A", 10, date(2026, 3, 10), None, None)])
+    crud.update_credit_card_config(
+        db, card.id, schemas.CreditCardConfigUpdate(due_day=8), user.id)
+    stmt = crud.get_credit_card_statement_by_batch(db, b.id, user.id)
+    assert stmt.due_date == date(2026, 4, 8)
