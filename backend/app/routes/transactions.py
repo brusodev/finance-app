@@ -16,6 +16,17 @@ router = APIRouter(
 )
 
 
+def _check_account(db, account_id, user_id):
+    """A conta da transação, se informada, tem de ser do usuário."""
+    try:
+        crud.ensure_user_account(db, account_id, user_id)
+    except ValueError:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Conta não encontrada"
+        )
+
+
 @router.get("/suggestions/descriptions", response_model=list[str])
 def get_transaction_description_suggestions(
     transaction_type: str = None,
@@ -98,6 +109,7 @@ def create_transaction(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Acesso negado"
         )
+    _check_account(db, transaction.account_id, current_user.id)
 
     return crud.create_transaction(
         db=db, transaction=transaction, user_id=current_user.id
@@ -157,6 +169,7 @@ def update_transaction(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Acesso negado"
         )
+    _check_account(db, transaction.account_id, current_user.id)
 
     return crud.update_transaction(
         db=db, transaction_id=transaction_id, transaction=transaction

@@ -278,6 +278,24 @@ def get_category(db: Session, category_id: int):
     return db.query(models.Category).filter(models.Category.id == category_id).first()
 
 
+def ensure_user_category(db: Session, category_id, user_id: int):
+    """ValueError se a categoria informada não for do usuário."""
+    if category_id is None:
+        return
+    cat = get_category(db, category_id)
+    if not cat or cat.user_id != user_id:
+        raise ValueError("Categoria não encontrada")
+
+
+def ensure_user_account(db: Session, account_id, user_id: int):
+    """ValueError se a conta informada não for do usuário."""
+    if account_id is None:
+        return
+    acc = get_account(db, account_id)
+    if not acc or acc.user_id != user_id:
+        raise ValueError("Conta não encontrada")
+
+
 def get_category_by_name(db: Session, name: str):
     """Get category by name (global - use apenas para compatibilidade)"""
     return db.query(models.Category).filter(models.Category.name == name).first()
@@ -544,6 +562,7 @@ def create_transfer(db: Session, transfer: schemas.TransferCreate, user_id: int,
 
     # Obter ou criar categoria de transferência
     category_id = transfer.category_id
+    ensure_user_category(db, category_id, user_id)
     if not category_id:
         # Buscar ou criar categoria padrão de transferência
         transfer_category = db.query(models.Category).filter(
@@ -1580,6 +1599,7 @@ def add_manual_import_item(
         raise ValueError("Lote não encontrado")
     if batch.status == models.ImportBatchStatusEnum.CONFIRMED:
         raise ValueError("Lote já confirmado")
+    ensure_user_category(db, item.category_id, user_id)
 
     db_item = models.ImportItem(
         batch_id=batch_id,
@@ -1630,6 +1650,7 @@ def update_import_item(
         from datetime import date as date_type
         item.date = date_type.fromisoformat(data.date) if isinstance(data.date, str) else data.date
     if data.category_id is not None:
+        ensure_user_category(db, data.category_id, user_id)
         item.category_id = data.category_id
     if data.transaction_type is not None:
         if data.transaction_type not in ('income', 'expense'):
