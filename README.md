@@ -9,6 +9,9 @@ Sistema completo de gestão financeira pessoal com controle de contas, transaç�
 - **Dashboard Interativo** - Visão geral com gráficos e estatísticas
 - **Contas Bancárias** - Gerenciamento de múltiplas contas com diferentes moedas (BRL, USD, EUR)
 - **Cartões de Crédito** - Cadastro, configuração e revisão de faturas com importação manual, CSV e OFX
+- **Faturas por mês de vencimento** - Cada fatura leva o nome do mês em que vence ("Fatura de Nov/2026"), com período de compras, fechamento e vencimento calculados pela configuração do cartão; várias importações do mesmo mês somam uma única fatura
+- **Linha do tempo de faturas** - Página `/cartoes/:id/faturas` com faturas pagas, parciais, vencidas, não importadas, o ciclo atual e as futuras previstas
+- **Parcelamentos projetados** - Parcelas futuras de cada compra distribuídas pelas próximas faturas (só projeção, nada é lançado) e conferidas na importação seguinte
 - **Importações organizadas** - Histórico agrupado por mês, com lotes recolhíveis e ordenados pela atividade mais recente
 - **Proteção contra duplicidade** - Bloqueia uma nova importação equivalente para a mesma conta e mês, permitindo vários lotes diferentes no mesmo mês
 - **Classificação por IA** - Sugere categoria, tipo e descrição para lançamentos importados, com processamento em lotes

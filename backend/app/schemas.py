@@ -514,7 +514,9 @@ class CreditCardStatement(BaseModel):
     batch_id: int
     account_id: int
     user_id: int
-    reference_month: date
+    reference_month: date   # dia 1 do mês de VENCIMENTO
+    period_start: Optional[date] = None
+    closing_date: Optional[date] = None
     due_date: Optional[date] = None
     total_amount: float
     paid_amount: float
@@ -604,10 +606,18 @@ class ImportBatch(BaseModel):
     updated_at: Optional[datetime] = None
     confirmed_at: Optional[datetime]
     statement: Optional[CreditCardStatement] = None
+    statement_id: Optional[int] = None
+    # Ciclo da fatura (cartão configurado): período, fechamento,
+    # vencimento, itens fora do ciclo e conferência de parcelas.
+    cycle: Optional[dict] = None
     items: List[ImportItem] = []
 
     class Config:
         from_attributes = True
+
+
+class ImportBatchReferenceMonthUpdate(BaseModel):
+    reference_month: date
 
 
 class ImportBatchStatementInfo(BaseModel):
@@ -617,6 +627,7 @@ class ImportBatchStatementInfo(BaseModel):
     paid_amount: float
     status: str
     due_date: Optional[date] = None
+    reference_month: Optional[date] = None
 
     class Config:
         from_attributes = True

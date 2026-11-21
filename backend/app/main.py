@@ -149,6 +149,21 @@ def run_migrations():
                 "statement_balance_date DATE",
                 "import_batches.statement_balance_date"
             ),
+            (
+                "ALTER TABLE import_batches ADD COLUMN IF NOT EXISTS "
+                "statement_id INTEGER REFERENCES credit_card_statements(id)",
+                "import_batches.statement_id"
+            ),
+            (
+                "ALTER TABLE credit_card_statements ADD COLUMN IF NOT EXISTS "
+                "period_start DATE",
+                "credit_card_statements.period_start"
+            ),
+            (
+                "ALTER TABLE credit_card_statements ADD COLUMN IF NOT EXISTS "
+                "closing_date DATE",
+                "credit_card_statements.closing_date"
+            ),
         ]
     else:
         migrations = [
@@ -269,6 +284,21 @@ def run_migrations():
                 "statement_balance_date DATE",
                 "import_batches.statement_balance_date"
             ),
+            (
+                "ALTER TABLE import_batches ADD COLUMN "
+                "statement_id INTEGER REFERENCES credit_card_statements(id)",
+                "import_batches.statement_id"
+            ),
+            (
+                "ALTER TABLE credit_card_statements ADD COLUMN "
+                "period_start DATE",
+                "credit_card_statements.period_start"
+            ),
+            (
+                "ALTER TABLE credit_card_statements ADD COLUMN "
+                "closing_date DATE",
+                "credit_card_statements.closing_date"
+            ),
         ]
 
     try:
@@ -318,6 +348,32 @@ def run_migrations():
         traceback.print_exc()
 
 
+def realign_card_statements():
+    """
+    Uma fatura por cartão e mês de vencimento: realinha faturas antigas
+    (criadas uma por lote, com mês escolhido à mão) e cria o índice único.
+    Idempotente — só mexe em faturas sem fechamento calculado.
+    """
+    db = SessionLocal()
+    try:
+        report = crud.realign_card_statements(db)
+        for line in report:
+            print(f"  [DATA] {line}")
+    except Exception as e:
+        db.rollback()
+        print(f"[WARN] Erro ao realinhar faturas: {e}")
+    finally:
+        db.close()
+    try:
+        with engine.begin() as conn:
+            conn.execute(text(
+                "CREATE UNIQUE INDEX IF NOT EXISTS uq_statement_account_month "
+                "ON credit_card_statements (account_id, reference_month)"
+            ))
+    except Exception as e:
+        print(f"[WARN] Indice unico de faturas nao criado: {e}")
+
+
 def check_users():
     """Verificar se existem usuários cadastrados"""
     db = SessionLocal()
@@ -341,6 +397,7 @@ async def lifespan(app_instance):
     # Startup
     print("Iniciando Finance App...")
     run_migrations()
+    realign_card_statements()
     check_users()
     yield
     # Shutdown

@@ -2,11 +2,13 @@ import React, { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import {
   CreditCard, Plus, Settings, ChevronRight, Calendar,
-  DollarSign, X, Check, AlertCircle, Trash2, History, Clock
+  DollarSign, X, Check, AlertCircle, Trash2, Receipt, Clock
 } from 'lucide-react'
 import { accountsAPI, creditCardsAPI } from '../services/api'
 import { formatCurrency } from '../utils/formatters'
 import { useAuth } from '../context/AuthContext'
+import StatementPaymentModal from '../components/StatementPaymentModal'
+import { statusInfo, monthShort, dayMonth, payableMonths } from '../utils/statements'
 
 const EMPTY_FORM = {
   // Conta
@@ -26,7 +28,7 @@ export default function CreditCards() {
   const [accounts, setAccounts] = useState([])
   const [allAccounts, setAllAccounts] = useState([])
   const [configs, setConfigs] = useState({})
-  const [latestBatches, setLatestBatches] = useState({})
+  const [timelines, setTimelines] = useState({})
   const [installments, setInstallments] = useState({})
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
@@ -36,18 +38,7 @@ export default function CreditCards() {
   const [form, setForm] = useState(EMPTY_FORM)
   const [saving, setSaving] = useState(false)
   const [formError, setFormError] = useState('')
-  const [paymentModal, setPaymentModal] = useState(null)
-  const [paymentForm, setPaymentForm] = useState({
-    from_account_id: '',
-    amount: '',
-    date: new Date().toISOString().slice(0, 10),
-    description: '',
-  })
-  const [paymentSaving, setPaymentSaving] = useState(false)
-  const [paymentError, setPaymentError] = useState('')
-  const [historyModal, setHistoryModal] = useState(null) // { account, batches }
-  const [historyLoading, setHistoryLoading] = useState(false)
-  const [allBatches, setAllBatches] = useState({})
+  const [payTarget, setPayTarget] = useState(null) // { account, month }
 
   useEffect(() => { fetchData() }, [])
 
@@ -71,19 +62,16 @@ export default function CreditCards() {
       )
       setConfigs(cfgs)
 
-      const batchEntries = await Promise.all(
+      const timelineEntries = await Promise.all(
         creditAccounts.map(async (acc) => {
           try {
-            const batches = await creditCardsAPI.listBatches(acc.id)
-            const latest = batches?.[0] ?? null
-            const confirmed = batches?.find(b => b.status === 'confirmed') ?? null
-            return [acc.id, { latest, confirmed }]
+            return [acc.id, await creditCardsAPI.getStatements(acc.id, { monthsBack: 3, monthsAhead: 2 })]
           } catch {
-            return [acc.id, { latest: null, confirmed: null }]
+            return [acc.id, null]
           }
         })
       )
-      setLatestBatches(Object.fromEntries(batchEntries))
+      setTimelines(Object.fromEntries(timelineEntries))
 
       const installmentEntries = await Promise.all(
         creditAccounts.map(async (acc) => {
@@ -206,80 +194,6 @@ export default function CreditCards() {
     }
   }
 
-  const openPayModal = (account) => {
-    const confirmedBatch = latestBatches[account.id]?.confirmed ?? null
-    const outstanding = confirmedBatch?.statement
-      ? Math.max(confirmedBatch.statement.total_amount - confirmedBatch.statement.paid_amount, 0)
-      : (confirmedBatch?.total_amount ?? 0)
-    setPaymentForm({
-      from_account_id: '',
-      amount: outstanding > 0 ? String(outstanding) : '',
-      date: new Date().toISOString().slice(0, 10),
-      description: `Pagamento da fatura ${account.name}`,
-    })
-    setPaymentError('')
-    setPaymentModal({ account, batch: confirmedBatch })
-  }
-
-  const closePaymentModal = () => {
-    setPaymentModal(null)
-    setPaymentError('')
-  }
-
-  const openHistory = async (account) => {
-    setHistoryLoading(true)
-    setHistoryModal({ account, batches: [] })
-    try {
-      const batches = await creditCardsAPI.listBatches(account.id)
-      setHistoryModal({ account, batches })
-      setAllBatches(prev => ({ ...prev, [account.id]: batches }))
-    } finally {
-      setHistoryLoading(false)
-    }
-  }
-
-  const goToBatch = (accountId, batchId) => {
-    navigate(`/cartoes/${accountId}/importar`, { state: { batchId } })
-  }
-
-  const registerPayment = async () => {
-    if (!paymentModal?.batch?.id) {
-      setPaymentError('Nenhuma fatura confirmada disponível para pagamento')
-      return
-    }
-
-    const amount = parseFloat(paymentForm.amount)
-    if (!paymentForm.from_account_id || !paymentForm.date || Number.isNaN(amount) || amount <= 0) {
-      setPaymentError('Preencha conta de origem, valor e data válidos')
-      return
-    }
-
-    setPaymentSaving(true)
-    setPaymentError('')
-    try {
-      await creditCardsAPI.registerPayment(paymentModal.account.id, paymentModal.batch.id, {
-        from_account_id: parseInt(paymentForm.from_account_id),
-        amount,
-        date: paymentForm.date,
-        description: paymentForm.description || null,
-      })
-      await fetchData()
-      closePaymentModal()
-    } catch (e) {
-      setPaymentError(e.detail || 'Erro ao registrar pagamento')
-    } finally {
-      setPaymentSaving(false)
-    }
-  }
-
-  const STATUS_LABELS = {
-    open: 'Aberta',
-    confirmed: 'Confirmada',
-    paid: 'Paga',
-    partial: 'Paga parcialmente',
-  }
-  const statusLabel = (s) => STATUS_LABELS[s] ?? s
-
   const f = (field, value) => setForm(prev => ({ ...prev, [field]: value }))
 
   const inputCls = "w-full px-3 py-2 border border-zinc-300 dark:border-white/[0.08] rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-[#1a1a1a] text-zinc-900 dark:text-white text-sm"
@@ -332,7 +246,12 @@ export default function CreditCards() {
         <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
           {accounts.map(account => {
             const cfg = configs[account.id]
-            const latestBatch = latestBatches[account.id]?.latest ?? null
+            const tl = timelines[account.id]
+            const payable = payableMonths(tl)
+            const toPay = payable[0] ?? null
+            const months = tl?.months ?? []
+            const lastPaid = [...months].reverse().find(m => m.statement?.status === 'paid') ?? null
+            const next = months.find(m => m.phase === 'current') ?? null
             return (
               <div
                 key={account.id}
@@ -392,31 +311,41 @@ export default function CreditCards() {
                     </div>
                   )}
 
-                  {latestBatch && (
-                    <div className="bg-zinc-50 dark:bg-[#1a1a1a] rounded-lg p-3 space-y-2">
-                      <div className="flex items-center justify-between gap-3">
-                        <div>
-                          <p className="text-xs text-zinc-500 dark:text-zinc-400 mb-1">Última fatura</p>
-                          <p className="text-sm font-semibold text-zinc-800 dark:text-white capitalize">
-                            {statusLabel(latestBatch.statement?.status ?? latestBatch.status)}
-                          </p>
+                  {tl && (toPay || lastPaid || next) && (
+                    <div className="bg-zinc-50 dark:bg-[#1a1a1a] rounded-lg p-3 space-y-2 text-sm">
+                      {toPay ? (
+                        <div className="flex items-center justify-between gap-3">
+                          <div>
+                            <p className="text-xs text-zinc-500 dark:text-zinc-400 mb-0.5">A pagar</p>
+                            <p className="font-semibold text-zinc-800 dark:text-white flex items-center gap-2">
+                              Fatura {monthShort(toPay.reference_month)}
+                              <span className={`text-[10px] px-1.5 py-0.5 rounded-full ${statusInfo(toPay.status).cls}`}>{statusInfo(toPay.status).label}</span>
+                            </p>
+                            {toPay.due_date && <p className="text-xs text-zinc-500 dark:text-zinc-400">Vence {dayMonth(toPay.due_date)}</p>}
+                          </div>
+                          <p className="font-bold text-red-600 dark:text-red-400 tabular-nums">{formatCurrency(toPay.statement.outstanding, user?.currency)}</p>
                         </div>
-                        <div className="text-right">
-                          <p className="text-xs text-zinc-500 dark:text-zinc-400 mb-1">Total</p>
-                          <p className="text-sm font-semibold text-zinc-800 dark:text-white">
-                            {formatCurrency(latestBatch.statement?.total_amount ?? latestBatch.total_amount ?? 0, user?.currency)}
-                          </p>
+                      ) : lastPaid && (
+                        <div className="flex items-center justify-between gap-3">
+                          <div>
+                            <p className="text-xs text-zinc-500 dark:text-zinc-400 mb-0.5">Última fatura</p>
+                            <p className="font-semibold text-zinc-800 dark:text-white">
+                              {monthShort(lastPaid.reference_month)} · paga{lastPaid.statement.paid_on ? ` em ${dayMonth(lastPaid.statement.paid_on)}` : ''}
+                            </p>
+                          </div>
+                          <p className="font-semibold text-zinc-800 dark:text-white tabular-nums">{formatCurrency(lastPaid.statement.total_amount, user?.currency)}</p>
                         </div>
-                      </div>
-                      {latestBatch.statement?.paid_amount > 0 && (
-                        <div className="flex justify-between text-xs pt-1 border-t border-zinc-200 dark:border-white/[0.08]">
-                          <span className="text-zinc-500 dark:text-zinc-400">Pendente</span>
-                          <span className="text-red-600 dark:text-red-400 font-medium">
-                            {formatCurrency(
-                              Math.max(latestBatch.statement.total_amount - latestBatch.statement.paid_amount, 0),
-                              user?.currency
-                            )}
+                      )}
+                      {next && (
+                        <div className="flex items-center justify-between gap-3 pt-2 border-t border-zinc-200 dark:border-white/[0.08] text-xs">
+                          <span className="text-zinc-500 dark:text-zinc-400">
+                            Ciclo atual: fatura {monthShort(next.reference_month)}{next.due_date ? ` (vence ${dayMonth(next.due_date)})` : ''}
                           </span>
+                          {next.projected_total > 0 && (
+                            <span className="text-amber-600 dark:text-amber-400 font-medium shrink-0">
+                              {formatCurrency(next.projected_total, user?.currency)} em parcelas
+                            </span>
+                          )}
                         </div>
                       )}
                     </div>
@@ -474,11 +403,11 @@ export default function CreditCards() {
                       Editar
                     </button>
                     <button
-                      onClick={() => openHistory(account)}
+                      onClick={() => navigate(`/cartoes/${account.id}/faturas`)}
                       className="flex items-center gap-2 px-3 py-2 text-sm text-zinc-600 dark:text-zinc-300 border border-zinc-200 dark:border-white/[0.08] rounded-lg hover:bg-zinc-50 dark:hover:bg-white/[0.06] transition-colors"
                     >
-                      <History size={15} />
-                      Histórico
+                      <Receipt size={15} />
+                      Faturas
                     </button>
                     <button
                       onClick={() => navigate(`/cartoes/${account.id}/importar`)}
@@ -488,29 +417,20 @@ export default function CreditCards() {
                       Importar fatura
                       <ChevronRight size={15} />
                     </button>
-                    {(() => {
-                      const batch = latestBatches[account.id]?.confirmed ?? null
-                      const pending = batch?.statement
-                        ? Math.max(batch.statement.total_amount - batch.statement.paid_amount, 0)
-                        : (batch?.total_amount ?? 0)
-                      const isFullyPaid = batch && pending === 0
-                      return (
-                        <button
-                          onClick={() => !isFullyPaid && openPayModal(account)}
-                          disabled={isFullyPaid}
-                          title={isFullyPaid ? 'Fatura já quitada' : undefined}
-                          className={`flex-1 flex items-center justify-center gap-2 px-3 py-2 text-sm rounded-lg transition-colors ${
-                            isFullyPaid
-                              ? 'border border-zinc-200 dark:border-white/[0.08] text-zinc-400 dark:text-zinc-600 cursor-not-allowed'
-                              : 'border border-blue-200 dark:border-blue-800 text-blue-600 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/20'
-                          }`}
-                        >
-                          {isFullyPaid ? <Check size={15} /> : null}
-                          {isFullyPaid ? 'Fatura quitada' : 'Pagar fatura'}
-                          {!isFullyPaid && <ChevronRight size={15} />}
-                        </button>
-                      )
-                    })()}
+                    <button
+                      onClick={() => toPay && setPayTarget({ account, month: toPay })}
+                      disabled={!toPay}
+                      title={!toPay ? 'Nenhuma fatura com saldo em aberto' : undefined}
+                      className={`flex-1 flex items-center justify-center gap-2 px-3 py-2 text-sm rounded-lg transition-colors ${
+                        !toPay
+                          ? 'border border-zinc-200 dark:border-white/[0.08] text-zinc-400 dark:text-zinc-600 cursor-not-allowed'
+                          : 'border border-blue-200 dark:border-blue-800 text-blue-600 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/20'
+                      }`}
+                    >
+                      {!toPay ? <Check size={15} /> : null}
+                      {!toPay ? 'Faturas quitadas' : 'Pagar fatura'}
+                      {toPay && <ChevronRight size={15} />}
+                    </button>
                   </div>
                 </div>
               </div>
@@ -665,252 +585,15 @@ export default function CreditCards() {
         </div>
       )}
 
-      {historyModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
-          <div className="bg-white dark:bg-[#111111] rounded-xl shadow-xl w-full max-w-lg max-h-[80vh] flex flex-col">
-            <div className="flex items-center justify-between p-5 border-b border-zinc-200 dark:border-white/[0.06] flex-shrink-0">
-              <div>
-                <h2 className="text-lg font-bold text-zinc-800 dark:text-white">Histórico de faturas</h2>
-                <p className="text-sm text-zinc-500 dark:text-zinc-400">{historyModal.account.name}</p>
-              </div>
-              <button
-                onClick={() => setHistoryModal(null)}
-                className="text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-200 transition-colors"
-              >
-                <X size={20} />
-              </button>
-            </div>
-
-            <div className="overflow-y-auto flex-1 p-5">
-              {historyLoading ? (
-                <div className="flex justify-center py-8">
-                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600" />
-                </div>
-              ) : historyModal.batches.length === 0 ? (
-                <p className="text-center text-zinc-500 dark:text-zinc-400 py-8">Nenhuma fatura encontrada</p>
-              ) : (
-                <div className="space-y-2">
-                  {historyModal.batches.map(batch => {
-                    const refDate = new Date(batch.reference_month + 'T12:00:00')
-                    const monthLabel = refDate.toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' })
-                    const stmt = batch.statement
-                    const statusMap = {
-                      open: { label: 'Aberta', cls: 'bg-zinc-100 dark:bg-[#1a1a1a] text-zinc-600 dark:text-zinc-300' },
-                      confirmed: { label: 'Confirmada', cls: 'bg-blue-100 dark:bg-blue-900/40 text-blue-700 dark:text-blue-300' },
-                      paid: { label: 'Paga', cls: 'bg-green-100 dark:bg-green-900/40 text-green-700 dark:text-green-300' },
-                      partial: { label: 'Parcial', cls: 'bg-amber-100 dark:bg-amber-900/40 text-amber-700 dark:text-amber-300' },
-                      cancelled: { label: 'Cancelada', cls: 'bg-red-100 dark:bg-red-900/40 text-red-600 dark:text-red-400' },
-                    }
-                    const statusKey = stmt?.status ?? batch.status
-                    const { label: statusLabel, cls: statusCls } = statusMap[statusKey] ?? statusMap.open
-                    const total = stmt?.total_amount ?? batch.total_amount ?? 0
-                    const paid = stmt?.paid_amount ?? 0
-                    const pending = Math.max(total - paid, 0)
-
-                    return (
-                      <button
-                        key={batch.id}
-                        onClick={() => goToBatch(historyModal.account.id, batch.id)}
-                        className="w-full flex items-center justify-between gap-3 p-3 rounded-lg border border-zinc-200 dark:border-white/[0.08] hover:border-blue-400 dark:hover:border-blue-500 hover:bg-zinc-50 dark:hover:bg-white/[0.06] transition-colors text-left"
-                      >
-                        <div className="flex-1 min-w-0">
-                          <div className="flex items-center gap-2 flex-wrap">
-                            <span className="font-medium text-zinc-800 dark:text-white capitalize">{monthLabel}</span>
-                            <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${statusCls}`}>{statusLabel}</span>
-                          </div>
-                          {stmt?.due_date && (
-                            <p className="text-xs text-zinc-500 dark:text-zinc-400 mt-0.5">
-                              Venc. {new Date(stmt.due_date + 'T12:00:00').toLocaleDateString('pt-BR')}
-                            </p>
-                          )}
-                          {paid > 0 && pending > 0 && (
-                            <p className="text-xs text-amber-600 dark:text-amber-400 mt-0.5">
-                              Pendente: {formatCurrency(pending, user?.currency)}
-                            </p>
-                          )}
-                        </div>
-                        <div className="flex items-center gap-3 flex-shrink-0">
-                          <div className="text-right">
-                            <p className="font-semibold text-zinc-800 dark:text-white">
-                              {formatCurrency(total, user?.currency)}
-                            </p>
-                            {paid > 0 && (
-                              <p className="text-xs text-green-600 dark:text-green-400">
-                                Pago: {formatCurrency(paid, user?.currency)}
-                              </p>
-                            )}
-                          </div>
-                          <ChevronRight size={16} className="text-zinc-400" />
-                        </div>
-                      </button>
-                    )
-                  })}
-                </div>
-              )}
-            </div>
-          </div>
-        </div>
-      )}
-
-      {paymentModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
-          <div className="bg-white dark:bg-[#111111] rounded-xl shadow-xl w-full max-w-md">
-            <div className="flex items-center justify-between p-5 border-b border-zinc-200 dark:border-white/[0.06]">
-              <h2 className="text-lg font-bold text-zinc-800 dark:text-white">
-                Pagar fatura
-              </h2>
-              <button
-                onClick={closePaymentModal}
-                className="text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-200 transition-colors"
-              >
-                <X size={20} />
-              </button>
-            </div>
-
-            <div className="p-5 space-y-4">
-              {(() => {
-                const pending = paymentModal.batch?.statement
-                  ? Math.max(paymentModal.batch.statement.total_amount - paymentModal.batch.statement.paid_amount, 0)
-                  : (paymentModal.batch?.total_amount ?? 0)
-                if (paymentModal.batch && pending === 0) {
-                  return (
-                    <div className="flex items-center gap-2 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg p-4 text-green-700 dark:text-green-400 text-sm">
-                      <Check size={18} /> Esta fatura já está totalmente quitada.
-                    </div>
-                  )
-                }
-                return null
-              })()}
-              <div className="rounded-lg bg-zinc-50 dark:bg-[#1a1a1a] p-4 space-y-2">
-                <div className="flex items-center justify-between gap-3">
-                  <div>
-                    <p className="text-xs text-zinc-500 dark:text-zinc-400">Cartão</p>
-                    <p className="font-semibold text-zinc-900 dark:text-white">{paymentModal.account.name}</p>
-                  </div>
-                  <div className="text-right">
-                    <p className="text-xs text-zinc-500 dark:text-zinc-400">Fatura total</p>
-                    <p className="font-semibold text-zinc-900 dark:text-white">
-                      {paymentModal.batch
-                        ? formatCurrency(paymentModal.batch.statement?.total_amount ?? paymentModal.batch.total_amount ?? 0, user?.currency)
-                        : 'Sem fatura confirmada'}
-                    </p>
-                  </div>
-                </div>
-                {paymentModal.batch?.statement && paymentModal.batch.statement.paid_amount > 0 && (
-                  <div className="flex justify-between text-xs pt-1 border-t border-zinc-200 dark:border-white/[0.08]">
-                    <span className="text-zinc-500 dark:text-zinc-400">Já pago</span>
-                    <span className="text-green-600 dark:text-green-400 font-medium">
-                      {formatCurrency(paymentModal.batch.statement.paid_amount, user?.currency)}
-                    </span>
-                  </div>
-                )}
-                {paymentModal.batch?.statement && (
-                  <div className="flex justify-between text-xs">
-                    <span className="text-zinc-500 dark:text-zinc-400">Saldo pendente</span>
-                    <span className="text-red-600 dark:text-red-400 font-medium">
-                      {formatCurrency(
-                        Math.max(paymentModal.batch.statement.total_amount - paymentModal.batch.statement.paid_amount, 0),
-                        user?.currency
-                      )}
-                    </span>
-                  </div>
-                )}
-                <p className="text-xs text-zinc-500 dark:text-zinc-400">
-                  {paymentModal.batch
-                    ? `Status: ${statusLabel(paymentModal.batch.statement?.status ?? paymentModal.batch.status)}`
-                    : 'Confirme a fatura antes de pagar'}
-                </p>
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">
-                  Conta de origem
-                </label>
-                <select
-                  value={paymentForm.from_account_id}
-                  onChange={e => setPaymentForm(prev => ({ ...prev, from_account_id: e.target.value }))}
-                  className={inputCls}
-                >
-                  <option value="">Selecione a conta</option>
-                  {allAccounts
-                    .filter(acc => acc.is_active && acc.account_type !== 'credit_card')
-                    .map(acc => (
-                      <option key={acc.id} value={acc.id}>{acc.name}</option>
-                    ))}
-                </select>
-              </div>
-
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                <div>
-                  <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">
-                    Valor
-                  </label>
-                  <input
-                    type="number"
-                    min="0"
-                    step="0.01"
-                    value={paymentForm.amount}
-                    onChange={e => setPaymentForm(prev => ({ ...prev, amount: e.target.value }))}
-                    className={inputCls}
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">
-                    Data
-                  </label>
-                  <input
-                    type="date"
-                    value={paymentForm.date}
-                    onChange={e => setPaymentForm(prev => ({ ...prev, date: e.target.value }))}
-                    className={inputCls}
-                  />
-                </div>
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">
-                  Descrição opcional
-                </label>
-                <input
-                  type="text"
-                  value={paymentForm.description}
-                  onChange={e => setPaymentForm(prev => ({ ...prev, description: e.target.value }))}
-                  className={inputCls}
-                />
-              </div>
-
-              {paymentError && (
-                <div className="flex items-center gap-2 text-red-600 dark:text-red-400 text-sm">
-                  <AlertCircle size={16} /> {paymentError}
-                </div>
-              )}
-
-              <div className="flex justify-end gap-3 pt-2">
-                <button
-                  onClick={closePaymentModal}
-                  className="px-4 py-2 text-sm border border-zinc-300 dark:border-white/[0.08] text-zinc-600 dark:text-zinc-300 rounded-lg hover:bg-zinc-50 dark:hover:bg-white/[0.06] transition-colors"
-                >
-                  Cancelar
-                </button>
-                <button
-                  onClick={registerPayment}
-                  disabled={paymentSaving || !paymentModal.batch || (() => {
-                    const pending = paymentModal.batch?.statement
-                      ? Math.max(paymentModal.batch.statement.total_amount - paymentModal.batch.statement.paid_amount, 0)
-                      : (paymentModal.batch?.total_amount ?? 0)
-                    return pending === 0
-                  })()}
-                  className="flex items-center justify-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 disabled:opacity-60 text-white rounded-lg transition-colors text-sm"
-                >
-                  {paymentSaving
-                    ? <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                    : <><Check size={16} /> Confirmar pagamento</>
-                  }
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
+      {payTarget && (
+        <StatementPaymentModal
+          account={payTarget.account}
+          month={payTarget.month}
+          accounts={allAccounts}
+          currency={user?.currency}
+          onClose={() => setPayTarget(null)}
+          onPaid={fetchData}
+        />
       )}
     </div>
   )

@@ -1,7 +1,7 @@
 from datetime import date, datetime
 
 from sqlalchemy.orm import Session
-from . import models, schemas
+from . import billing, models, schemas
 from .utils import hash_password
 
 # ========================
@@ -624,7 +624,34 @@ def get_transfer_transactions(db: Session, transfer_id: str, user_id: int):
     return transactions
 
 
+def _card_days(db: Session, account_id: int):
+    """(closing_day, due_day) do cartão, ou None sem configuração."""
+    cfg = get_credit_card_config(db, account_id)
+    if not cfg:
+        return None
+    return cfg.closing_day, cfg.due_day
+
+
+def get_statement(db: Session, statement_id: int, user_id: int):
+    return db.query(models.CreditCardStatement).filter(
+        models.CreditCardStatement.id == statement_id,
+        models.CreditCardStatement.user_id == user_id,
+    ).first()
+
+
+def get_statement_for_month(db: Session, account_id: int, user_id: int, due_month):
+    return db.query(models.CreditCardStatement).filter(
+        models.CreditCardStatement.account_id == account_id,
+        models.CreditCardStatement.user_id == user_id,
+        models.CreditCardStatement.reference_month == billing.month_start(due_month),
+    ).first()
+
+
 def get_credit_card_statement_by_batch(db: Session, batch_id: int, user_id: int):
+    """Fatura do mês a que o lote pertence."""
+    batch = get_import_batch(db, batch_id, user_id)
+    if batch and batch.statement_id:
+        return get_statement(db, batch.statement_id, user_id)
     return db.query(models.CreditCardStatement).filter(
         models.CreditCardStatement.batch_id == batch_id,
         models.CreditCardStatement.user_id == user_id,
@@ -641,36 +668,114 @@ def _sync_credit_card_statement_status(statement):
         statement.status = models.CreditCardStatementStatusEnum.PARTIAL
 
 
-def create_or_update_credit_card_statement(
-    db: Session,
-    batch_id: int,
-    user_id: int,
-    total_amount: float,
-    due_date=None,
-):
-    batch = get_import_batch(db, batch_id, user_id)
-    if not batch:
-        raise ValueError("Lote não encontrado")
+def statement_display_status(statement, today=None) -> str:
+    """Status para exibição: inclui 'overdue' (vencida e não quitada)."""
+    status = statement.status.value if hasattr(statement.status, 'value') else statement.status
+    today = today or date.today()
+    if status in ('open', 'partial') and statement.due_date and statement.due_date < today:
+        return 'overdue'
+    return status
 
-    statement = get_credit_card_statement_by_batch(db, batch_id, user_id)
+
+def _apply_statement_cycle(db: Session, statement):
+    days = _card_days(db, statement.account_id)
+    if not days:
+        return
+    cycle = billing.statement_cycle(days[0], days[1], statement.reference_month)
+    statement.period_start = cycle['period_start']
+    statement.closing_date = cycle['closing_date']
+    statement.due_date = cycle['due_date']
+
+
+def recalculate_statement_total(db: Session, statement):
+    """Total = soma dos itens não ignorados de todos os lotes confirmados."""
+    db.flush()
+    batches = db.query(models.ImportBatch).filter(
+        models.ImportBatch.statement_id == statement.id,
+        models.ImportBatch.status == models.ImportBatchStatusEnum.CONFIRMED,
+    ).all()
+    statement.total_amount = sum(
+        abs(item.amount)
+        for b in batches
+        for item in b.items
+        if item.status != models.ImportItemStatusEnum.IGNORED
+    )
+    _sync_credit_card_statement_status(statement)
+
+
+def attach_batch_to_statement(db: Session, batch, user_id: int):
+    """
+    Liga um lote confirmado à fatura do seu mês de vencimento (criando-a
+    se preciso) e recalcula o total. Não faz commit.
+    """
+    due_month = billing.month_start(batch.reference_month)
+    statement = get_statement_for_month(db, batch.account_id, user_id, due_month)
     if not statement:
         statement = models.CreditCardStatement(
             batch_id=batch.id,
             account_id=batch.account_id,
             user_id=user_id,
-            reference_month=batch.reference_month,
-            due_date=due_date,
-            total_amount=abs(total_amount),
+            reference_month=due_month,
+            total_amount=0.0,
             paid_amount=0.0,
             status=models.CreditCardStatementStatusEnum.OPEN,
         )
         db.add(statement)
-    else:
-        statement.total_amount = abs(total_amount)
-        if due_date is not None:
-            statement.due_date = due_date
+        db.flush()
+    batch.statement_id = statement.id
+    _apply_statement_cycle(db, statement)
+    recalculate_statement_total(db, statement)
+    return statement
 
+
+def register_statement_payment(
+    db: Session,
+    statement_id: int,
+    payment: schemas.CreditCardStatementPaymentCreate,
+    user_id: int,
+):
+    statement = get_statement(db, statement_id, user_id)
+    if not statement:
+        raise ValueError("Fatura não encontrada")
+
+    if payment.amount <= 0:
+        raise ValueError("O valor do pagamento deve ser positivo")
+
+    outstanding = max(statement.total_amount - statement.paid_amount, 0.0)
+    if payment.amount > outstanding + 0.005:
+        raise ValueError("O pagamento não pode ser maior que o saldo em aberto")
+
+    from_account = get_account(db, payment.from_account_id)
+    if not from_account or from_account.user_id != user_id:
+        raise ValueError("Conta de origem não encontrada ou não pertence ao usuário")
+    if from_account.id == statement.account_id:
+        raise ValueError("A conta de origem não pode ser o próprio cartão")
+
+    payment_description = payment.description or (
+        f"Pagamento da fatura {statement.reference_month.strftime('%m/%Y')}"
+    )
+    transfer_payload = schemas.TransferCreate(
+        from_account_id=payment.from_account_id,
+        to_account_id=statement.account_id,
+        amount=payment.amount,
+        date=payment.date,
+        description=payment_description,
+    )
+    transfer_result = create_transfer(db, transfer_payload, user_id, commit=False)
+
+    db.add(models.CreditCardStatementPayment(
+        statement_id=statement.id,
+        from_account_id=payment.from_account_id,
+        transfer_id=transfer_result["transfer_id"],
+        date=payment.date,
+        amount=payment.amount,
+        description=payment_description,
+        user_id=user_id,
+    ))
+
+    statement.paid_amount += payment.amount
     _sync_credit_card_statement_status(statement)
+
     db.commit()
     db.refresh(statement)
     return statement
@@ -682,6 +787,7 @@ def register_credit_card_statement_payment(
     payment: schemas.CreditCardStatementPaymentCreate,
     user_id: int,
 ):
+    """Compatibilidade: paga a fatura do mês a que o lote pertence."""
     batch = get_import_batch(db, batch_id, user_id)
     if not batch:
         raise ValueError("Lote não encontrado")
@@ -690,55 +796,9 @@ def register_credit_card_statement_payment(
 
     statement = get_credit_card_statement_by_batch(db, batch_id, user_id)
     if not statement:
-        statement_total = sum(
-            abs(item.amount)
-            for item in batch.items
-            if item.status != models.ImportItemStatusEnum.IGNORED
-        )
-        statement = create_or_update_credit_card_statement(
-            db, batch_id=batch_id, user_id=user_id, total_amount=statement_total
-        )
-
-    if payment.amount <= 0:
-        raise ValueError("O valor do pagamento deve ser positivo")
-
-    outstanding = max(statement.total_amount - statement.paid_amount, 0.0)
-    if payment.amount > outstanding:
-        raise ValueError("O pagamento não pode ser maior que o saldo em aberto")
-
-    from_account = get_account(db, payment.from_account_id)
-    if not from_account or from_account.user_id != user_id:
-        raise ValueError("Conta de origem não encontrada ou não pertence ao usuário")
-    if from_account.id == statement.account_id:
-        raise ValueError("A conta de origem não pode ser o próprio cartão")
-
-    payment_description = payment.description or f"Pagamento da fatura {batch.reference_month.strftime('%m/%Y')}"
-    transfer_payload = schemas.TransferCreate(
-        from_account_id=payment.from_account_id,
-        to_account_id=statement.account_id,
-        amount=payment.amount,
-        date=payment.date,
-        description=payment_description,
-    )
-    transfer_result = create_transfer(db, transfer_payload, user_id, commit=False)
-
-    statement_payment = models.CreditCardStatementPayment(
-        statement_id=statement.id,
-        from_account_id=payment.from_account_id,
-        transfer_id=transfer_result["transfer_id"],
-        date=payment.date,
-        amount=payment.amount,
-        description=payment_description,
-        user_id=user_id,
-    )
-    db.add(statement_payment)
-
-    statement.paid_amount += payment.amount
-    _sync_credit_card_statement_status(statement)
-
-    db.commit()
-    db.refresh(statement)
-    return get_credit_card_statement_by_batch(db, batch_id, user_id)
+        statement = attach_batch_to_statement(db, batch, user_id)
+        db.commit()
+    return register_statement_payment(db, statement.id, payment, user_id)
 
 
 def delete_transfer(db: Session, transfer_id: str, user_id: int):
@@ -2078,17 +2138,7 @@ def confirm_import_batch(
 
     # Fatura (statement) só faz sentido para cartão de crédito
     if is_credit_card:
-        statement_total = sum(
-            abs(item.amount)
-            for item in batch.items
-            if item.status != models.ImportItemStatusEnum.IGNORED
-        )
-        create_or_update_credit_card_statement(
-            db,
-            batch_id=batch.id,
-            user_id=user_id,
-            total_amount=statement_total,
-        )
+        attach_batch_to_statement(db, batch, user_id)
 
     db.commit()
 
@@ -2113,64 +2163,193 @@ _INSTALLMENT_SUFFIX_RE = _re.compile(
 )
 
 
+def _strip_installment_suffix(description: str) -> str:
+    """Remove sufixos de parcela, inclusive repetidos ('X - Parcela 1/3 1/3')."""
+    text = (description or '').strip()
+    while True:
+        stripped = _INSTALLMENT_SUFFIX_RE.sub('', text).strip()
+        if stripped == text:
+            return text
+        text = stripped
+
+
 def _installment_base_key(description: str) -> str:
     """Descrição sem o sufixo de parcela, normalizada para agrupar."""
-    base = _INSTALLMENT_SUFFIX_RE.sub('', description or '').strip()
-    return base.lower()
+    return _strip_installment_suffix(description).lower()
 
 
-def get_active_installments(db: Session, user_id: int, account_id: int):
+def _installment_groups(db: Session, user_id: int, account_id: int):
     """
-    Consolida parcelamentos ativos de um cartão a partir das transações.
+    Agrupa as parcelas já lançadas de um cartão por compra.
 
-    Agrupa por descrição-base (sem o sufixo 'Parcela X/Y') e usa a
-    parcela mais recente de cada grupo para projetar o que ainda falta.
-    Um grupo é ativo se a parcela mais recente tem current < total.
+    Uma compra é (descrição-base, total de parcelas, mês da 1ª parcela).
+    O mês de cada parcela vem da fatura (lote) em que ela foi importada,
+    e não da data do lançamento: bancos datam parcelas pela compra
+    original ou pelo fechamento, e os centavos variam entre parcelas.
+    Lançamentos manuais sem lote usam o ciclo do cartão pela data.
     """
-    txs = db.query(models.Transaction).filter(
-        models.Transaction.user_id == user_id,
-        models.Transaction.account_id == account_id,
-        models.Transaction.installment_total.isnot(None),
-        models.Transaction.installment_current.isnot(None),
-    ).order_by(models.Transaction.date.asc()).all()
+    rows = (
+        db.query(models.Transaction, models.ImportBatch.reference_month)
+        .outerjoin(models.ImportItem, models.ImportItem.transaction_id == models.Transaction.id)
+        .outerjoin(models.ImportBatch, models.ImportBatch.id == models.ImportItem.batch_id)
+        .filter(
+            models.Transaction.user_id == user_id,
+            models.Transaction.account_id == account_id,
+            models.Transaction.installment_total.isnot(None),
+            models.Transaction.installment_current.isnot(None),
+        )
+        .order_by(models.Transaction.date.asc(), models.Transaction.id.asc())
+        .all()
+    )
+    days = _card_days(db, account_id)
 
     groups: dict = {}
-    for t in txs:
-        key = (_installment_base_key(t.description), t.installment_total)
+    for t, batch_month in rows:
+        cur, total = t.installment_current, t.installment_total
+        if not total or not cur or cur > total:
+            continue
+        if batch_month:
+            month = billing.month_start(batch_month)
+        elif days:
+            month = billing.due_month_for_purchase(t.date, *days)
+        else:
+            month = billing.month_start(t.date)
+        first_month = billing.add_months(month, -(cur - 1))
+        base = _strip_installment_suffix(t.description)
+        match_key = _installment_base_key(t.raw_description or t.description)
+        key = (match_key, total, first_month)
         g = groups.setdefault(key, {
-            'base_description': _INSTALLMENT_SUFFIX_RE.sub(
-                '', t.description or '').strip(),
-            'total': t.installment_total,
-            'latest': None,
-            'seen_current': set(),
-            'per_installment': abs(t.amount),
+            'match_key': match_key,
+            'description': base,
+            'total': total,
+            'first_month': first_month,
+            'by_number': {},
+            'first_date': t.date,
+            'category_id': t.category_id,
         })
-        g['seen_current'].add(t.installment_current)
-        if g['latest'] is None or t.installment_current > g['latest']:
-            g['latest'] = t.installment_current
-            g['per_installment'] = abs(t.amount)
-            g['latest_date'] = t.date
+        g['by_number'].setdefault(cur, []).append(abs(t.amount))
+        g['first_date'] = min(g['first_date'], t.date)
 
     result = []
     for g in groups.values():
-        latest = g['latest']
+        latest = max(g['by_number'])
+        per = round(sum(g['by_number'][latest]), 2)
         total = g['total']
         remaining = max(total - latest, 0)
-        if remaining <= 0:
-            continue  # parcelamento já quitado
         result.append({
-            'description': g['base_description'],
+            'match_key': g['match_key'],
+            'description': g['description'],
             'current': latest,
             'total': total,
             'remaining': remaining,
-            'per_installment': g['per_installment'],
-            'remaining_amount': remaining * g['per_installment'],
-            'paid_installments': len(g['seen_current']),
-            'latest_date': g.get('latest_date'),
+            'per_installment': per,
+            'remaining_amount': round(remaining * per, 2),
+            'paid_installments': len(g['by_number']),
+            'first_month': g['first_month'],
+            'latest_month': billing.add_months(g['first_month'], latest - 1),
+            'end_month': billing.add_months(g['first_month'], total - 1),
+            'purchase_date': g['first_date'],
+            'latest_date': g['first_date'],
+            'category_id': g['category_id'],
         })
+    return result
 
+
+def get_active_installments(db: Session, user_id: int, account_id: int):
+    """Parcelamentos de um cartão que ainda têm parcelas por vir."""
+    result = [g for g in _installment_groups(db, user_id, account_id) if g['remaining'] > 0]
     result.sort(key=lambda x: x['remaining_amount'], reverse=True)
     return result
+
+
+def get_installment_schedule(
+    db: Session, user_id: int, account_id: int, months_ahead: int = 12,
+    from_month=None,
+):
+    """
+    Projeção das próximas parcelas por mês de vencimento. Só calcula —
+    nada é lançado. Começa no mês seguinte à última parcela importada de
+    cada compra (ou em `from_month`, se informado, para recortar).
+    """
+    by_month: dict = {}
+    for g in get_active_installments(db, user_id, account_id):
+        for n in range(g['current'] + 1, g['total'] + 1):
+            month = billing.add_months(g['first_month'], n - 1)
+            by_month.setdefault(month, []).append({
+                'description': g['description'],
+                'number': n,
+                'total': g['total'],
+                'amount': g['per_installment'],
+                'end_month': g['end_month'],
+                'category_id': g['category_id'],
+            })
+    start = billing.month_start(from_month) if from_month else (
+        min(by_month) if by_month else billing.month_start(date.today())
+    )
+    limit = billing.add_months(start, months_ahead)
+    out = []
+    for month in sorted(by_month):
+        if month < start or month >= limit:
+            continue
+        items = sorted(by_month[month], key=lambda i: -i['amount'])
+        out.append({
+            'due_month': month,
+            'items': items,
+            'total': round(sum(i['amount'] for i in items), 2),
+        })
+    return out
+
+
+def check_batch_against_projection(db: Session, batch):
+    """
+    Confere as parcelas de um lote de cartão ainda não confirmado com a
+    projeção do mês da fatura.
+
+    - missing: parcelas que a projeção esperava neste mês e não vieram
+      no arquivo (nem em outro lote já confirmado do mesmo mês);
+    - unexpected: parcelas (n > 1) do arquivo que nenhuma compra
+      conhecida explicava — compra antiga não importada ou mês errado.
+    """
+    month = billing.month_start(batch.reference_month)
+    expected, already_here = {}, set()
+    for g in _installment_groups(db, batch.user_id, batch.account_id):
+        n = (month.year - g['first_month'].year) * 12 + month.month - g['first_month'].month + 1
+        if not (1 < n <= g['total']):
+            continue
+        key = (g['match_key'], g['total'], n)
+        if g['latest_month'] >= month:
+            already_here.add(key)
+        else:
+            expected[key] = {
+                'description': g['description'],
+                'number': n,
+                'total': g['total'],
+                'amount': g['per_installment'],
+            }
+
+    items = [
+        i for i in batch.items
+        if i.installment_total and i.installment_current
+        and i.status == models.ImportItemStatusEnum.PENDING
+    ]
+    found = {}
+    for i in items:
+        found[(_installment_base_key(i.raw_description or i.description),
+               i.installment_total, i.installment_current)] = i
+
+    missing = [v for k, v in expected.items() if k not in found]
+    unexpected = [
+        {
+            'item_id': i.id,
+            'description': i.description or i.raw_description,
+            'number': i.installment_current,
+            'total': i.installment_total,
+            'amount': abs(i.amount),
+        }
+        for k, i in found.items()
+        if i.installment_current > 1 and k not in expected and k not in already_here
+    ]
+    return {'missing': missing, 'unexpected': unexpected}
 
 
 # ------------------------------------------------------------------ #
@@ -2535,3 +2714,350 @@ def get_balance_check(db: Session, batch):
         "confirmed": batch.status == models.ImportBatchStatusEnum.CONFIRMED,
         "hints": hints,
     }
+
+
+# ------------------------------------------------------------------ #
+#  Faturas por mês de vencimento                                      #
+# ------------------------------------------------------------------ #
+
+def _purchase_dates(items):
+    """Datas que indicam o ciclo: compras à vista não ignoradas."""
+    def get(i, k):
+        return i.get(k) if isinstance(i, dict) else getattr(i, k, None)
+
+    # Enum de status herda de str: compara igual a 'ignored'.
+    live = [i for i in items if get(i, 'status') != 'ignored']
+    plain = [get(i, 'date') or get(i, 'raw_date') for i in live if not get(i, 'installment_total')]
+    if plain:
+        return plain
+    return [get(i, 'date') or get(i, 'raw_date') for i in live]
+
+
+def suggest_reference_month(db: Session, account_id: int, items_data, period_end=None):
+    """
+    Mês de referência sugerido para um arquivo novo. Cartão configurado:
+    mês de vencimento da fatura em que caem as compras. Senão: mês da
+    data mais recente.
+    """
+    dates = [d for d in _purchase_dates(items_data) if d]
+    account = get_account(db, account_id)
+    days = _card_days(db, account_id) if account and account.account_type == 'credit_card' else None
+    if days:
+        return billing.suggest_due_month(dates, days[0], days[1], period_end)
+    ref = period_end or (max(dates) if dates else date.today())
+    return billing.month_start(ref)
+
+
+def batch_cycle_info(db: Session, batch):
+    """Ciclo da fatura do lote e itens com data fora dele."""
+    account = get_account(db, batch.account_id)
+    if not account or account.account_type != 'credit_card':
+        return None
+    days = _card_days(db, batch.account_id)
+    if not days:
+        return None
+    cycle = billing.statement_cycle(days[0], days[1], batch.reference_month)
+    out = [
+        i.id for i in batch.items
+        if i.status != models.ImportItemStatusEnum.IGNORED
+        and not i.installment_total
+        and not (cycle['period_start'] <= i.date <= cycle['closing_date'])
+    ]
+    suggested = billing.suggest_due_month(_purchase_dates(batch.items), *days)
+    projection = None
+    if batch.status in (models.ImportBatchStatusEnum.PENDING, models.ImportBatchStatusEnum.REVIEWED):
+        projection = check_batch_against_projection(db, batch)
+    return {
+        **cycle,
+        'out_of_cycle_item_ids': out,
+        'suggested_month': suggested,
+        'projection_check': projection,
+    }
+
+
+def update_batch_reference_month(db: Session, batch_id: int, user_id: int, month):
+    batch = get_import_batch(db, batch_id, user_id)
+    if not batch:
+        raise ValueError("Lote não encontrado")
+    if batch.status in (models.ImportBatchStatusEnum.CONFIRMED, models.ImportBatchStatusEnum.CANCELLED):
+        raise ValueError("Só é possível mudar o mês de um lote ainda não confirmado")
+    batch.reference_month = billing.month_start(month)
+    batch.updated_at = datetime.utcnow()
+    db.commit()
+    db.refresh(batch)
+    return batch
+
+
+def _statement_payload(db: Session, statement, today):
+    outstanding = round(max(statement.total_amount - statement.paid_amount, 0.0), 2)
+    payments = sorted(statement.payments, key=lambda p: (p.date, p.id))
+    batches = db.query(models.ImportBatch).filter(
+        models.ImportBatch.statement_id == statement.id,
+    ).order_by(models.ImportBatch.id).all()
+    return {
+        'id': statement.id,
+        'total_amount': round(statement.total_amount, 2),
+        'paid_amount': round(statement.paid_amount, 2),
+        'outstanding': outstanding,
+        'status': statement_display_status(statement, today),
+        'payments': [
+            {
+                'id': p.id,
+                'date': p.date,
+                'amount': round(p.amount, 2),
+                'from_account_id': p.from_account_id,
+                'from_account_name': p.from_account.name if p.from_account else None,
+                'description': p.description,
+            }
+            for p in payments
+        ],
+        'paid_on': payments[-1].date if payments and outstanding <= 0 else None,
+        'batches': [
+            {
+                'id': b.id,
+                'file_name': b.file_name,
+                'file_type': b.file_type,
+                'status': b.status.value if hasattr(b.status, 'value') else b.status,
+                'item_count': len(b.items),
+            }
+            for b in batches
+        ],
+    }
+
+
+def get_statement_timeline(
+    db: Session, user_id: int, account_id: int,
+    months_back: int = 12, months_ahead: int = 6, today=None,
+):
+    """
+    Linha do tempo de faturas por mês de vencimento: passadas (com status
+    e pagamentos), a do ciclo atual e as futuras com parcelas projetadas.
+    """
+    today = today or date.today()
+    days = _card_days(db, account_id)
+    current = (billing.due_month_for_purchase(today, *days) if days
+               else billing.month_start(today))
+
+    statements = {
+        s.reference_month: s
+        for s in db.query(models.CreditCardStatement).filter(
+            models.CreditCardStatement.account_id == account_id,
+            models.CreditCardStatement.user_id == user_id,
+        ).all()
+    }
+    pending = {}
+    for b in db.query(models.ImportBatch).filter(
+        models.ImportBatch.account_id == account_id,
+        models.ImportBatch.user_id == user_id,
+        models.ImportBatch.status.in_([
+            models.ImportBatchStatusEnum.PENDING,
+            models.ImportBatchStatusEnum.REVIEWED,
+        ]),
+    ).all():
+        pending.setdefault(billing.month_start(b.reference_month), []).append(b.id)
+
+    first = billing.add_months(current, -months_back)
+    if statements:
+        first = max(min(min(statements), first), billing.add_months(current, -36))
+    last = billing.add_months(current, months_ahead)
+
+    schedule = {
+        m['due_month']: m
+        for m in get_installment_schedule(
+            db, user_id, account_id, months_ahead=months_back + months_ahead + 36,
+            from_month=first,
+        )
+    }
+
+    months = []
+    m = first
+    while m <= last:
+        stmt = statements.get(m)
+        cycle = (billing.statement_cycle(days[0], days[1], m) if days else {
+            'reference_month': m, 'period_start': None,
+            'closing_date': None, 'due_date': None,
+        })
+        if stmt and stmt.due_date:
+            cycle = {
+                'reference_month': m,
+                'period_start': stmt.period_start or cycle['period_start'],
+                'closing_date': stmt.closing_date or cycle['closing_date'],
+                'due_date': stmt.due_date,
+            }
+        if m < current:
+            phase = 'past'
+        elif m == current:
+            phase = 'current'
+        else:
+            phase = 'future'
+        projected = schedule.get(m)
+        entry = {
+            **cycle,
+            'phase': phase,
+            'closed': bool(cycle['closing_date'] and cycle['closing_date'] < today),
+            'statement': _statement_payload(db, stmt, today) if stmt else None,
+            'pending_batch_ids': pending.get(m, []),
+            'projected_installments': projected['items'] if projected else [],
+            'projected_total': projected['total'] if projected else 0.0,
+        }
+        if stmt:
+            entry['status'] = entry['statement']['status']
+        elif pending.get(m):
+            entry['status'] = 'pending_review'
+        elif phase == 'past':
+            entry['status'] = 'missing'
+        elif phase == 'current':
+            entry['status'] = 'open_cycle'
+        else:
+            entry['status'] = 'forecast'
+        months.append(entry)
+        m = billing.add_months(m, 1)
+
+    return {
+        'account_id': account_id,
+        'configured': bool(days),
+        'current_month': current,
+        'months': months,
+    }
+
+
+def get_statement_detail(db: Session, statement, today=None):
+    """Fatura com todos os itens dos lotes confirmados que a compõem."""
+    today = today or date.today()
+    groups = {
+        (g['match_key'], g['total'], g['first_month']): g
+        for g in _installment_groups(db, statement.user_id, statement.account_id)
+    }
+    batches = db.query(models.ImportBatch).filter(
+        models.ImportBatch.statement_id == statement.id,
+        models.ImportBatch.status == models.ImportBatchStatusEnum.CONFIRMED,
+    ).all()
+    month = statement.reference_month
+    items = []
+    for b in batches:
+        for i in b.items:
+            if i.status == models.ImportItemStatusEnum.IGNORED:
+                continue
+            end_month = None
+            if i.installment_total and i.installment_current:
+                first = billing.add_months(month, -(i.installment_current - 1))
+                end_month = billing.add_months(first, i.installment_total - 1)
+                g = groups.get((_installment_base_key(i.raw_description or i.description),
+                                i.installment_total, first))
+                if g:
+                    end_month = g['end_month']
+            items.append({
+                'id': i.id,
+                'batch_id': b.id,
+                'date': i.date,
+                'description': i.description or i.raw_description,
+                'raw_description': i.raw_description,
+                'amount': round(abs(i.amount), 2),
+                'category_id': i.category_id,
+                'category_name': i.category.name if i.category else None,
+                'installment_current': i.installment_current,
+                'installment_total': i.installment_total,
+                'installment_end_month': end_month,
+                'out_of_cycle': bool(
+                    statement.period_start and statement.closing_date
+                    and not i.installment_total
+                    and not (statement.period_start <= i.date <= statement.closing_date)
+                ),
+            })
+    items.sort(key=lambda x: (x['date'], x['id']))
+    return {
+        'reference_month': month,
+        'period_start': statement.period_start,
+        'closing_date': statement.closing_date,
+        'due_date': statement.due_date,
+        **_statement_payload(db, statement, today),
+        'items': items,
+    }
+
+
+def realign_card_statements(db: Session):
+    """
+    Converte faturas antigas (uma por lote, mês escolhido à mão) para o
+    modelo de uma fatura por cartão e mês de VENCIMENTO.
+
+    Só trata faturas ainda sem `closing_date` de cartões configurados:
+    1. recalcula o mês de cada lote confirmado pelas datas das compras;
+    2. junta faturas que caem no mesmo mês (soma pagamentos);
+    3. liga os lotes à fatura, recalcula total, ciclo e status.
+    Retorna linhas de log.
+    """
+    log = []
+    legacy = db.query(models.CreditCardStatement).filter(
+        models.CreditCardStatement.closing_date.is_(None),
+    ).order_by(models.CreditCardStatement.id).all()
+    by_account: dict = {}
+    for s in legacy:
+        by_account.setdefault(s.account_id, []).append(s)
+
+    for account_id, stmts in by_account.items():
+        days = _card_days(db, account_id)
+        if not days:
+            continue
+        targets: dict = {}
+        for s in stmts:
+            batch = db.get(models.ImportBatch, s.batch_id)
+            month = s.reference_month
+            if batch:
+                suggested = billing.suggest_due_month(_purchase_dates(batch.items), *days)
+                if suggested:
+                    month = suggested
+                if batch.reference_month != month:
+                    log.append(
+                        f"lote #{batch.id}: mes {batch.reference_month:%m/%Y} -> "
+                        f"{month:%m/%Y} (vencimento)"
+                    )
+                batch.reference_month = month
+            targets.setdefault(month, []).append((s, batch))
+
+        legacy_ids = {s.id for s in stmts}
+        for month, pairs in targets.items():
+            existing = db.query(models.CreditCardStatement).filter(
+                models.CreditCardStatement.account_id == account_id,
+                models.CreditCardStatement.reference_month == month,
+                ~models.CreditCardStatement.id.in_(legacy_ids),
+            ).first()
+            keep = existing or pairs[0][0]
+            for s, batch in pairs:
+                if batch:
+                    batch.statement_id = keep.id
+                if s is keep:
+                    continue
+                for p in list(s.payments):
+                    p.statement_id = keep.id
+                keep.paid_amount += s.paid_amount
+                log.append(f"fatura #{s.id} unida a #{keep.id} ({month:%m/%Y})")
+                db.flush()
+                db.expire(s, ['payments'])
+                db.delete(s)
+            db.flush()
+            keep.reference_month = month
+            _apply_statement_cycle(db, keep)
+            recalculate_statement_total(db, keep)
+        db.flush()
+
+    # Lotes cancelados não mudam mais: seguem o mês das próprias compras
+    # para não aparecerem misturados a outra fatura no histórico.
+    for b in db.query(models.ImportBatch).join(
+        models.Account, models.Account.id == models.ImportBatch.account_id,
+    ).filter(
+        models.Account.account_type == 'credit_card',
+        models.ImportBatch.status == models.ImportBatchStatusEnum.CANCELLED,
+    ).all():
+        days = _card_days(db, b.account_id)
+        month = days and billing.suggest_due_month(_purchase_dates(b.items), *days)
+        if month and b.reference_month != month:
+            log.append(f"lote cancelado #{b.id}: mes {b.reference_month:%m/%Y} -> {month:%m/%Y}")
+            b.reference_month = month
+
+    # Lotes confirmados de faturas já alinhadas que ainda não têm vínculo.
+    for s in db.query(models.CreditCardStatement).all():
+        b = db.get(models.ImportBatch, s.batch_id)
+        if b and not b.statement_id:
+            b.statement_id = s.id
+    db.commit()
+    return log

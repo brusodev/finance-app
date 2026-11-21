@@ -227,35 +227,56 @@ class ImportBatch(Base):
     created_at = Column(DateTime, default=datetime.utcnow)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
     confirmed_at = Column(DateTime, nullable=True)
+    # Fatura (por mês de vencimento) a que o lote pertence. Vários lotes
+    # do mesmo mês compõem uma única fatura.
+    statement_id = Column(
+        Integer,
+        ForeignKey('credit_card_statements.id', use_alter=True, name='fk_import_batches_statement_id'),
+        nullable=True,
+        index=True,
+    )
 
     account = relationship("Account")
     user = relationship("User")
     items = relationship("ImportItem", back_populates="batch", cascade="all, delete-orphan")
     statement = relationship(
         "CreditCardStatement",
-        back_populates="batch",
-        uselist=False,
-        cascade="all, delete-orphan",
+        back_populates="batches",
+        foreign_keys=[statement_id],
     )
 
 
 class CreditCardStatement(Base):
-    """Fatura consolidada de um cartão, gerada a partir de um lote confirmado."""
+    """
+    Fatura de um cartão num mês de VENCIMENTO (reference_month = dia 1
+    do mês em que vence). Soma todos os lotes confirmados desse mês.
+    """
     __tablename__ = 'credit_card_statements'
+    __table_args__ = (
+        UniqueConstraint('account_id', 'reference_month', name='uq_statement_account_month'),
+    )
 
     id = Column(Integer, primary_key=True, index=True)
+    # Primeiro lote que originou a fatura (mantido por compatibilidade).
     batch_id = Column(Integer, ForeignKey('import_batches.id'), unique=True, nullable=False, index=True)
     account_id = Column(Integer, ForeignKey('accounts.id'), nullable=False, index=True)
     user_id = Column(Integer, ForeignKey('users.id'), nullable=False, index=True)
     reference_month = Column(Date, nullable=False)
-    due_date = Column(Date, nullable=True)
+    period_start = Column(Date, nullable=True)   # Primeiro dia de compras
+    closing_date = Column(Date, nullable=True)   # Fechamento
+    due_date = Column(Date, nullable=True)       # Vencimento
     total_amount = Column(Float, nullable=False, default=0.0)
     paid_amount = Column(Float, nullable=False, default=0.0)
     status = Column(Enum(CreditCardStatementStatusEnum), default=CreditCardStatementStatusEnum.OPEN, nullable=False)
     created_at = Column(DateTime, default=datetime.utcnow)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
-    batch = relationship("ImportBatch", back_populates="statement")
+    batch = relationship("ImportBatch", foreign_keys=[batch_id])
+    batches = relationship(
+        "ImportBatch",
+        back_populates="statement",
+        foreign_keys="ImportBatch.statement_id",
+    )
     account = relationship("Account")
     user = relationship("User")
     payments = relationship(

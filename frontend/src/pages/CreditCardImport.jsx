@@ -9,6 +9,7 @@ import { creditCardsAPI, accountsAPI, categoriesAPI } from '../services/api'
 import CategorySelect from '../components/CategorySelect'
 import { formatCurrency, formatDateLocal } from '../utils/formatters'
 import { useAuth } from '../context/AuthContext'
+import { cycleLabel, monthShort } from '../utils/statements'
 
 // ─── helpers ────────────────────────────────────────────────
 const STATUS_LABEL = {
@@ -39,10 +40,10 @@ const STATEMENT_COLOR = {
   cancelled: 'text-zinc-500 dark:text-zinc-400 bg-zinc-100 dark:bg-[#1a1a1a]',
 }
 
-function monthOptions() {
+function monthOptions(ahead = 0) {
   const opts = []
   const now = new Date()
-  for (let i = 0; i < 13; i++) {
+  for (let i = -ahead; i < 13; i++) {
     const d = new Date(now.getFullYear(), now.getMonth() - i, 1)
     const val = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-01`
     const label = d.toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' })
@@ -124,7 +125,9 @@ export default function CreditCardImport() {
 
   // New batch form
   const [newBatchMode, setNewBatchMode] = useState(null) // 'manual' | 'upload'
-  const [refMonth, setRefMonth] = useState(monthOptions()[0].val)
+  // 'auto' = o backend detecta a fatura (mês de vencimento) pelas datas.
+  const [refMonth, setRefMonth] = useState('auto')
+  const [changingMonth, setChangingMonth] = useState(false)
   const [uploadFile, setUploadFile] = useState(null)
   const [creating, setCreating] = useState(false)
   const [createError, setCreateError] = useState('')
@@ -254,7 +257,7 @@ export default function CreditCardImport() {
     try {
       const batch = await creditCardsAPI.createManualBatch(accountId, {
         account_id: parseInt(accountId),
-        reference_month: refMonth,
+        reference_month: refMonth === 'auto' ? monthOptions()[0].val : refMonth,
       })
       setBatches(prev => [{ ...batch, item_count: 0, total_amount: 0 }, ...prev])
       setSelectedBatch({ ...batch, items: [] })
@@ -271,7 +274,9 @@ export default function CreditCardImport() {
     setCreateError('')
     setCreating(true)
     try {
-      const batch = await creditCardsAPI.uploadBatch(accountId, refMonth, uploadFile)
+      const batch = await creditCardsAPI.uploadBatch(
+        accountId, refMonth === 'auto' ? null : refMonth, uploadFile
+      )
       setBatches(prev => [{
         ...batch,
         item_count: batch.items?.length ?? 0,
@@ -284,6 +289,21 @@ export default function CreditCardImport() {
       setCreateError(err.detail || 'Erro ao processar arquivo')
     } finally {
       setCreating(false)
+    }
+  }
+
+  // Move um lote não confirmado para outra fatura (mês de vencimento).
+  const changeBatchMonth = async (month) => {
+    if (!selectedBatch || !month || month === selectedBatch.reference_month) return
+    setChangingMonth(true)
+    try {
+      const b = await creditCardsAPI.setBatchReferenceMonth(accountId, selectedBatch.id, month)
+      setSelectedBatch(b)
+      setBatches(prev => prev.map(x => x.id === b.id ? { ...x, reference_month: b.reference_month } : x))
+    } catch (err) {
+      setError(err.detail || 'Erro ao mudar a fatura do lote')
+    } finally {
+      setChangingMonth(false)
     }
   }
 
@@ -575,18 +595,27 @@ export default function CreditCardImport() {
               </p>
 
               <div>
-                <label className="block text-xs text-zinc-500 dark:text-zinc-400 mb-1">
-                  Mês de referência
+                <label className="block text-xs text-zinc-500 dark:text-zinc-400 mb-1" htmlFor="ref-month">
+                  {isCreditCard ? 'Fatura (mês de vencimento)' : 'Mês de referência'}
                 </label>
                 <select
-                  value={refMonth}
+                  id="ref-month"
+                  value={newBatchMode === 'manual' && refMonth === 'auto' ? monthOptions()[0].val : refMonth}
                   onChange={e => setRefMonth(e.target.value)}
                   className="w-full px-3 py-2 text-sm border border-zinc-300 dark:border-white/[0.08] rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-[#1a1a1a] text-zinc-900 dark:text-white"
                 >
-                  {monthOptions().map(o => (
-                    <option key={o.val} value={o.val}>{o.label}</option>
+                  {newBatchMode === 'upload' && (
+                    <option value="auto">Detectar pelas datas do arquivo</option>
+                  )}
+                  {monthOptions(isCreditCard ? 2 : 0).map(o => (
+                    <option key={o.val} value={o.val}>{isCreditCard ? `Fatura de ${o.label}` : o.label}</option>
                   ))}
                 </select>
+                {isCreditCard && (
+                  <p className="text-[11px] text-zinc-500 dark:text-zinc-400 mt-1">
+                    A fatura leva o nome do mês em que vence. Ex.: compras de outubro pagas em novembro → fatura de novembro.
+                  </p>
+                )}
               </div>
 
               {newBatchMode === 'upload' && (
@@ -694,8 +723,10 @@ export default function CreditCardImport() {
             </div>
           ) : (
             groupedBatches.map((group, groupIndex) => {
-              const groupTotal = group.batches.reduce((sum, batch) => sum + batch.total_amount, 0)
-              const groupItemCount = group.batches.reduce((sum, batch) => sum + batch.item_count, 0)
+              // Lotes cancelados aparecem na lista, mas não entram no total.
+              const liveBatches = group.batches.filter(b => b.status !== 'cancelled')
+              const groupTotal = liveBatches.reduce((sum, batch) => sum + batch.total_amount, 0)
+              const groupItemCount = liveBatches.reduce((sum, batch) => sum + batch.item_count, 0)
               const isOpen = openMonths?.has(group.monthKey)
               return (
                 <div
@@ -715,7 +746,7 @@ export default function CreditCardImport() {
                   >
                     <div className="flex items-center gap-2 min-w-0">
                       <p className="font-semibold text-zinc-800 dark:text-white text-sm truncate">
-                        {formatReferenceMonth(group.monthKey)}
+                        {isCreditCard ? `Fatura ${monthShort(group.monthKey)}` : formatReferenceMonth(group.monthKey)}
                       </p>
                       {groupIndex === 0 && (
                         <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 font-medium shrink-0">
@@ -762,7 +793,7 @@ export default function CreditCardImport() {
                       </div>
                     </button>
                   ))}
-                  {group.batches.length > 1 && (
+                  {liveBatches.length > 1 && (
                     <div className="flex items-center justify-between bg-white/[0.02] px-4 py-2 text-[11px] text-zinc-500 dark:text-zinc-400">
                       <span>Total do mês: {groupItemCount} itens</span>
                       <span className="font-medium text-zinc-700 dark:text-zinc-300">
@@ -788,11 +819,32 @@ export default function CreditCardImport() {
               {/* Batch header */}
               <div className="p-5 border-b border-zinc-200 dark:border-white/[0.06] flex flex-wrap items-center justify-between gap-3">
                 <div>
-                  <h3 className="font-bold text-zinc-800 dark:text-white">
-                    {new Date(selectedBatch.reference_month + 'T12:00:00').toLocaleDateString('pt-BR', {
-                      month: 'long', year: 'numeric'
-                    })}
+                  <h3 className="font-bold text-zinc-800 dark:text-white flex flex-wrap items-center gap-2">
+                    <span>
+                      {isCreditCard ? 'Fatura de ' : ''}
+                      {new Date(selectedBatch.reference_month + 'T12:00:00').toLocaleDateString('pt-BR', {
+                        month: 'long', year: 'numeric'
+                      })}
+                    </span>
+                    {isCreditCard && !isFrozen && (
+                      <select
+                        aria-label="Mudar a fatura deste lote"
+                        value={selectedBatch.reference_month}
+                        disabled={changingMonth}
+                        onChange={e => changeBatchMonth(e.target.value)}
+                        className="text-xs font-normal px-2 py-1 border border-zinc-300 dark:border-white/[0.08] rounded-lg bg-white dark:bg-[#1a1a1a] text-zinc-700 dark:text-zinc-300"
+                      >
+                        {monthOptions(2).map(o => (
+                          <option key={o.val} value={o.val}>Mudar para {o.label}</option>
+                        ))}
+                      </select>
+                    )}
                   </h3>
+                  {selectedBatch.cycle && (
+                    <p className="text-xs text-zinc-500 dark:text-zinc-400 mt-1 flex items-center gap-1.5">
+                      <Calendar size={12} /> {cycleLabel(selectedBatch.cycle)}
+                    </p>
+                  )}
                   <div className="flex items-center gap-3 mt-1 text-sm text-zinc-500 dark:text-zinc-400">
                     <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${STATUS_COLOR[selectedBatch.status]}`}>
                       {STATUS_LABEL[selectedBatch.status]}
@@ -850,6 +902,59 @@ export default function CreditCardImport() {
                   </div>
                 )}
               </div>
+
+              {/* Ciclo da fatura: mês sugerido, itens fora do ciclo, parcelas */}
+              {selectedBatch.cycle && !isFrozen && (() => {
+                const c = selectedBatch.cycle
+                const wrongMonth = c.suggested_month && c.suggested_month !== selectedBatch.reference_month
+                const outCount = c.out_of_cycle_item_ids?.length ?? 0
+                const missing = c.projection_check?.missing ?? []
+                const unexpected = c.projection_check?.unexpected ?? []
+                if (!wrongMonth && !outCount && !missing.length && !unexpected.length) return null
+                return (
+                  <div className="p-4 border-b border-amber-200 dark:border-amber-800 bg-amber-50 dark:bg-amber-900/15 text-sm text-amber-800 dark:text-amber-300 space-y-2">
+                    {wrongMonth && (
+                      <div className="flex flex-wrap items-center gap-2">
+                        <AlertCircle size={15} className="shrink-0" />
+                        As datas das compras indicam a fatura de <strong>{monthShort(c.suggested_month)}</strong>.
+                        <button
+                          onClick={() => changeBatchMonth(c.suggested_month)}
+                          disabled={changingMonth}
+                          className="px-2 py-0.5 text-xs rounded-md border border-amber-400 dark:border-amber-700 hover:bg-amber-100 dark:hover:bg-amber-900/30"
+                        >
+                          Mover para {monthShort(c.suggested_month)}
+                        </button>
+                      </div>
+                    )}
+                    {outCount > 0 && !wrongMonth && (
+                      <p className="flex items-center gap-2">
+                        <CalendarX size={15} className="shrink-0" />
+                        {outCount} {outCount === 1 ? 'compra está' : 'compras estão'} fora do período desta fatura (marcadas na lista).
+                      </p>
+                    )}
+                    {missing.length > 0 && (
+                      <div>
+                        <p className="flex items-center gap-2"><Clock size={15} className="shrink-0" /> Parcelas esperadas que não vieram no arquivo:</p>
+                        <ul className="ml-6 mt-1 list-disc text-xs space-y-0.5">
+                          {missing.map((m, i) => (
+                            <li key={i}>{m.description} {m.number}/{m.total} · {formatCurrency(m.amount, user?.currency)}</li>
+                          ))}
+                        </ul>
+                      </div>
+                    )}
+                    {unexpected.length > 0 && (
+                      <div>
+                        <p className="flex items-center gap-2"><Clock size={15} className="shrink-0" /> Parcelas sem compra anterior registrada:</p>
+                        <ul className="ml-6 mt-1 list-disc text-xs space-y-0.5">
+                          {unexpected.map(u => (
+                            <li key={u.item_id}>{u.description} {u.number}/{u.total} · {formatCurrency(u.amount, user?.currency)}</li>
+                          ))}
+                        </ul>
+                      </div>
+                    )}
+                  </div>
+                )
+              })()}
 
               {/* Conferência de saldo com o extrato */}
               {balanceCheck && (
@@ -1271,6 +1376,11 @@ export default function CreditCardImport() {
                             )}
                             <div className="flex items-center gap-3 mt-0.5 text-xs text-zinc-500 dark:text-zinc-400">
                               <span>{formatDateLocal(item.date)}</span>
+                              {selectedBatch.cycle?.out_of_cycle_item_ids?.includes(item.id) && !isFrozen && (
+                                <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-300">
+                                  fora do ciclo
+                                </span>
+                              )}
                               {item.category && (
                                 <>
                                   <span>·</span>

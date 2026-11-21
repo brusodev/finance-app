@@ -6,6 +6,7 @@ from fastapi import (
 )
 from sqlalchemy.orm import Session
 from datetime import date
+from typing import Optional
 
 from .. import crud, schemas, classify_jobs
 from ..database import get_db, SessionLocal
@@ -123,6 +124,100 @@ def list_active_installments(
     }
 
 
+def _own_account(db, account_id, user_id):
+    account = crud.get_account(db, account_id)
+    if not account or account.user_id != user_id:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Conta não encontrada",
+        )
+    return account
+
+
+def _own_statement(db, account_id, statement_id, user_id):
+    stmt = crud.get_statement(db, statement_id, user_id)
+    if not stmt or stmt.account_id != account_id:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Fatura não encontrada",
+        )
+    return stmt
+
+
+@router.get("/{account_id}/installments/schedule")
+def installment_schedule(
+    account_id: int,
+    months_ahead: int = Query(12, ge=1, le=60),
+    db: Session = Depends(get_db),
+    current_user: schemas.User = Depends(get_current_user),
+):
+    """Parcelas futuras projetadas por mês de vencimento (sem lançar nada)."""
+    _own_account(db, account_id, current_user.id)
+    months = crud.get_installment_schedule(
+        db, current_user.id, account_id, months_ahead=months_ahead,
+    )
+    return {
+        "months": months,
+        "total": round(sum(m["total"] for m in months), 2),
+    }
+
+
+# ============================================================
+# FATURAS (uma por mês de vencimento)
+# ============================================================
+
+@router.get("/{account_id}/statements")
+def statement_timeline(
+    account_id: int,
+    months_back: int = Query(12, ge=0, le=36),
+    months_ahead: int = Query(6, ge=0, le=24),
+    db: Session = Depends(get_db),
+    current_user: schemas.User = Depends(get_current_user),
+):
+    """Linha do tempo: faturas passadas, a atual e as futuras projetadas."""
+    _own_account(db, account_id, current_user.id)
+    return crud.get_statement_timeline(
+        db, current_user.id, account_id,
+        months_back=months_back, months_ahead=months_ahead,
+    )
+
+
+@router.get("/{account_id}/statements/{statement_id}")
+def statement_detail(
+    account_id: int,
+    statement_id: int,
+    db: Session = Depends(get_db),
+    current_user: schemas.User = Depends(get_current_user),
+):
+    """Fatura com os itens de todos os lotes que a compõem."""
+    stmt = _own_statement(db, account_id, statement_id, current_user.id)
+    return crud.get_statement_detail(db, stmt)
+
+
+@router.post(
+    "/{account_id}/statements/{statement_id}/payments",
+    status_code=status.HTTP_201_CREATED,
+)
+def pay_statement(
+    account_id: int,
+    statement_id: int,
+    payment_in: schemas.CreditCardStatementPaymentCreate,
+    db: Session = Depends(get_db),
+    current_user: schemas.User = Depends(get_current_user),
+):
+    """Registra pagamento total ou parcial de uma fatura."""
+    _own_statement(db, account_id, statement_id, current_user.id)
+    try:
+        stmt = crud.register_statement_payment(
+            db, statement_id, payment_in, current_user.id
+        )
+    except ValueError as e:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST, detail=str(e)
+        )
+    return crud.get_statement_detail(db, stmt)
+
+
 @router.get("/{account_id}/import-coverage")
 def import_coverage(
     account_id: int,
@@ -178,6 +273,7 @@ def list_batches(
                 paid_amount=stmt.paid_amount,
                 status=stmt.status.value if hasattr(stmt.status, 'value') else stmt.status,
                 due_date=stmt.due_date,
+                reference_month=stmt.reference_month,
             )
         result.append(schemas.ImportBatchSummary(
             id=b.id,
@@ -230,8 +326,12 @@ def create_manual_batch(
 )
 async def upload_batch(
     account_id: int,
-    reference_month: date = Query(
-        ..., description="Mês de referência (YYYY-MM-DD)"
+    reference_month: Optional[date] = Query(
+        None,
+        description=(
+            "Mês de referência (YYYY-MM-DD). Em cartão, é o mês de "
+            "vencimento da fatura; se omitido, é detectado pelas datas."
+        ),
     ),
     file: UploadFile = File(...),
     db: Session = Depends(get_db),
@@ -278,6 +378,11 @@ async def upload_batch(
         period_start, period_end = parse_ofx_period(content)
         bank_balance, bank_balance_date = parse_ofx_balance(content)
 
+    if reference_month is None:
+        reference_month = crud.suggest_reference_month(
+            db, account_id, items_data, period_end=period_end,
+        )
+
     duplicate_batch = crud.find_duplicate_import_batch(
         db,
         account_id=account_id,
@@ -311,7 +416,41 @@ async def upload_batch(
         crud.add_import_items(db, batch.id, items_data, current_user.id)
         db.refresh(batch)
 
-    return batch
+    return _batch_response(db, batch)
+
+
+def _batch_response(db, batch):
+    data = schemas.ImportBatch.model_validate(batch)
+    return data.model_copy(update={"cycle": crud.batch_cycle_info(db, batch)})
+
+
+@router.put(
+    "/{account_id}/batches/{batch_id}/reference-month",
+    response_model=schemas.ImportBatch,
+)
+def set_batch_reference_month(
+    account_id: int,
+    batch_id: int,
+    body: schemas.ImportBatchReferenceMonthUpdate,
+    db: Session = Depends(get_db),
+    current_user: schemas.User = Depends(get_current_user),
+):
+    """Muda a fatura (mês de vencimento) de um lote ainda não confirmado."""
+    batch = crud.get_import_batch(db, batch_id, current_user.id)
+    if not batch or batch.account_id != account_id:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Lote não encontrado",
+        )
+    try:
+        batch = crud.update_batch_reference_month(
+            db, batch_id, current_user.id, body.reference_month
+        )
+    except ValueError as e:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST, detail=str(e)
+        )
+    return _batch_response(db, batch)
 
 
 @router.get("/{account_id}/batches/{batch_id}/balance-check")
@@ -348,7 +487,7 @@ def get_batch(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="Lote não encontrado",
         )
-    return batch
+    return _batch_response(db, batch)
 
 
 @router.delete(

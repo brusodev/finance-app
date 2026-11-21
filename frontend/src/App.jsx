@@ -24,6 +24,7 @@ import InvestmentTransactions from "./pages/InvestmentTransactions";
 import InvestmentGoal from "./pages/InvestmentGoal";
 import CreditCards from "./pages/CreditCards";
 import CreditCardImport from "./pages/CreditCardImport";
+import CreditCardStatements from "./pages/CreditCardStatements";
 
 function App() {
   return (
@@ -147,6 +148,14 @@ function App() {
                 <ProtectedRoute>
                   <Layout>
                     <CreditCards />
+                  </Layout>
+                </ProtectedRoute>
+              } />
+
+              <Route path="/cartoes/:accountId/faturas" element={
+                <ProtectedRoute>
+                  <Layout>
+                    <CreditCardStatements />
                   </Layout>
                 </ProtectedRoute>
               } />

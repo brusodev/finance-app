@@ -682,6 +682,50 @@ export const creditCardsAPI = {
     return handleResponse(response);
   },
 
+  // ---- Faturas (uma por mês de vencimento) ----
+  getStatements: async (accountId, { monthsBack = 12, monthsAhead = 6 } = {}) => {
+    const response = await fetch(
+      `${API_URL}/credit-cards/${accountId}/statements?months_back=${monthsBack}&months_ahead=${monthsAhead}`,
+      { headers: getHeaders(), credentials: "include" }
+    );
+    return handleResponse(response);
+  },
+
+  getStatement: async (accountId, statementId) => {
+    const response = await fetch(
+      `${API_URL}/credit-cards/${accountId}/statements/${statementId}`,
+      { headers: getHeaders(), credentials: "include" }
+    );
+    return handleResponse(response);
+  },
+
+  payStatement: async (accountId, statementId, data) => {
+    const response = await fetch(
+      `${API_URL}/credit-cards/${accountId}/statements/${statementId}/payments`,
+      { method: "POST", headers: getHeaders(), credentials: "include", body: JSON.stringify(data) }
+    );
+    return handleResponse(response);
+  },
+
+  getInstallmentSchedule: async (accountId, monthsAhead = 12) => {
+    const response = await fetch(
+      `${API_URL}/credit-cards/${accountId}/installments/schedule?months_ahead=${monthsAhead}`,
+      { headers: getHeaders(), credentials: "include" }
+    );
+    return handleResponse(response);
+  },
+
+  setBatchReferenceMonth: async (accountId, batchId, referenceMonth) => {
+    const response = await fetch(
+      `${API_URL}/credit-cards/${accountId}/batches/${batchId}/reference-month`,
+      {
+        method: "PUT", headers: getHeaders(), credentials: "include",
+        body: JSON.stringify({ reference_month: referenceMonth }),
+      }
+    );
+    return handleResponse(response);
+  },
+
   listInstallments: async (accountId) => {
     const response = await fetch(
       `${API_URL}/credit-cards/${accountId}/installments`,
@@ -704,7 +748,8 @@ export const creditCardsAPI = {
     const formData = new FormData();
     formData.append("file", file);
     const response = await fetch(
-      `${API_URL}/credit-cards/${accountId}/batches/upload?reference_month=${referenceMonth}`,
+      // Sem referenceMonth, o backend detecta a fatura pelas datas.
+      `${API_URL}/credit-cards/${accountId}/batches/upload${referenceMonth ? `?reference_month=${referenceMonth}` : ""}`,
       {
         method: "POST",
         credentials: "include",
